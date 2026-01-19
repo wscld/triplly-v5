@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { AppDataSource } from '../data-source.js';
-import { Activity, ActivityComment, TravelMember, Itinerary } from '../entities/index.js';
+import { Activity, ActivityComment, TravelMember } from '../entities/index.js';
 import { authMiddleware, getAuth } from '../middleware/index.js';
 
 const comments = new Hono();
@@ -14,9 +14,9 @@ const createCommentSchema = z.object({
 });
 
 // Helper to check read access (viewer+)
+// Helper to check read access (viewer+)
 async function checkCommentReadAccess(userId: string, activityId: string) {
     const activityRepo = AppDataSource.getRepository(Activity);
-    const itineraryRepo = AppDataSource.getRepository(Itinerary);
     const memberRepo = AppDataSource.getRepository(TravelMember);
 
     const activity = await activityRepo.findOne({ where: { id: activityId } });
@@ -24,13 +24,8 @@ async function checkCommentReadAccess(userId: string, activityId: string) {
         return { error: 'Activity not found', status: 404 as const };
     }
 
-    const itinerary = await itineraryRepo.findOne({ where: { id: activity.itineraryId } });
-    if (!itinerary) {
-        return { error: 'Itinerary not found', status: 404 as const };
-    }
-
     const member = await memberRepo.findOne({
-        where: { travelId: itinerary.travelId, userId },
+        where: { travelId: activity.travelId, userId },
     });
 
     if (!member) {

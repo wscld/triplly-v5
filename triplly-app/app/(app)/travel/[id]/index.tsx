@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import DatePickerInput from '@/components/DatePickerInput';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { haversineDistance, formatDistance } from '@/utils/distance';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const MAP_COLLAPSED_HEIGHT = 120;
@@ -487,30 +488,51 @@ export default function TravelDetailScreen() {
                                             });
                                         }
                                     }}
-                                    renderItem={({ item, drag, isActive }: RenderItemParams<Activity>) => (
-                                        <ScaleDecorator>
-                                            <TouchableOpacity
-                                                style={[styles.activityCard, isActive && styles.activityCardActive]}
-                                                onPress={() => {
-                                                    const targetItineraryId = selectedItinerary?.id || 'wishlist';
-                                                    router.push(`/(app)/travel/${id}/itinerary/activity/${item.id}?itineraryId=${targetItineraryId}`);
-                                                }}
-                                                onLongPress={drag}
-                                            >
-                                                <TouchableOpacity onPressIn={drag} style={styles.dragHandle}>
-                                                    <Ionicons name="reorder-two" size={20} color="#C7C7CC" />
-                                                </TouchableOpacity>
-                                                <Text style={styles.activityTitle} numberOfLines={1}>
-                                                    {item.title}
-                                                </Text>
-                                                {selectedDayIndex === -1 ? (
-                                                    <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />
-                                                ) : (
-                                                    <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />
+                                    renderItem={({ item, getIndex, drag, isActive }: RenderItemParams<Activity>) => {
+                                        const index = getIndex();
+                                        const prevActivity = index !== undefined && index > 0 ? activities[index - 1] : null;
+                                        const distance = prevActivity ? haversineDistance(
+                                            prevActivity.latitude,
+                                            prevActivity.longitude,
+                                            item.latitude,
+                                            item.longitude
+                                        ) : null;
+
+                                        return (
+                                            <ScaleDecorator>
+                                                {distance !== null && (
+                                                    <View style={styles.distanceIndicator}>
+                                                        <View style={styles.distanceLine} />
+                                                        <View style={styles.distanceBadge}>
+                                                            <Ionicons name="walk" size={12} color="#8E8E93" />
+                                                            <Text style={styles.distanceText}>{formatDistance(distance)}</Text>
+                                                        </View>
+                                                        <View style={styles.distanceLine} />
+                                                    </View>
                                                 )}
-                                            </TouchableOpacity>
-                                        </ScaleDecorator>
-                                    )}
+                                                <TouchableOpacity
+                                                    style={[styles.activityCard, isActive && styles.activityCardActive]}
+                                                    onPress={() => {
+                                                        const targetItineraryId = selectedItinerary?.id || 'wishlist';
+                                                        router.push(`/(app)/travel/${id}/itinerary/activity/${item.id}?itineraryId=${targetItineraryId}`);
+                                                    }}
+                                                    onLongPress={drag}
+                                                >
+                                                    <TouchableOpacity onPressIn={drag} style={styles.dragHandle}>
+                                                        <Ionicons name="reorder-two" size={20} color="#C7C7CC" />
+                                                    </TouchableOpacity>
+                                                    <Text style={styles.activityTitle} numberOfLines={1}>
+                                                        {item.title}
+                                                    </Text>
+                                                    {selectedDayIndex === -1 ? (
+                                                        <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />
+                                                    ) : (
+                                                        <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />
+                                                    )}
+                                                </TouchableOpacity>
+                                            </ScaleDecorator>
+                                        );
+                                    }}
                                 />
                             </GestureHandlerRootView>
                         )}
@@ -775,6 +797,39 @@ const styles = StyleSheet.create({
     },
     content: {
         flex: 1,
+    },
+    sheetTitle: {
+        fontSize: 18,
+        fontWeight: '600',
+        color: '#1C1C1E',
+        marginBottom: 16,
+        paddingHorizontal: 16,
+    },
+    distanceIndicator: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginVertical: 4,
+        paddingHorizontal: 16,
+    },
+    distanceLine: {
+        flex: 1,
+        height: 1,
+        backgroundColor: '#E5E5EA',
+    },
+    distanceBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#F2F2F7',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 12,
+        marginHorizontal: 8,
+        gap: 4,
+    },
+    distanceText: {
+        fontSize: 12,
+        color: '#8E8E93',
+        fontWeight: '500',
     },
     dateText: {
         fontSize: 16,

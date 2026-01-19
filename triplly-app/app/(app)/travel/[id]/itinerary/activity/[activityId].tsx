@@ -253,11 +253,11 @@ export default function ActivityScreen() {
                     top: insets.top + 60,
                     left: 24,
                     right: 24,
-                    zIndex: 10
+                    zIndex: 10,
                 },
                 headerContentStyle
             ]}>
-                <Text style={styles.bigTitle}>{activity.title}</Text>
+                <Text numberOfLines={1} style={styles.bigTitle}>{activity.title}</Text>
 
                 <View style={styles.subtitleRow}>
                     {activity.startTime && (
@@ -278,7 +278,7 @@ export default function ActivityScreen() {
             </Animated.View>
 
             <Animated.ScrollView
-                contentContainerStyle={[styles.content, { paddingBottom: MAP_COLLAPSED_HEIGHT + 40, paddingTop: insets.top + 160 }]}
+                contentContainerStyle={[styles.content, { paddingBottom: MAP_COLLAPSED_HEIGHT + 100, paddingTop: insets.top + 160 }]}
                 onScroll={scrollHandler}
                 scrollEventThrottle={16}
             >
@@ -297,7 +297,7 @@ export default function ActivityScreen() {
 
                         {/* Added By Section */}
                         {activity.createdBy && (
-                            <View style={styles.addedBySection}>
+                            <View style={activity.description ? styles.addedBySection : { ...styles.addedBySection, borderTopWidth: 0, paddingTop: 0, marginTop: 0 }}>
                                 <Ionicons name="person-outline" size={16} color="#636366" />
                                 <Text style={styles.addedByText}>
                                     Adicionado por <Text style={styles.addedByName}>{activity.createdBy.name}</Text>
@@ -347,34 +347,47 @@ export default function ActivityScreen() {
                         )}
                     </View>
 
-                    {/* Comment Input */}
-                    <View style={[styles.inputContainer, { paddingBottom: 20 }]}>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Adicionar comentário..."
-                            placeholderTextColor="#999"
-                            value={commentText}
-                            onChangeText={setCommentText}
-                            multiline
-                        />
-                        <TouchableOpacity
-                            style={[styles.sendButton, !commentText.trim() && styles.sendButtonDisabled]}
-                            onPress={handleSendComment}
-                            disabled={!commentText.trim() || createComment.isPending}
-                        >
-                            {createComment.isPending ? (
-                                <ActivityIndicator size="small" color="#fff" />
-                            ) : (
-                                <Ionicons name="arrow-up" size={20} color="#fff" />
-                            )}
-                        </TouchableOpacity>
-                    </View>
                 </KeyboardAvoidingView>
             </Animated.ScrollView>
 
+            {/* Fixed Comment Input (Above Map) */}
+            <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+                style={{
+                    position: 'absolute',
+                    bottom: MAP_COLLAPSED_HEIGHT - 20 + insets.bottom, // Account for insets
+                    left: 0,
+                    right: 0,
+                    zIndex: 900
+                }}
+            >
+                <View style={styles.inputContainer}>
+                    <TextInput
+                        style={styles.input}
+                        placeholder="Adicionar comentário..."
+                        placeholderTextColor="#999"
+                        value={commentText}
+                        onChangeText={setCommentText}
+                        multiline
+                    />
+                    <TouchableOpacity
+                        style={[styles.sendButton, !commentText.trim() && styles.sendButtonDisabled]}
+                        onPress={handleSendComment}
+                        disabled={!commentText.trim() || createComment.isPending}
+                    >
+                        {createComment.isPending ? (
+                            <ActivityIndicator size="small" color="#fff" />
+                        ) : (
+                            <Ionicons name="arrow-up" size={20} color="#fff" />
+                        )}
+                    </TouchableOpacity>
+                </View>
+            </KeyboardAvoidingView>
+
             {/* Expandable Map at Bottom */}
             <GestureDetector gesture={mapGesture}>
-                <Animated.View style={[styles.mapContainer, animatedMapStyle]}>
+                <Animated.View style={[styles.mapContainer, { bottom: insets.bottom }, animatedMapStyle]}>
                     <View style={styles.mapHandleContainer}>
                         <Animated.View style={animatedHandleStyle}>
                             <Ionicons name="chevron-up" size={24} color="#C7C7CC" />
@@ -382,7 +395,7 @@ export default function ActivityScreen() {
                     </View>
 
                     {/* Map Component */}
-                    <View style={{ flex: 1, marginTop: 10, borderRadius: 16, overflow: 'hidden' }}>
+                    <View style={[{ flex: 1, marginTop: 10, borderRadius: 16, overflow: 'hidden' }]}>
                         <ItineraryMap
                             activities={[activity]}
                             focusedActivityId={activity.id}
@@ -589,14 +602,13 @@ const styles = StyleSheet.create({
         marginTop: 20,
     },
     inputContainer: {
-        backgroundColor: '#fff',
+        backgroundColor: 'transparent',
         paddingHorizontal: 16,
-        paddingTop: 12,
+        paddingBottom: 30, // Add bottom padding for better spacing above map
         flexDirection: 'row',
         alignItems: 'flex-end',
         gap: 12,
-        borderTopWidth: 1,
-        borderTopColor: 'rgba(0,0,0,0.05)',
+        // Removed borderTop as it looks weird floating
     },
     input: {
         flex: 1,
@@ -708,11 +720,13 @@ const styles = StyleSheet.create({
     mapContainer: {
         position: 'absolute',
         bottom: 0,
-        left: 0,
-        right: 0,
+        left: 10,
+        right: 10,
         backgroundColor: '#fff',
-        borderTopLeftRadius: 32,
-        borderTopRightRadius: 32,
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        borderBottomLeftRadius: 24,
+        borderBottomRightRadius: 24,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: -4 },
         shadowOpacity: 0.1,
