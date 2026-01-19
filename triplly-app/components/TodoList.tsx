@@ -15,7 +15,7 @@ import {
     InputField,
     Pressable,
 } from '@gluestack-ui/themed';
-import { KeyboardAvoidingView, Platform, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { KeyboardAvoidingView, Platform, FlatList, TouchableOpacity, ActivityIndicator, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
@@ -124,83 +124,86 @@ export default function TodoList({ isOpen, onClose, travelId }: Props) {
                     style={{ width: '100%', height: 600 }}
                     keyboardVerticalOffset={Platform.OS === "ios" ? 180 : 0}
                 >
-                    <VStack space="md" w="$full" h="$full" p="$5" pb="$10" flex={1}>
-                        <VStack space="xs" mb="$4">
-                            <Text size="2xl" bold color="$textLight900">Planejamento</Text>
-                            <Text size="sm" color="$textLight500">
-                                Complete os itens para organizar sua viagem.
-                            </Text>
-                        </VStack>
+                    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+                        <VStack space="md" w="$full" h="$full" p="$5" pb="$10" flex={1}>
+                            <VStack space="xs" mb="$4">
+                                <Text size="2xl" bold color="$textLight900">Planejamento</Text>
+                                <Text size="sm" color="$textLight500">
+                                    Complete os itens para organizar sua viagem.
+                                </Text>
+                            </VStack>
 
-                        <HStack alignItems="center" space="sm" mb="$4">
-                            <Text bold size="lg">{Math.round(progress)}%</Text>
-                            <Box flex={1}>
-                                <Progress value={progress} size="md" h="$2" bg="white">
-                                    <ProgressFilledTrack bg="#C8E45D" />
-                                </Progress>
-                            </Box>
-                        </HStack>
-
-                        <Box flex={1}>
-                            {isLoading ? (
-                                <ActivityIndicator size="small" />
-                            ) : (
-                                <FlatList
-                                    data={todos}
-                                    keyExtractor={(item) => item.id}
-                                    renderItem={renderItem}
-                                    contentContainerStyle={{ paddingBottom: 20 }}
-                                    showsVerticalScrollIndicator={false}
-                                    ListEmptyComponent={
-                                        <Box py="$10" alignItems="center">
-                                            <Text color="$textLight400">Nenhum item adicionado ainda.</Text>
-                                        </Box>
-                                    }
-                                />
-                            )}
-                        </Box>
-
-                        <Box
-                            mt="auto"
-                            pt="$2"
-                            pb="$5"
-                        >
-                            <HStack space="sm">
-                                <Input
-                                    flex={1}
-                                    variant="outline"
-                                    size="md"
-                                    bg="$white"
-                                    borderRadius="$full"
-                                    borderColor="$borderLight200"
-                                >
-                                    <InputField
-                                        placeholder="Adicionar novo item..."
-                                        value={newTodoTitle}
-                                        onChangeText={setNewTodoTitle}
-                                        onSubmitEditing={handleAdd}
-                                    />
-                                </Input>
-                                <Pressable
-                                    w="$10"
-                                    h="$10"
-                                    bg="#1C1C1E"
-                                    borderRadius="$full"
-                                    alignItems="center"
-                                    justifyContent="center"
-                                    onPress={handleAdd}
-                                    opacity={!newTodoTitle.trim() ? 0.5 : 1}
-                                    disabled={!newTodoTitle.trim() || createTodo.isPending}
-                                >
-                                    {createTodo.isPending ? (
-                                        <ActivityIndicator color="white" size="small" />
-                                    ) : (
-                                        <Ionicons name="arrow-up" size={20} color="white" />
-                                    )}
-                                </Pressable>
+                            <HStack alignItems="center" space="sm" mb="$4">
+                                <Text bold size="lg">{Math.round(progress)}%</Text>
+                                <Box flex={1}>
+                                    <Progress value={progress} size="md" h="$2" bg="white">
+                                        <ProgressFilledTrack bg="#C8E45D" />
+                                    </Progress>
+                                </Box>
                             </HStack>
-                        </Box>
-                    </VStack>
+
+                            <Box flex={1}>
+                                {isLoading ? (
+                                    <ActivityIndicator size="small" />
+                                ) : (
+                                    <FlatList
+                                        data={todos}
+                                        keyExtractor={(item) => item.id}
+                                        renderItem={renderItem}
+                                        contentContainerStyle={{ paddingBottom: 20 }}
+                                        showsVerticalScrollIndicator={false}
+                                        ListEmptyComponent={
+                                            <Box py="$10" alignItems="center">
+                                                <Text color="$textLight400">Nenhum item adicionado ainda.</Text>
+                                            </Box>
+                                        }
+                                    />
+                                )}
+                            </Box>
+
+                            <Box
+                                mt="auto"
+                                pt="$2"
+                                pb="$5"
+                            >
+                                <HStack space="sm">
+                                    <Input
+                                        flex={1}
+                                        variant="outline"
+                                        size="md"
+                                        bg="$white"
+                                        borderRadius="$full"
+                                        borderColor="$borderLight200"
+                                    >
+                                        <InputField
+                                            placeholder="Adicionar novo item..."
+                                            placeholderTextColor="#8E8E93"
+                                            value={newTodoTitle}
+                                            onChangeText={setNewTodoTitle}
+                                            onSubmitEditing={handleAdd}
+                                        />
+                                    </Input>
+                                    <Pressable
+                                        w="$10"
+                                        h="$10"
+                                        bg="#1C1C1E"
+                                        borderRadius="$full"
+                                        alignItems="center"
+                                        justifyContent="center"
+                                        onPress={handleAdd}
+                                        opacity={!newTodoTitle.trim() ? 0.5 : 1}
+                                        disabled={!newTodoTitle.trim() || createTodo.isPending}
+                                    >
+                                        {createTodo.isPending ? (
+                                            <ActivityIndicator color="white" size="small" />
+                                        ) : (
+                                            <Ionicons name="arrow-up" size={20} color="white" />
+                                        )}
+                                    </Pressable>
+                                </HStack>
+                            </Box>
+                        </VStack>
+                    </TouchableWithoutFeedback>
                 </KeyboardAvoidingView>
             </ActionsheetContent>
         </Actionsheet>
