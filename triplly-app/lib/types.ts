@@ -107,6 +107,24 @@ export interface ReorderActivityData {
     beforeActivityId: string | null;
 }
 
+export interface Todo {
+    id: string;
+    travelId: string;
+    title: string;
+    isCompleted: boolean;
+    createdAt: string;
+}
+
+export interface CreateTodoData {
+    travelId: string;
+    title: string;
+}
+
+export interface UpdateTodoData {
+    title?: string;
+    isCompleted?: boolean;
+}
+
 export interface AuthResponse {
     user: User;
     token: string;

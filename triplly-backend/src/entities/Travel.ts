@@ -10,6 +10,7 @@ import {
 import { User } from './User.js';
 import { TravelMember } from './TravelMember.js';
 import { Itinerary } from './Itinerary.js';
+import { Todo } from './Todo.js';
 
 @Entity('travels')
 export class Travel {
@@ -46,4 +47,7 @@ export class Travel {
 
     @OneToMany(() => Itinerary, (itinerary) => itinerary.travel)
     itineraries: Itinerary[];
+
+    @OneToMany(() => Todo, (todo) => todo.travel)
+    todos: Todo[];
 }

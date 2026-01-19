@@ -9,6 +9,7 @@ import { api } from '@/lib/api';
 import type { Itinerary, Activity, TravelMember } from '@/lib/types';
 import { useState, useRef, useEffect } from 'react';
 import SheetForm from '@/components/SheetForm';
+import TodoList from '@/components/TodoList';
 import PlaceAutocomplete from '@/components/PlaceAutocomplete';
 import ItineraryMap from '@/components/ItineraryMap';
 import { VStack, HStack, Input, InputField, Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetItem, ActionsheetItemText } from '@gluestack-ui/themed';
@@ -118,6 +119,7 @@ export default function TravelDetailScreen() {
     // Form states
     const [showAddItinerary, setShowAddItinerary] = useState(false);
     const [showAddActivity, setShowAddActivity] = useState(false);
+    const [showTodoList, setShowTodoList] = useState(false);
     const [showMembers, setShowMembers] = useState(false);
     const [newItineraryTitle, setNewItineraryTitle] = useState('');
     const [newItineraryDate, setNewItineraryDate] = useState<Date | null>(null);
@@ -231,9 +233,62 @@ export default function TravelDetailScreen() {
     });
 
     const reorderActivity = useMutation({
-        mutationFn: (data: { activityId: string; afterActivityId: string | null; beforeActivityId: string | null }) =>
-            api.reorderActivity('', data),
-        onSuccess: () => {
+        mutationFn: (data: {
+            activityId: string;
+            afterActivityId: string | null;
+            beforeActivityId: string | null;
+            newActivities: Activity[]; // Passing for optimistic update
+        }) => api.reorderActivity('', {
+            activityId: data.activityId,
+            afterActivityId: data.afterActivityId,
+            beforeActivityId: data.beforeActivityId
+        }),
+        onMutate: async (newOrder) => {
+            // Cancel any outgoing refetches (so they don't overwrite our optimistic update)
+            await queryClient.cancelQueries({ queryKey: ['travel', id] });
+            await queryClient.cancelQueries({ queryKey: ['travel', id, 'wishlist'] });
+
+            // Snapshot the previous value
+            const previousTravel = queryClient.getQueryData(['travel', id]);
+            const previousWishlist = queryClient.getQueryData(['travel', id, 'wishlist']);
+
+            // Optimistically update to the new value
+            if (selectedDayIndex === -1) {
+                // Wishlist update
+                queryClient.setQueryData(['travel', id, 'wishlist'], newOrder.newActivities);
+            } else {
+                // Itinerary update
+                queryClient.setQueryData<Travel | undefined>(['travel', id], (old) => {
+                    if (!old || !old.itineraries) return old;
+                    return {
+                        ...old,
+                        itineraries: old.itineraries.map((it, idx) => {
+                            if (idx === selectedDayIndex) {
+                                return { ...it, activities: newOrder.newActivities };
+                            }
+                            return it;
+                        }),
+                    };
+                });
+            }
+
+            // Return a context object with the snapshotted value
+            return { previousTravel, previousWishlist };
+        },
+        onError: (err, newOrder, context) => {
+            if (context?.previousTravel) {
+                queryClient.setQueryData(['travel', id], context.previousTravel);
+            }
+            if (context?.previousWishlist) {
+                queryClient.setQueryData(['travel', id, 'wishlist'], context.previousWishlist);
+            }
+            Alert.alert('Erro', 'Falha ao reordenar locais');
+        },
+        onSettled: () => {
+            // We can choose NOT to invalidate immediately to keep the UI stable,
+            // or invalidate to ensure eventual consistency.
+            // Given the lag report, let's wait a bit or rely on the successful mutation.
+            // For now, let's invalidate to be safe but the optimistic update should hold.
             queryClient.invalidateQueries({ queryKey: ['travel', id] });
             queryClient.invalidateQueries({ queryKey: ['travel', id, 'wishlist'] });
         },
@@ -399,6 +454,18 @@ export default function TravelDetailScreen() {
                         showsHorizontalScrollIndicator={false}
                         contentContainerStyle={styles.daySelector}
                     >
+                        {/* Todo List Button */}
+                        <TouchableOpacity
+                            onPress={() => setShowTodoList(true)}
+                            style={styles.dayCircle}
+                        >
+                            <Ionicons
+                                name="checkbox-outline"
+                                size={20}
+                                color="#1C1C1E"
+                            />
+                        </TouchableOpacity>
+
                         {/* Wishlist Circle */}
                         <TouchableOpacity
                             onPress={() => {
@@ -413,31 +480,45 @@ export default function TravelDetailScreen() {
                             <Ionicons
                                 name="heart"
                                 size={20}
-                                color={selectedDayIndex === -1 ? '#fff' : '#1C1C1E'}
+                                color={selectedDayIndex === -1 ? '#fff' : '#8E8E93'}
                             />
                         </TouchableOpacity>
 
                         {/* Day Circles */}
-                        {sortedItineraries.map((it, index) => (
-                            <TouchableOpacity
-                                key={it.id}
-                                onPress={() => {
-                                    setDirection(index > selectedDayIndex ? 1 : -1);
-                                    setSelectedDayIndex(index);
-                                }}
-                                style={[
-                                    styles.dayCircle,
-                                    index === selectedDayIndex && styles.dayCircleActive
-                                ]}
-                            >
-                                <Text style={[
-                                    styles.dayText,
-                                    index === selectedDayIndex && styles.dayTextActive
-                                ]}>
-                                    {index + 1}
-                                </Text>
-                            </TouchableOpacity>
-                        ))}
+                        {sortedItineraries.map((it, index) => {
+                            const date = it.date ? parseISO(it.date) : null;
+                            const dayOfWeek = date ? format(date, 'EEEEEE', { locale: ptBR }).toUpperCase() : null;
+                            const dayOfMonth = date ? format(date, 'd', { locale: ptBR }) : (index + 1).toString();
+
+                            return (
+                                <TouchableOpacity
+                                    key={it.id}
+                                    onPress={() => {
+                                        setDirection(index > selectedDayIndex ? 1 : -1);
+                                        setSelectedDayIndex(index);
+                                    }}
+                                    style={[
+                                        styles.dayCircle,
+                                        index === selectedDayIndex && styles.dayCircleActive
+                                    ]}
+                                >
+                                    {dayOfWeek && (
+                                        <Text style={[
+                                            styles.dayLabel,
+                                            index === selectedDayIndex && styles.dayLabelActive
+                                        ]}>
+                                            {dayOfWeek}
+                                        </Text>
+                                    )}
+                                    <Text style={[
+                                        styles.dayText,
+                                        index === selectedDayIndex && styles.dayTextActive
+                                    ]}>
+                                        {dayOfMonth}
+                                    </Text>
+                                </TouchableOpacity>
+                            );
+                        })}
 
                         {/* Add Day Button */}
                         <TouchableOpacity
@@ -485,6 +566,7 @@ export default function TravelDetailScreen() {
                                                 activityId: movedActivity.id,
                                                 afterActivityId,
                                                 beforeActivityId,
+                                                newActivities: data, // Pass the new order for optimistic update
                                             });
                                         }
                                     }}
@@ -780,6 +862,12 @@ export default function TravelDetailScreen() {
                     </VStack>
                 </VStack>
             </SheetForm>
+
+            <TodoList
+                isOpen={showTodoList}
+                onClose={() => setShowTodoList(false)}
+                travelId={id!}
+            />
         </GestureHandlerRootView>
     );
 }
@@ -847,17 +935,26 @@ const styles = StyleSheet.create({
         gap: 12,
     },
     dayCircle: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        borderWidth: 2,
-        borderColor: '#1C1C1E',
+        width: 48,
+        height: 60,
+        borderRadius: 20,
+        backgroundColor: '#EEEFE9',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: 'transparent',
+        gap: 2, // Spacing between label and number
     },
     dayCircleActive: {
-        backgroundColor: '#1C1C1E',
+        backgroundColor: '#000',
+    },
+    dayLabel: {
+        fontSize: 10,
+        fontWeight: '600',
+        color: '#8E8E93',
+        textTransform: 'uppercase',
+    },
+    dayLabelActive: {
+        color: '#fff',
+        opacity: 0.6,
     },
     dayText: {
         fontSize: 16,
@@ -868,11 +965,11 @@ const styles = StyleSheet.create({
         color: '#fff',
     },
     addDayCircle: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
+        width: 48,
+        height: 60,
+        borderRadius: 20,
         borderWidth: 2,
-        borderColor: '#C7C7CC',
+        borderColor: '#E5E5EA',
         borderStyle: 'dashed',
         alignItems: 'center',
         justifyContent: 'center',

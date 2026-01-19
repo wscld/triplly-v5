@@ -12,6 +12,9 @@ import type {
     ReorderActivityData,
     AuthResponse,
     ActivityComment,
+    Todo,
+    CreateTodoData,
+    UpdateTodoData,
 } from './types';
 import { tokenStorage } from './storage';
 
@@ -216,6 +219,29 @@ class ApiClient {
 
     async deleteComment(commentId: string): Promise<void> {
         await this.request(`/comments/${commentId}`, { method: 'DELETE' });
+    }
+
+    // Todos
+    async getTodos(travelId: string): Promise<Todo[]> {
+        return this.request<Todo[]>(`/todos?travelId=${travelId}`);
+    }
+
+    async createTodo(data: CreateTodoData): Promise<Todo> {
+        return this.request<Todo>('/todos', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    }
+
+    async updateTodo(id: string, data: UpdateTodoData): Promise<Todo> {
+        return this.request<Todo>(`/todos/${id}`, {
+            method: 'PATCH',
+            body: JSON.stringify(data),
+        });
+    }
+
+    async deleteTodo(id: string): Promise<void> {
+        await this.request(`/todos/${id}`, { method: 'DELETE' });
     }
 }
 

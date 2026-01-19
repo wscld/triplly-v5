@@ -329,7 +329,9 @@ export default function ActivityScreen() {
                         {isLoadingComments ? (
                             <ActivityIndicator color="#636366" style={{ marginTop: 20 }} />
                         ) : comments?.length === 0 ? (
-                            <Text style={styles.emptyComments}>Nenhum comentário ainda.</Text>
+                            <View style={styles.emptyCommentsContainer}>
+                                <Text style={styles.emptyComments}>Nenhum comentário ainda.</Text>
+                            </View>
                         ) : (
                             <View style={styles.commentsList}>
                                 {comments?.map((comment) => (
@@ -599,12 +601,25 @@ const styles = StyleSheet.create({
     emptyComments: {
         textAlign: 'center',
         color: '#8E8E93',
-        marginTop: 20,
+        fontSize: 16,
+        fontWeight: '500',
+    },
+    emptyCommentsContainer: {
+        backgroundColor: '#fff',
+        borderRadius: 16,
+        paddingVertical: 40,
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+    },
+    emptyCommentsAction: {
+        fontSize: 14,
+        color: '#007AFF', // iOS Blue or any primary color
     },
     inputContainer: {
         backgroundColor: 'transparent',
         paddingHorizontal: 16,
-        paddingBottom: 30, // Add bottom padding for better spacing above map
+        paddingBottom: 40, // Add bottom padding for better spacing above map
         flexDirection: 'row',
         alignItems: 'flex-end',
         gap: 12,
@@ -612,7 +627,7 @@ const styles = StyleSheet.create({
     },
     input: {
         flex: 1,
-        backgroundColor: '#F2F0E9',
+        backgroundColor: 'white',
         borderRadius: 20,
         paddingHorizontal: 16,
         paddingTop: 10,
