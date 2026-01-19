@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Colors } from '@/constants/colors';
 
 interface Props {
     title: string;
@@ -19,7 +20,7 @@ export default function GlassHeader({ title, showBack = true, rightElement }: Pr
                 <View style={styles.left}>
                     {showBack && (
                         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                            <Ionicons name="chevron-back" size={28} color="#1C1C1E" />
+                            <Ionicons name="chevron-back" size={28} color={Colors.black} />
                         </TouchableOpacity>
                     )}
                 </View>
@@ -39,7 +40,7 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         zIndex: 100,
-        backgroundColor: '#F2F0E9', // Warm beige solid background
+        backgroundColor: Colors.background, // Warm beige solid background
         borderBottomWidth: 1,
         borderBottomColor: 'rgba(0,0,0,0.05)',
     },
@@ -63,7 +64,7 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         fontSize: 17,
         fontWeight: '600',
-        color: '#1C1C1E',
+        color: Colors.text.primary,
         fontFamily: 'Serif',
     },
     backButton: {

@@ -20,6 +20,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import type { Todo } from '@/lib/types';
+import { Colors } from '@/constants/colors';
 
 interface Props {
     isOpen: boolean;
@@ -27,9 +28,50 @@ interface Props {
     travelId: string;
 }
 
+import Animated, { useSharedValue, useAnimatedStyle, useAnimatedScrollHandler, interpolate, Extrapolation, withSpring } from 'react-native-reanimated';
+
+const AnimatedFlatList = Animated.createAnimatedComponent(FlatList);
+
 export default function TodoList({ isOpen, onClose, travelId }: Props) {
     const queryClient = useQueryClient();
     const [newTodoTitle, setNewTodoTitle] = useState('');
+
+    // Animation constants
+    const HEADER_HEIGHT = 140;
+
+    // Animation state
+    const scrollY = useSharedValue(0);
+    const scrollHandler = useAnimatedScrollHandler({
+        onScroll: (event) => {
+            scrollY.value = event.contentOffset.y;
+        },
+    });
+
+    const headerStyle = useAnimatedStyle(() => {
+        const translateY = interpolate(
+            scrollY.value,
+            [0, HEADER_HEIGHT],
+            [0, -HEADER_HEIGHT],
+            Extrapolation.CLAMP
+        );
+
+        const opacity = interpolate(
+            scrollY.value,
+            [0, HEADER_HEIGHT / 2],
+            [1, 0],
+            Extrapolation.CLAMP
+        );
+
+        return {
+            transform: [{ translateY }],
+            opacity,
+            position: 'absolute',
+            top: 0,
+            left: 20, // Padding from parent container
+            right: 20,
+            zIndex: 1,
+        };
+    });
 
     const { data: todos, isLoading } = useQuery({
         queryKey: ['todos', travelId],
@@ -39,24 +81,81 @@ export default function TodoList({ isOpen, onClose, travelId }: Props) {
 
     const createTodo = useMutation({
         mutationFn: (title: string) => api.createTodo({ travelId, title }),
+        onMutate: async (newTitle) => {
+            await queryClient.cancelQueries({ queryKey: ['todos', travelId] });
+            const previousTodos = queryClient.getQueryData(['todos', travelId]);
+
+            queryClient.setQueryData<Todo[]>(['todos', travelId], (old) => {
+                const tempTodo: Todo = {
+                    id: Math.random().toString(),
+                    title: newTitle,
+                    isCompleted: false,
+                    travelId: travelId,
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                };
+                return old ? [...old, tempTodo] : [tempTodo];
+            });
+
+            return { previousTodos };
+        },
         onSuccess: () => {
             setNewTodoTitle('');
-            queryClient.invalidateQueries({ queryKey: ['todos', travelId] });
         },
+        onError: (err, newTodo, context) => {
+            if (context?.previousTodos) {
+                queryClient.setQueryData(['todos', travelId], context.previousTodos);
+            }
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: ['todos', travelId] });
+        }
     });
 
     const toggleTodo = useMutation({
         mutationFn: (todo: Todo) => api.updateTodo(todo.id, { isCompleted: !todo.isCompleted }),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['todos', travelId] });
+        onMutate: async (todoToToggle) => {
+            await queryClient.cancelQueries({ queryKey: ['todos', travelId] });
+            const previousTodos = queryClient.getQueryData(['todos', travelId]);
+
+            queryClient.setQueryData<Todo[]>(['todos', travelId], (old) => {
+                return old?.map(t =>
+                    t.id === todoToToggle.id ? { ...t, isCompleted: !t.isCompleted } : t
+                );
+            });
+
+            return { previousTodos };
         },
+        onError: (err, newTodo, context) => {
+            if (context?.previousTodos) {
+                queryClient.setQueryData(['todos', travelId], context.previousTodos);
+            }
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: ['todos', travelId] });
+        }
     });
 
     const deleteTodo = useMutation({
         mutationFn: (id: string) => api.deleteTodo(id),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['todos', travelId] });
+        onMutate: async (idToDelete) => {
+            await queryClient.cancelQueries({ queryKey: ['todos', travelId] });
+            const previousTodos = queryClient.getQueryData(['todos', travelId]);
+
+            queryClient.setQueryData<Todo[]>(['todos', travelId], (old) => {
+                return old?.filter(t => t.id !== idToDelete);
+            });
+
+            return { previousTodos };
         },
+        onError: (err, newTodo, context) => {
+            if (context?.previousTodos) {
+                queryClient.setQueryData(['todos', travelId], context.previousTodos);
+            }
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: ['todos', travelId] });
+        }
     });
 
     const completedCount = todos?.filter(t => t.isCompleted).length || 0;
@@ -88,12 +187,12 @@ export default function TodoList({ isOpen, onClose, travelId }: Props) {
                     h="$6"
                     borderRadius="$full"
                     borderWidth={2}
-                    borderColor={item.isCompleted ? '#C8E45D' : '#E5E5EA'}
-                    bg={item.isCompleted ? '#C8E45D' : 'transparent'}
+                    borderColor={item.isCompleted ? Colors.primary : Colors.border.light}
+                    bg={item.isCompleted ? Colors.primary : 'transparent'}
                     alignItems="center"
                     justifyContent="center"
                 >
-                    {item.isCompleted && <Ionicons name="checkmark" size={14} color="#1C1C1E" />}
+                    {item.isCompleted && <Ionicons name="checkmark" size={14} color={Colors.text.primary} />}
                 </Box>
                 <Text
                     fontSize="$md"
@@ -106,7 +205,7 @@ export default function TodoList({ isOpen, onClose, travelId }: Props) {
             </TouchableOpacity>
 
             <TouchableOpacity onPress={() => deleteTodo.mutate(item.id)} style={{ padding: 4 }}>
-                <Ionicons name="trash-outline" size={18} color="#FF3B30" />
+                <Ionicons name="trash-outline" size={18} color={Colors.text.error} />
             </TouchableOpacity>
         </HStack>
     );
@@ -114,7 +213,7 @@ export default function TodoList({ isOpen, onClose, travelId }: Props) {
     return (
         <Actionsheet isOpen={isOpen} onClose={onClose} zIndex={999}>
             <ActionsheetBackdrop />
-            <ActionsheetContent zIndex={999} bg="#F2F0E9">
+            <ActionsheetContent zIndex={999} bg={Colors.background}>
                 <ActionsheetDragIndicatorWrapper>
                     <ActionsheetDragIndicator />
                 </ActionsheetDragIndicatorWrapper>
@@ -125,33 +224,38 @@ export default function TodoList({ isOpen, onClose, travelId }: Props) {
                     keyboardVerticalOffset={Platform.OS === "ios" ? 180 : 0}
                 >
                     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-                        <VStack space="md" w="$full" h="$full" p="$5" pb="$10" flex={1}>
-                            <VStack space="xs" mb="$4">
-                                <Text size="2xl" bold color="$textLight900">Planejamento</Text>
-                                <Text size="sm" color="$textLight500">
-                                    Complete os itens para organizar sua viagem.
-                                </Text>
-                            </VStack>
+                        <VStack space="md" w="$full" h="$full" p="$5" pb="$10" flex={1} overflow="hidden">
 
-                            <HStack alignItems="center" space="sm" mb="$4">
-                                <Text bold size="lg">{Math.round(progress)}%</Text>
-                                <Box flex={1}>
-                                    <Progress value={progress} size="md" h="$2" bg="white">
-                                        <ProgressFilledTrack bg="#C8E45D" />
-                                    </Progress>
-                                </Box>
-                            </HStack>
+                            <Animated.View style={headerStyle}>
+                                <VStack space="xs" mb="$4">
+                                    <Text size="2xl" bold color="$textLight900">Planejamento</Text>
+                                    <Text size="sm" color="$textLight500">
+                                        Complete os itens para organizar sua viagem.
+                                    </Text>
+                                </VStack>
+
+                                <HStack alignItems="center" space="sm" mb="$4">
+                                    <Text bold size="lg">{Math.round(progress)}%</Text>
+                                    <Box flex={1}>
+                                        <Progress value={progress} size="md" h="$2" bg="white">
+                                            <ProgressFilledTrack bg={Colors.primary} />
+                                        </Progress>
+                                    </Box>
+                                </HStack>
+                            </Animated.View>
 
                             <Box flex={1}>
                                 {isLoading ? (
                                     <ActivityIndicator size="small" />
                                 ) : (
-                                    <FlatList
+                                    <AnimatedFlatList
                                         data={todos}
-                                        keyExtractor={(item) => item.id}
+                                        keyExtractor={(item: any) => item.id}
                                         renderItem={renderItem}
-                                        contentContainerStyle={{ paddingBottom: 20 }}
+                                        contentContainerStyle={{ paddingBottom: 20, paddingTop: HEADER_HEIGHT }}
                                         showsVerticalScrollIndicator={false}
+                                        onScroll={scrollHandler}
+                                        scrollEventThrottle={16}
                                         ListEmptyComponent={
                                             <Box py="$10" alignItems="center">
                                                 <Text color="$textLight400">Nenhum item adicionado ainda.</Text>
@@ -177,7 +281,7 @@ export default function TodoList({ isOpen, onClose, travelId }: Props) {
                                     >
                                         <InputField
                                             placeholder="Adicionar novo item..."
-                                            placeholderTextColor="#8E8E93"
+                                            placeholderTextColor={Colors.text.secondary}
                                             value={newTodoTitle}
                                             onChangeText={setNewTodoTitle}
                                             onSubmitEditing={handleAdd}
@@ -186,7 +290,7 @@ export default function TodoList({ isOpen, onClose, travelId }: Props) {
                                     <Pressable
                                         w="$10"
                                         h="$10"
-                                        bg="#1C1C1E"
+                                        bg={Colors.primary}
                                         borderRadius="$full"
                                         alignItems="center"
                                         justifyContent="center"
@@ -195,9 +299,9 @@ export default function TodoList({ isOpen, onClose, travelId }: Props) {
                                         disabled={!newTodoTitle.trim() || createTodo.isPending}
                                     >
                                         {createTodo.isPending ? (
-                                            <ActivityIndicator color="white" size="small" />
+                                            <ActivityIndicator color={Colors.text.primary} size="small" />
                                         ) : (
-                                            <Ionicons name="arrow-up" size={20} color="white" />
+                                            <Ionicons name="arrow-up" size={20} color={Colors.text.primary} />
                                         )}
                                     </Pressable>
                                 </HStack>

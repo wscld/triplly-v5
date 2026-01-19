@@ -13,11 +13,12 @@ import TodoList from '@/components/TodoList';
 import PlaceAutocomplete from '@/components/PlaceAutocomplete';
 import ItineraryMap from '@/components/ItineraryMap';
 import { VStack, HStack, Input, InputField, Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetItem, ActionsheetItemText } from '@gluestack-ui/themed';
+import { Colors } from '@/constants/colors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import DatePickerInput from '@/components/DatePickerInput';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { haversineDistance, formatDistance } from '@/utils/distance';
+
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const MAP_COLLAPSED_HEIGHT = 120;
@@ -323,7 +324,7 @@ export default function TravelDetailScreen() {
     if (isLoading) {
         return (
             <View style={styles.centered}>
-                <ActivityIndicator size="large" color="#1C1C1E" />
+                <ActivityIndicator size="large" color={Colors.text.primary} />
             </View>
         );
     }
@@ -354,7 +355,7 @@ export default function TravelDetailScreen() {
                     onPress={() => router.back()}
                     style={styles.headerButton}
                 >
-                    <Ionicons name="arrow-back" size={24} color="#1C1C1E" />
+                    <Ionicons name="arrow-back" size={24} color={Colors.black} />
                 </TouchableOpacity>
                 {/* Members Section - Simply Avatars */}
                 {members && members.length > 0 && (
@@ -393,9 +394,9 @@ export default function TravelDetailScreen() {
                                     </View>
                                 </View>
                             )}
-                            <View style={[styles.memberAvatarWrapper, { marginLeft: -12, zIndex: 0, backgroundColor: '#fff' }]}>
-                                <View style={[styles.memberAvatar, styles.memberAvatarFallback, { backgroundColor: '#F2F2F7' }]}>
-                                    <Ionicons name="add" size={20} color="#1C1C1E" />
+                            <View style={[styles.memberAvatarWrapper, { marginLeft: -12, zIndex: 0, backgroundColor: Colors.white }]}>
+                                <View style={[styles.memberAvatar, styles.memberAvatarFallback, { backgroundColor: Colors.border.light }]}>
+                                    <Ionicons name="add" size={20} color={Colors.black} />
                                 </View>
                             </View>
                         </View>
@@ -462,7 +463,7 @@ export default function TravelDetailScreen() {
                             <Ionicons
                                 name="checkbox-outline"
                                 size={20}
-                                color="#1C1C1E"
+                                color={Colors.black}
                             />
                         </TouchableOpacity>
 
@@ -480,7 +481,7 @@ export default function TravelDetailScreen() {
                             <Ionicons
                                 name="heart"
                                 size={20}
-                                color={selectedDayIndex === -1 ? '#fff' : '#8E8E93'}
+                                color={selectedDayIndex === -1 ? Colors.text.primary : Colors.text.primary}
                             />
                         </TouchableOpacity>
 
@@ -525,7 +526,7 @@ export default function TravelDetailScreen() {
                             onPress={() => setShowAddItinerary(true)}
                             style={styles.addDayCircle}
                         >
-                            <Ionicons name="add" size={24} color="#8E8E93" />
+                            <Ionicons name="add" size={24} color={Colors.text.secondary} />
                         </TouchableOpacity>
                     </ScrollView>
 
@@ -536,7 +537,7 @@ export default function TravelDetailScreen() {
                                 {selectedDayIndex === -1 ? 'LISTA DE DESEJOS' : 'ROTEIRO'}
                             </Text>
                             <TouchableOpacity onPress={() => setShowAddActivity(true)}>
-                                <Ionicons name="add-circle" size={28} color="#1C1C1E" />
+                                <Ionicons name="add-circle" size={28} color={Colors.black} />
                             </TouchableOpacity>
                         </View>
 
@@ -571,27 +572,8 @@ export default function TravelDetailScreen() {
                                         }
                                     }}
                                     renderItem={({ item, getIndex, drag, isActive }: RenderItemParams<Activity>) => {
-                                        const index = getIndex();
-                                        const prevActivity = index !== undefined && index > 0 ? activities[index - 1] : null;
-                                        const distance = prevActivity ? haversineDistance(
-                                            prevActivity.latitude,
-                                            prevActivity.longitude,
-                                            item.latitude,
-                                            item.longitude
-                                        ) : null;
-
                                         return (
                                             <ScaleDecorator>
-                                                {distance !== null && (
-                                                    <View style={styles.distanceIndicator}>
-                                                        <View style={styles.distanceLine} />
-                                                        <View style={styles.distanceBadge}>
-                                                            <Ionicons name="walk" size={12} color="#8E8E93" />
-                                                            <Text style={styles.distanceText}>{formatDistance(distance)}</Text>
-                                                        </View>
-                                                        <View style={styles.distanceLine} />
-                                                    </View>
-                                                )}
                                                 <TouchableOpacity
                                                     style={[styles.activityCard, isActive && styles.activityCardActive]}
                                                     onPress={() => {
@@ -601,15 +583,15 @@ export default function TravelDetailScreen() {
                                                     onLongPress={drag}
                                                 >
                                                     <TouchableOpacity onPressIn={drag} style={styles.dragHandle}>
-                                                        <Ionicons name="reorder-two" size={20} color="#C7C7CC" />
+                                                        <Ionicons name="reorder-two" size={20} color={Colors.border.medium} />
                                                     </TouchableOpacity>
                                                     <Text style={styles.activityTitle} numberOfLines={1}>
                                                         {item.title}
                                                     </Text>
                                                     {selectedDayIndex === -1 ? (
-                                                        <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />
+                                                        <Ionicons name="chevron-forward" size={20} color={Colors.border.medium} />
                                                     ) : (
-                                                        <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />
+                                                        <Ionicons name="chevron-forward" size={20} color={Colors.border.medium} />
                                                     )}
                                                 </TouchableOpacity>
                                             </ScaleDecorator>
@@ -632,7 +614,7 @@ export default function TravelDetailScreen() {
                         <View style={styles.mapHeaderRow}>
                             <Text style={styles.mapTitle}>MAPA</Text>
                             <Animated.View style={animatedHandleStyle}>
-                                <Ionicons name="chevron-up" size={20} color="#8E8E93" />
+                                <Ionicons name="chevron-up" size={20} color={Colors.text.secondary} />
                             </Animated.View>
                         </View>
                     </Animated.View>
@@ -643,7 +625,7 @@ export default function TravelDetailScreen() {
                         <ItineraryMap activities={activities} />
                     ) : (
                         <View style={styles.mapEmpty}>
-                            <Ionicons name="map-outline" size={32} color="#C7C7CC" />
+                            <Ionicons name="map-outline" size={32} color={Colors.border.medium} />
                             <Text style={styles.mapEmptyText}>Adicione locais para ver o mapa</Text>
                         </View>
                     )}
@@ -712,7 +694,7 @@ export default function TravelDetailScreen() {
                     />
                     {activityFormData.title && (
                         <View style={styles.selectedPlace}>
-                            <Ionicons name="location" size={16} color="#1C1C1E" />
+                            <Ionicons name="location" size={16} color={Colors.black} />
                             <Text style={styles.selectedPlaceText}>{activityFormData.title}</Text>
                         </View>
                     )}
@@ -745,7 +727,7 @@ export default function TravelDetailScreen() {
                             );
                         }
                     }}>
-                        <ActionsheetItemText style={{ color: '#FF3B30' }}>Remover</ActionsheetItemText>
+                        <ActionsheetItemText style={{ color: Colors.text.error }}>Remover</ActionsheetItemText>
                     </ActionsheetItem>
                 </ActionsheetContent>
             </Actionsheet>
@@ -776,7 +758,7 @@ export default function TravelDetailScreen() {
                     ))}
                     {sortedItineraries.length === 0 && (
                         <View style={{ padding: 16, alignItems: 'center' }}>
-                            <Text style={{ color: '#666' }}>Crie um dia primeiro</Text>
+                            <Text style={{ color: Colors.text.secondary }}>Crie um dia primeiro</Text>
                         </View>
                     )}
                 </ActionsheetContent>
@@ -853,7 +835,7 @@ export default function TravelDetailScreen() {
                                             )}
                                             style={styles.removeMemberBtn}
                                         >
-                                            <Ionicons name="close" size={18} color="#FF3B30" />
+                                            <Ionicons name="close" size={18} color={Colors.text.error} />
                                         </TouchableOpacity>
                                     )}
                                 </View>
@@ -875,13 +857,13 @@ export default function TravelDetailScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F2F0E9',
+        backgroundColor: Colors.background,
     },
     centered: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#F2F0E9',
+        backgroundColor: Colors.background,
     },
     content: {
         flex: 1,
@@ -889,40 +871,15 @@ const styles = StyleSheet.create({
     sheetTitle: {
         fontSize: 18,
         fontWeight: '600',
-        color: '#1C1C1E',
+        color: Colors.text.primary,
         marginBottom: 16,
         paddingHorizontal: 16,
     },
-    distanceIndicator: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginVertical: 4,
-        paddingHorizontal: 16,
-    },
-    distanceLine: {
-        flex: 1,
-        height: 1,
-        backgroundColor: '#E5E5EA',
-    },
-    distanceBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#F2F2F7',
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 12,
-        marginHorizontal: 8,
-        gap: 4,
-    },
-    distanceText: {
-        fontSize: 12,
-        color: '#8E8E93',
-        fontWeight: '500',
-    },
+
     dateText: {
         fontSize: 16,
         fontWeight: '500',
-        color: '#1C1C1E',
+        color: Colors.text.primary,
         textAlign: 'center',
         paddingHorizontal: 24,
         paddingTop: 16,
@@ -938,38 +895,38 @@ const styles = StyleSheet.create({
         width: 48,
         height: 60,
         borderRadius: 20,
-        backgroundColor: '#EEEFE9',
+        backgroundColor: Colors.border.light,
         alignItems: 'center',
         justifyContent: 'center',
         gap: 2, // Spacing between label and number
     },
     dayCircleActive: {
-        backgroundColor: '#000',
+        backgroundColor: Colors.primary,
     },
     dayLabel: {
         fontSize: 10,
         fontWeight: '600',
-        color: '#8E8E93',
+        color: Colors.text.secondary,
         textTransform: 'uppercase',
     },
     dayLabelActive: {
-        color: '#fff',
+        color: Colors.text.primary,
         opacity: 0.6,
     },
     dayText: {
         fontSize: 16,
         fontWeight: '600',
-        color: '#1C1C1E',
+        color: Colors.text.primary,
     },
     dayTextActive: {
-        color: '#fff',
+        color: Colors.text.primary,
     },
     addDayCircle: {
         width: 48,
         height: 60,
         borderRadius: 20,
         borderWidth: 2,
-        borderColor: '#E5E5EA',
+        borderColor: Colors.border.medium,
         borderStyle: 'dashed',
         alignItems: 'center',
         justifyContent: 'center',
@@ -987,18 +944,18 @@ const styles = StyleSheet.create({
     sectionTitle: {
         fontSize: 14,
         fontWeight: '700',
-        color: '#1C1C1E',
+        color: Colors.text.primary,
         letterSpacing: 1,
     },
     sectionTitleSmall: {
         fontSize: 13,
         fontWeight: '600',
-        color: '#666',
+        color: Colors.text.secondary,
     },
     activityCard: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#fff',
+        backgroundColor: Colors.white,
         paddingVertical: 16,
         paddingHorizontal: 16,
         borderRadius: 16,
@@ -1013,7 +970,7 @@ const styles = StyleSheet.create({
         flex: 1,
         fontSize: 17,
         fontWeight: '500',
-        color: '#1C1C1E',
+        color: Colors.text.primary,
     },
     emptyState: {
         alignItems: 'center',
@@ -1022,11 +979,11 @@ const styles = StyleSheet.create({
     emptyText: {
         fontSize: 17,
         fontWeight: '500',
-        color: '#636366',
+        color: Colors.text.secondary,
     },
     emptySubtext: {
         fontSize: 14,
-        color: '#98989D',
+        color: Colors.text.secondary,
         marginTop: 4,
     },
     mapContainer: {
@@ -1039,12 +996,12 @@ const styles = StyleSheet.create({
         position: 'absolute',
         left: 10,
         right: 10,
-        backgroundColor: '#fff',
+        backgroundColor: Colors.white,
         borderTopLeftRadius: 24,
         borderTopRightRadius: 24,
         borderBottomLeftRadius: 24,
         borderBottomRightRadius: 24,
-        shadowColor: '#000',
+        shadowColor: Colors.black,
         shadowOffset: { width: 0, height: -4 },
         shadowOpacity: 0.1,
         shadowRadius: 12,
@@ -1055,12 +1012,12 @@ const styles = StyleSheet.create({
         paddingTop: 12,
         paddingBottom: 8,
         paddingHorizontal: 24,
-        backgroundColor: '#fff',
+        backgroundColor: Colors.white,
     },
     mapDragHandlePill: {
         width: 36,
         height: 4,
-        backgroundColor: '#E5E5EA',
+        backgroundColor: Colors.border.light,
         borderRadius: 2,
         alignSelf: 'center',
         marginBottom: 12,
@@ -1073,7 +1030,7 @@ const styles = StyleSheet.create({
     mapTitle: {
         fontSize: 14,
         fontWeight: '700',
-        color: '#1C1C1E',
+        color: Colors.text.primary,
         letterSpacing: 1,
     },
     mapWrapper: {
@@ -1082,7 +1039,7 @@ const styles = StyleSheet.create({
         marginBottom: 16,
         borderRadius: 16,
         overflow: 'hidden',
-        backgroundColor: '#E5E5EA',
+        backgroundColor: Colors.border.light,
     },
     mapEmpty: {
         flex: 1,
@@ -1092,19 +1049,19 @@ const styles = StyleSheet.create({
     },
     mapEmptyText: {
         fontSize: 14,
-        color: '#8E8E93',
+        color: Colors.text.secondary,
     },
     selectedPlace: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#E8F5E9',
+        backgroundColor: Colors.successLight,
         padding: 12,
         borderRadius: 8,
         gap: 8,
     },
     selectedPlaceText: {
         fontSize: 15,
-        color: '#1C1C1E',
+        color: Colors.text.primary,
         flex: 1,
     },
     sheetTitle: {
@@ -1116,26 +1073,26 @@ const styles = StyleSheet.create({
     inputLabel: {
         fontSize: 13,
         fontWeight: '600',
-        color: '#666',
+        color: Colors.text.secondary,
     },
     memberItem: {
         flexDirection: 'row',
         alignItems: 'center',
         paddingVertical: 12,
         borderBottomWidth: 1,
-        borderBottomColor: '#f2f2f2',
+        borderBottomColor: Colors.border.light,
     },
     bigTitle: {
         fontSize: 34,
         fontWeight: '700',
-        color: '#000',
+        color: Colors.black,
         marginTop: 0,
         marginBottom: 4,
         fontFamily: 'Serif',
     },
     subtitle: {
         fontSize: 15,
-        color: '#666',
+        color: Colors.text.secondary,
         fontWeight: '500',
     },
 
@@ -1146,7 +1103,7 @@ const styles = StyleSheet.create({
     memberAvatarWrapper: {
         borderRadius: 20,
         borderWidth: 2,
-        borderColor: '#fff',
+        borderColor: Colors.white,
     },
     memberAvatar: {
         width: 36,
@@ -1154,22 +1111,22 @@ const styles = StyleSheet.create({
         borderRadius: 18,
     },
     memberAvatarFallback: {
-        backgroundColor: '#1C1C1E',
+        backgroundColor: Colors.text.primary,
         alignItems: 'center',
         justifyContent: 'center',
     },
     memberAvatarText: {
-        color: '#fff',
+        color: Colors.white,
         fontSize: 14,
         fontWeight: '600',
     },
     memberAvatarMore: {
-        backgroundColor: '#E5E5EA',
+        backgroundColor: Colors.border.light,
         alignItems: 'center',
         justifyContent: 'center',
     },
     memberAvatarMoreText: {
-        color: '#636366',
+        color: Colors.text.secondary,
         fontSize: 12,
         fontWeight: '600',
     },
@@ -1178,10 +1135,10 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 20,
-        backgroundColor: '#fff',
+        backgroundColor: Colors.white,
         alignItems: 'center',
         justifyContent: 'center',
-        shadowColor: '#000',
+        shadowColor: Colors.black,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 8,
@@ -1190,11 +1147,11 @@ const styles = StyleSheet.create({
     memberName: {
         fontSize: 15,
         fontWeight: '600',
-        color: '#1A1A1A',
+        color: Colors.text.primary,
     },
     memberEmail: {
         fontSize: 13,
-        color: '#666',
+        color: Colors.text.secondary,
     },
     memberListAvatar: {
         width: 40,
@@ -1202,17 +1159,17 @@ const styles = StyleSheet.create({
         borderRadius: 20,
     },
     memberListAvatarFallback: {
-        backgroundColor: '#1C1C1E',
+        backgroundColor: Colors.text.primary,
         alignItems: 'center',
         justifyContent: 'center',
     },
     memberListAvatarText: {
-        color: '#fff',
+        color: Colors.white,
         fontSize: 16,
         fontWeight: '600',
     },
     ownerBadge: {
-        backgroundColor: '#E8F5E9',
+        backgroundColor: Colors.successLight,
         paddingHorizontal: 10,
         paddingVertical: 4,
         borderRadius: 12,
@@ -1220,7 +1177,7 @@ const styles = StyleSheet.create({
     ownerBadgeText: {
         fontSize: 12,
         fontWeight: '600',
-        color: '#2E7D32',
+        color: Colors.success,
     },
     removeMemberBtn: {
         padding: 8,
@@ -1229,14 +1186,14 @@ const styles = StyleSheet.create({
     },
     errorText: {
         fontSize: 16,
-        color: '#666',
+        color: Colors.text.secondary,
     },
     dragHandle: {
         padding: 4,
         marginRight: 4,
     },
     activityCardActive: {
-        backgroundColor: '#E8F5E9',
+        backgroundColor: Colors.successLight,
         transform: [{ scale: 1.02 }],
     },
 });

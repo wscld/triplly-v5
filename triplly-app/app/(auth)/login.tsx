@@ -14,6 +14,7 @@ import { Link, router } from 'expo-router';
 import { useAuth } from '@/lib/auth';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
+import { Colors } from '@/constants/colors';
 
 export default function LoginScreen() {
     const { login } = useAuth();
@@ -102,7 +103,7 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F2F0E9',
+        backgroundColor: Colors.background,
     },
     keyboardView: {
         flex: 1,
@@ -120,7 +121,7 @@ const styles = StyleSheet.create({
         fontSize: 48,
         fontWeight: '400',
         fontFamily: 'Serif',
-        color: '#1C1C1E',
+        color: Colors.text.primary,
         marginBottom: 8,
         letterSpacing: -1,
     },
@@ -148,12 +149,12 @@ const styles = StyleSheet.create({
         borderRadius: 16,
         paddingHorizontal: 20,
         fontSize: 17,
-        backgroundColor: '#F2F0E9', // Warm beige input background
-        color: '#1C1C1E',
+        backgroundColor: Colors.background, // Warm beige input background
+        color: Colors.text.primary,
     },
     button: {
         height: 56,
-        backgroundColor: '#1C1C1E', // Black button
+        backgroundColor: Colors.primary, // Primary button
         borderRadius: 100, // Pill shape
         alignItems: 'center',
         justifyContent: 'center',
@@ -168,7 +169,7 @@ const styles = StyleSheet.create({
         opacity: 0.7,
     },
     buttonText: {
-        color: '#fff',
+        color: Colors.text.primary,
         fontWeight: '600',
     },
     footer: {

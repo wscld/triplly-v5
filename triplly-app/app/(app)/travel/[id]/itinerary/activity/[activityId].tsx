@@ -24,6 +24,7 @@ import SheetForm from '@/components/SheetForm';
 import { VStack, Input, InputField, Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetDragIndicatorWrapper, ActionsheetDragIndicator, ActionsheetItem, ActionsheetItemText } from '@gluestack-ui/themed';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { Colors } from '@/constants/colors';
 
 export default function ActivityScreen() {
     const { id, itineraryId, activityId } = useLocalSearchParams<{ id: string; itineraryId: string; activityId: string }>();
@@ -199,7 +200,7 @@ export default function ActivityScreen() {
     if (isLoadingActivity || !activity) {
         return (
             <View style={styles.centered}>
-                <ActivityIndicator size="large" color="#1C1C1E" />
+                <ActivityIndicator size="large" color={Colors.black} />
             </View>
         );
     }
@@ -239,10 +240,10 @@ export default function ActivityScreen() {
                     onPress={() => router.back()}
                     style={styles.headerButton}
                 >
-                    <Ionicons name="arrow-back" size={24} color="#1C1C1E" />
+                    <Ionicons name="arrow-back" size={24} color={Colors.black} />
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => setShowEditSheet(true)} style={styles.headerButton}>
-                    <Ionicons name="pencil" size={22} color="#1C1C1E" />
+                    <Ionicons name="pencil" size={22} color={Colors.black} />
                 </TouchableOpacity>
             </View>
 
@@ -262,13 +263,13 @@ export default function ActivityScreen() {
                 <View style={styles.subtitleRow}>
                     {activity.startTime && (
                         <View style={styles.subtitleItem}>
-                            <Ionicons name="time-outline" size={16} color="#636366" />
+                            <Ionicons name="time-outline" size={16} color={Colors.text.secondary} />
                             <Text style={styles.subtitleText}>{activity.startTime}</Text>
                         </View>
                     )}
                     {activity.address && (
                         <View style={styles.subtitleItem}>
-                            <Ionicons name="location-outline" size={16} color="#636366" />
+                            <Ionicons name="location-outline" size={16} color={Colors.text.secondary} />
                             <Text style={styles.subtitleText} numberOfLines={1}>
                                 {activity.address}
                             </Text>
@@ -298,7 +299,7 @@ export default function ActivityScreen() {
                         {/* Added By Section */}
                         {activity.createdBy && (
                             <View style={activity.description ? styles.addedBySection : { ...styles.addedBySection, borderTopWidth: 0, paddingTop: 0, marginTop: 0 }}>
-                                <Ionicons name="person-outline" size={16} color="#636366" />
+                                <Ionicons name="person-outline" size={16} color={Colors.text.secondary} />
                                 <Text style={styles.addedByText}>
                                     Adicionado por <Text style={styles.addedByName}>{activity.createdBy.name}</Text>
                                     {' em '}
@@ -314,7 +315,7 @@ export default function ActivityScreen() {
                             <Ionicons
                                 name="calendar-outline"
                                 size={20}
-                                color={activity.itineraryId ? "#1C1C1E" : "#fff"}
+                                color={activity.itineraryId ? Colors.text.primary : Colors.text.primary}
                             />
                             <Text style={[styles.assignButtonText, activity.itineraryId && styles.assignButtonTextOutline]}>
                                 {activity.itineraryId ? "Mover para outro dia" : "Adicionar ao Roteiro"}
@@ -327,7 +328,7 @@ export default function ActivityScreen() {
                         <Text style={styles.sectionTitle}>Comentários</Text>
 
                         {isLoadingComments ? (
-                            <ActivityIndicator color="#636366" style={{ marginTop: 20 }} />
+                            <ActivityIndicator color={Colors.text.secondary} style={{ marginTop: 20 }} />
                         ) : comments?.length === 0 ? (
                             <View style={styles.emptyCommentsContainer}>
                                 <Text style={styles.emptyComments}>Nenhum comentário ainda.</Text>
@@ -379,9 +380,9 @@ export default function ActivityScreen() {
                         disabled={!commentText.trim() || createComment.isPending}
                     >
                         {createComment.isPending ? (
-                            <ActivityIndicator size="small" color="#fff" />
+                            <ActivityIndicator size="small" color={Colors.text.primary} />
                         ) : (
-                            <Ionicons name="arrow-up" size={20} color="#fff" />
+                            <Ionicons name="arrow-up" size={20} color={Colors.text.primary} />
                         )}
                     </TouchableOpacity>
                 </View>
@@ -392,7 +393,7 @@ export default function ActivityScreen() {
                 <Animated.View style={[styles.mapContainer, { bottom: insets.bottom }, animatedMapStyle]}>
                     <View style={styles.mapHandleContainer}>
                         <Animated.View style={animatedHandleStyle}>
-                            <Ionicons name="chevron-up" size={24} color="#C7C7CC" />
+                            <Ionicons name="chevron-up" size={24} color={Colors.border.medium} />
                         </Animated.View>
                     </View>
 
@@ -450,7 +451,7 @@ export default function ActivityScreen() {
                     </VStack>
 
                     <TouchableOpacity style={styles.deleteBtn} onPress={handleDelete}>
-                        <Ionicons name="trash-outline" size={18} color="#FF3B30" />
+                        <Ionicons name="trash-outline" size={18} color={Colors.error} />
                         <Text style={styles.deleteBtnText}>Remover local</Text>
                     </TouchableOpacity>
                 </VStack>
@@ -467,7 +468,7 @@ export default function ActivityScreen() {
 
                     {activity?.itineraryId && (
                         <ActionsheetItem onPress={() => assignActivity.mutate(null)}>
-                            <Ionicons name="heart-outline" size={20} color="#666" style={{ marginRight: 8 }} />
+                            <Ionicons name="heart-outline" size={20} color={Colors.text.secondary} style={{ marginRight: 8 }} />
                             <ActionsheetItemText>Mover para Wishlist</ActionsheetItemText>
                         </ActionsheetItem>
                     )}
@@ -491,7 +492,7 @@ export default function ActivityScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F2F0E9',
+        backgroundColor: Colors.background,
     },
     centered: {
         flex: 1,
@@ -516,7 +517,7 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 24,
         fontWeight: '600',
-        color: '#1C1C1E',
+        color: Colors.text.primary,
         marginBottom: 12,
         fontFamily: 'Serif',
     },
@@ -533,7 +534,7 @@ const styles = StyleSheet.create({
     },
     metaText: {
         fontSize: 15,
-        color: '#636366',
+        color: Colors.text.secondary,
     },
     description: {
         fontSize: 16,
@@ -554,16 +555,16 @@ const styles = StyleSheet.create({
     },
     addedByText: {
         fontSize: 14,
-        color: '#636366',
+        color: Colors.text.secondary,
     },
     addedByName: {
         fontWeight: '600',
-        color: '#1C1C1E',
+        color: Colors.text.primary,
     },
     sectionTitle: {
         fontSize: 18,
         fontWeight: '600',
-        color: '#1C1C1E',
+        color: Colors.text.primary,
         marginBottom: 16,
         fontFamily: 'Serif',
     },
@@ -587,11 +588,11 @@ const styles = StyleSheet.create({
     commentAuthor: {
         fontSize: 14,
         fontWeight: '600',
-        color: '#1C1C1E',
+        color: Colors.text.primary,
     },
     commentDate: {
         fontSize: 12,
-        color: '#8E8E93',
+        color: Colors.text.secondary,
     },
     commentContent: {
         fontSize: 15,
@@ -600,7 +601,7 @@ const styles = StyleSheet.create({
     },
     emptyComments: {
         textAlign: 'center',
-        color: '#8E8E93',
+        color: Colors.text.secondary,
         fontSize: 16,
         fontWeight: '500',
     },
@@ -635,13 +636,13 @@ const styles = StyleSheet.create({
         minHeight: 40,
         maxHeight: 100,
         fontSize: 16,
-        color: '#1C1C1E',
+        color: Colors.text.primary,
     },
     sendButton: {
         width: 40,
         height: 40,
         borderRadius: 20,
-        backgroundColor: '#1C1C1E',
+        backgroundColor: Colors.primary,
         alignItems: 'center',
         justifyContent: 'center',
         marginBottom: 2,
@@ -664,11 +665,11 @@ const styles = StyleSheet.create({
     },
     deleteBtnText: {
         fontSize: 16,
-        color: '#FF3B30',
+        color: Colors.error,
         fontWeight: '500',
     },
     assignButton: {
-        backgroundColor: '#1C1C1E',
+        backgroundColor: Colors.primary,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
@@ -678,17 +679,17 @@ const styles = StyleSheet.create({
         marginTop: 20,
     },
     assignButtonText: {
-        color: '#fff',
+        color: Colors.text.primary,
         fontSize: 16,
         fontWeight: '600',
     },
     assignButtonOutline: {
         backgroundColor: 'transparent',
         borderWidth: 1,
-        borderColor: '#E5E5EA',
+        borderColor: Colors.border.light,
     },
     assignButtonTextOutline: {
-        color: '#1C1C1E',
+        color: Colors.black,
     },
     sheetTitle: {
         fontSize: 17,
@@ -713,7 +714,7 @@ const styles = StyleSheet.create({
     bigTitle: {
         fontSize: 32,
         fontWeight: '700',
-        color: '#1C1C1E',
+        color: Colors.text.primary,
         marginBottom: 8,
         fontFamily: 'Serif',
     },
@@ -729,7 +730,7 @@ const styles = StyleSheet.create({
     },
     subtitleText: {
         fontSize: 15,
-        color: '#636366',
+        color: Colors.text.secondary,
         fontWeight: '500',
     },
     mapContainer: {

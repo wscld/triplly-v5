@@ -12,6 +12,7 @@ import { Input, InputField, VStack, Text as GText, Textarea, TextareaInput } fro
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Skeleton from '@/components/Skeleton';
 import Animated, { useSharedValue, useAnimatedStyle, useAnimatedScrollHandler, interpolate, Extrapolation } from 'react-native-reanimated';
+import { Colors } from '@/constants/colors';
 
 const AnimatedSectionList = Animated.createAnimatedComponent(SectionList);
 
@@ -49,7 +50,7 @@ function TravelCard({ travel }: { travel: TravelListItem }) {
                         <View style={styles.roleBadge}>
                             <Text style={styles.roleText}>{travel.role}</Text>
                         </View>
-                        <Ionicons name="arrow-forward" size={20} color="#1C1C1E" />
+                        <Ionicons name="arrow-forward" size={20} color={Colors.black} />
                     </View>
                 </View>
             </TouchableOpacity>
@@ -192,7 +193,7 @@ export default function TravelListScreen() {
                     style={styles.headerButton}
                     onPress={() => setShowCreateSheet(true)}
                 >
-                    <Ionicons name="add" size={24} color="#fff" />
+                    <Ionicons name="add" size={24} color={Colors.text.primary} />
                 </TouchableOpacity>
             </View>
 
@@ -219,11 +220,11 @@ export default function TravelListScreen() {
             ) : (
                 <AnimatedSectionList
                     sections={sections}
-                    keyExtractor={(item) => item.id}
-                    renderItem={({ item }) => <TravelCard travel={item} />}
-                    renderSectionHeader={({ section: { title } }) => (
+                    keyExtractor={(item: any) => item.id}
+                    renderItem={({ item }: { item: any }) => <TravelCard travel={item} />}
+                    renderSectionHeader={({ section }: { section: any }) => (
                         <View style={styles.sectionHeader}>
-                            <Text style={styles.sectionHeaderText}>{title}</Text>
+                            <Text style={styles.sectionHeaderText}>{section.title}</Text>
                         </View>
                     )}
                     contentContainerStyle={{
@@ -253,7 +254,7 @@ export default function TravelListScreen() {
                     }
                     ListEmptyComponent={
                         <View style={styles.empty}>
-                            <Ionicons name="earth" size={64} color="#C7C7CC" />
+                            <Ionicons name="earth" size={64} color={Colors.border.medium} />
                             <Text style={styles.emptyTitle}>No travels yet</Text>
                             <Text style={styles.emptySubtext}>Plan your first adventure</Text>
                         </View>
@@ -261,6 +262,7 @@ export default function TravelListScreen() {
                     stickySectionHeadersEnabled={false}
                 />
             )}
+
 
             <SheetForm
                 isOpen={showCreateSheet}
@@ -315,18 +317,18 @@ export default function TravelListScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F2F0E9',
+        backgroundColor: Colors.background,
     },
     centered: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#F2F0E9',
+        backgroundColor: Colors.background,
     },
     headerButton: {
         width: 44,
         height: 44,
-        backgroundColor: '#1C1C1E',
+        backgroundColor: Colors.primary,
         borderRadius: 22,
         alignItems: 'center',
         justifyContent: 'center',
@@ -339,7 +341,7 @@ const styles = StyleSheet.create({
     headerTitle: {
         fontSize: 40,
         fontWeight: '400',
-        color: '#1C1C1E',
+        color: Colors.text.primary,
         letterSpacing: -0.5,
     },
     list: {
@@ -354,12 +356,12 @@ const styles = StyleSheet.create({
     sectionHeaderText: {
         fontSize: 18,
         fontWeight: '600',
-        color: '#1C1C1E',
+        color: Colors.text.primary,
     },
     statsContainer: {
         flexDirection: 'row',
         marginBottom: 24,
-        backgroundColor: '#fff',
+        backgroundColor: Colors.white,
         borderRadius: 24,
         padding: 20,
         justifyContent: 'space-around',
@@ -377,11 +379,11 @@ const styles = StyleSheet.create({
     statValue: {
         fontSize: 24,
         fontWeight: '600',
-        color: '#1C1C1E',
+        color: Colors.text.primary,
     },
     statLabel: {
         fontSize: 13,
-        color: '#636366',
+        color: Colors.text.secondary,
         fontWeight: '500',
         textTransform: 'uppercase',
         letterSpacing: 0.5,
@@ -389,11 +391,11 @@ const styles = StyleSheet.create({
     statDivider: {
         width: 1,
         height: 32,
-        backgroundColor: '#E5E5EA',
+        backgroundColor: Colors.border.light,
     },
     card: {
         height: 200,
-        backgroundColor: '#fff',
+        backgroundColor: Colors.white,
         borderRadius: 32,
         padding: 24,
         justifyContent: 'space-between',
@@ -411,12 +413,12 @@ const styles = StyleSheet.create({
     cardTitle: {
         fontSize: 32,
         fontWeight: '400',
-        color: '#1C1C1E',
+        color: Colors.text.primary,
         lineHeight: 36,
     },
     cardDates: {
         fontSize: 15,
-        color: '#636366',
+        color: Colors.text.secondary,
         fontWeight: '500',
         marginTop: 4,
         textTransform: 'uppercase',
@@ -428,14 +430,14 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
     },
     roleBadge: {
-        backgroundColor: '#F2F0E9',
+        backgroundColor: Colors.background,
         paddingHorizontal: 12,
         paddingVertical: 6,
         borderRadius: 100,
     },
     roleText: {
         fontSize: 12,
-        color: '#1C1C1E',
+        color: Colors.text.primary,
         textTransform: 'uppercase',
         fontWeight: '600',
         letterSpacing: 0.5,
@@ -448,12 +450,12 @@ const styles = StyleSheet.create({
     emptyTitle: {
         fontSize: 20,
         fontWeight: '600',
-        color: '#1C1C1E',
+        color: Colors.text.primary,
         marginTop: 16,
     },
     emptySubtext: {
         fontSize: 15,
-        color: '#636366',
+        color: Colors.text.secondary,
     },
     errorText: {
         fontSize: 16,
@@ -463,11 +465,11 @@ const styles = StyleSheet.create({
     retryButton: {
         paddingHorizontal: 24,
         paddingVertical: 12,
-        backgroundColor: '#1C1C1E',
+        backgroundColor: Colors.primary,
         borderRadius: 100,
     },
     retryText: {
-        color: '#fff',
+        color: Colors.text.primary,
         fontWeight: '600',
     },
 });

@@ -6,6 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Avatar, AvatarFallbackText } from '@gluestack-ui/themed';
+import { Colors } from '@/constants/colors';
 
 export default function ProfileScreen() {
     const { user, logout } = useAuth();
@@ -42,9 +43,9 @@ export default function ProfileScreen() {
                 <View style={styles.section}>
                     <TouchableOpacity onPress={handleLogout} style={styles.itemContainer}>
                         <View style={styles.item}>
-                            <Ionicons name="log-out-outline" size={22} color="#FF3B30" />
-                            <Text style={[styles.itemText, { color: '#FF3B30' }]}>Sign Out</Text>
-                            <Ionicons name="chevron-forward" size={18} color="#C7C7CC" style={{ marginLeft: 'auto' }} />
+                            <Ionicons name="log-out-outline" size={22} color={Colors.text.error} />
+                            <Text style={[styles.itemText, { color: Colors.text.error }]}>Sign Out</Text>
+                            <Ionicons name="chevron-forward" size={18} color={Colors.border.medium} style={{ marginLeft: 'auto' }} />
                         </View>
                     </TouchableOpacity>
                 </View>
@@ -56,7 +57,7 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F2F0E9', // Warm beige
+        backgroundColor: Colors.background, // Warm beige
     },
     header: {
         alignItems: 'center',
@@ -78,25 +79,25 @@ const styles = StyleSheet.create({
         borderRadius: 50,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#1C1C1E', // Dark avatar
+        backgroundColor: Colors.black, // Dark avatar
     },
     avatarText: {
         fontSize: 36,
         fontWeight: '400',
         fontFamily: 'Serif',
-        color: '#F2F0E9',
+        color: Colors.background,
     },
     name: {
         fontSize: 32,
         fontWeight: '400',
         fontFamily: 'Serif',
-        color: '#1C1C1E',
+        color: Colors.text.primary,
         marginBottom: 4,
         letterSpacing: -0.5,
     },
     email: {
         fontSize: 16,
-        color: '#636366',
+        color: Colors.text.secondary,
     },
     section: {
         paddingHorizontal: 20,

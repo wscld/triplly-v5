@@ -23,6 +23,7 @@ import { VStack, Input, InputField, Actionsheet, ActionsheetBackdrop, Actionshee
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { Colors } from '@/constants/colors';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const MAP_HEIGHT = 200;
@@ -127,7 +128,7 @@ export default function ItineraryScreen() {
     if (isLoading) {
         return (
             <View style={styles.centered}>
-                <ActivityIndicator size="large" color="#1C1C1E" />
+                <ActivityIndicator size="large" color={Colors.black} />
             </View>
         );
     }
@@ -191,7 +192,7 @@ export default function ItineraryScreen() {
                         <View style={styles.sectionHeader}>
                             <Text style={styles.sectionTitle}>ROTEIRO</Text>
                             <TouchableOpacity onPress={() => setShowAddSheet(true)}>
-                                <Ionicons name="add-circle" size={28} color="#1C1C1E" />
+                                <Ionicons name="add-circle" size={28} color={Colors.black} />
                             </TouchableOpacity>
                         </View>
 
@@ -212,12 +213,12 @@ export default function ItineraryScreen() {
                                     }}
                                 >
                                     <View style={styles.activityIcon}>
-                                        <Ionicons name="location-outline" size={24} color="#1C1C1E" />
+                                        <Ionicons name="location-outline" size={24} color={Colors.black} />
                                     </View>
                                     <Text style={styles.activityTitle} numberOfLines={1}>
                                         {activity.title}
                                     </Text>
-                                    <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />
+                                    <Ionicons name="chevron-forward" size={20} color={Colors.border.medium} />
                                 </TouchableOpacity>
                             ))
                         )}
@@ -235,7 +236,7 @@ export default function ItineraryScreen() {
                         <ItineraryMap activities={activities} />
                     ) : (
                         <View style={styles.mapEmpty}>
-                            <Ionicons name="map-outline" size={32} color="#C7C7CC" />
+                            <Ionicons name="map-outline" size={32} color={Colors.border.medium} />
                             <Text style={styles.mapEmptyText}>Adicione locais para ver o mapa</Text>
                         </View>
                     )}
@@ -251,7 +252,7 @@ export default function ItineraryScreen() {
                     <Ionicons
                         name={activeTab === 'roteiro' ? 'location' : 'location-outline'}
                         size={24}
-                        color={activeTab === 'roteiro' ? '#1C1C1E' : '#8E8E93'}
+                        color={activeTab === 'roteiro' ? Colors.black : Colors.text.secondary}
                     />
                     <Text style={[styles.tabLabel, activeTab === 'roteiro' && styles.tabLabelActive]}>
                         Roteiro
@@ -265,7 +266,7 @@ export default function ItineraryScreen() {
                     <Ionicons
                         name={activeTab === 'mapa' ? 'map' : 'map-outline'}
                         size={24}
-                        color={activeTab === 'mapa' ? '#1C1C1E' : '#8E8E93'}
+                        color={activeTab === 'mapa' ? Colors.black : Colors.text.secondary}
                     />
                     <Text style={[styles.tabLabel, activeTab === 'mapa' && styles.tabLabelActive]}>
                         Mapa
@@ -279,7 +280,7 @@ export default function ItineraryScreen() {
                     <Ionicons
                         name="settings-outline"
                         size={24}
-                        color="#8E8E93"
+                        color={Colors.text.secondary}
                     />
                     <Text style={styles.tabLabel}>Configurações</Text>
                 </TouchableOpacity>
@@ -311,7 +312,7 @@ export default function ItineraryScreen() {
                     />
                     {formData.title && (
                         <View style={styles.selectedPlace}>
-                            <Ionicons name="location" size={16} color="#1C1C1E" />
+                            <Ionicons name="location" size={16} color={Colors.black} />
                             <Text style={styles.selectedPlaceText}>{formData.title}</Text>
                         </View>
                     )}
@@ -355,13 +356,13 @@ export default function ItineraryScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F2F0E9',
+        backgroundColor: Colors.background,
     },
     centered: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#F2F0E9',
+        backgroundColor: Colors.background,
     },
     content: {
         flex: 1,
@@ -369,7 +370,7 @@ const styles = StyleSheet.create({
     dateText: {
         fontSize: 16,
         fontWeight: '500',
-        color: '#1C1C1E',
+        color: Colors.text.primary,
         textAlign: 'center',
         paddingHorizontal: 24,
         paddingTop: 16,
@@ -386,18 +387,18 @@ const styles = StyleSheet.create({
         height: 44,
         borderRadius: 22,
         borderWidth: 2,
-        borderColor: '#1C1C1E',
+        borderColor: Colors.black,
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: 'transparent',
     },
     dayCircleActive: {
-        backgroundColor: '#1C1C1E',
+        backgroundColor: Colors.black,
     },
     dayText: {
         fontSize: 16,
         fontWeight: '600',
-        color: '#1C1C1E',
+        color: Colors.black,
     },
     dayTextActive: {
         color: '#fff',
@@ -415,7 +416,7 @@ const styles = StyleSheet.create({
     sectionTitle: {
         fontSize: 14,
         fontWeight: '700',
-        color: '#1C1C1E',
+        color: Colors.text.primary,
         letterSpacing: 1,
     },
     activityCard: {
@@ -436,7 +437,7 @@ const styles = StyleSheet.create({
         flex: 1,
         fontSize: 17,
         fontWeight: '500',
-        color: '#1C1C1E',
+        color: Colors.text.primary,
     },
     emptyState: {
         alignItems: 'center',
@@ -449,7 +450,7 @@ const styles = StyleSheet.create({
     },
     emptySubtext: {
         fontSize: 14,
-        color: '#98989D',
+        color: Colors.text.secondary,
         marginTop: 4,
     },
     mapContainer: {
@@ -463,7 +464,7 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         height: MAP_HEIGHT + 30,
-        backgroundColor: '#F2F0E9',
+        backgroundColor: Colors.background,
         paddingHorizontal: 24,
     },
     mapHeader: {
@@ -472,14 +473,14 @@ const styles = StyleSheet.create({
     mapTitle: {
         fontSize: 14,
         fontWeight: '700',
-        color: '#1C1C1E',
+        color: Colors.text.primary,
         letterSpacing: 1,
     },
     mapWrapper: {
         height: MAP_HEIGHT,
         borderRadius: 16,
         overflow: 'hidden',
-        backgroundColor: '#E5E5EA',
+        backgroundColor: Colors.border.light,
     },
     mapEmpty: {
         flex: 1,
@@ -489,7 +490,7 @@ const styles = StyleSheet.create({
     },
     mapEmptyText: {
         fontSize: 14,
-        color: '#8E8E93',
+        color: Colors.text.secondary,
     },
     bottomTabs: {
         position: 'absolute',
@@ -497,7 +498,7 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         flexDirection: 'row',
-        backgroundColor: '#F2F0E9',
+        backgroundColor: Colors.background,
         borderTopWidth: 1,
         borderTopColor: 'rgba(0,0,0,0.08)',
         paddingTop: 12,
@@ -509,10 +510,10 @@ const styles = StyleSheet.create({
     },
     tabLabel: {
         fontSize: 12,
-        color: '#8E8E93',
+        color: Colors.text.secondary,
     },
     tabLabelActive: {
-        color: '#1C1C1E',
+        color: Colors.text.primary,
         fontWeight: '600',
     },
     selectedPlace: {
@@ -525,7 +526,7 @@ const styles = StyleSheet.create({
     },
     selectedPlaceText: {
         fontSize: 15,
-        color: '#1C1C1E',
+        color: Colors.text.primary,
         flex: 1,
     },
     sheetTitle: {
