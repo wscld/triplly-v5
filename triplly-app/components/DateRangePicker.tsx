@@ -1,22 +1,19 @@
-import React, { useState, useRef, useCallback, useMemo } from 'react';
-import { View, TouchableOpacity, Text, StyleSheet, Platform } from 'react-native';
+import React, { useState, useMemo, useRef, useCallback } from 'react';
+import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { BottomSheetModal, BottomSheetView, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
 import { Calendar, DateData } from 'react-native-calendars';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/colors';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { format, isBefore, eachDayOfInterval } from 'date-fns';
 
 interface Props {
-    label: string;
-    value: Date | null;
-    onChange: (date: Date) => void;
-    minDate?: Date;
-    maxDate?: Date;
-    initialMonth?: Date;
+    startDate: Date | null;
+    endDate: Date | null;
+    onChange: (range: { startDate: Date | null; endDate: Date | null }) => void;
+    label?: string;
 }
 
-export default function DatePickerInput({ label, value, onChange, minDate, maxDate, initialMonth }: Props) {
+export default function DateRangePicker({ startDate, endDate, onChange, label = "DATES" }: Props) {
     const bottomSheetModalRef = useRef<BottomSheetModal>(null);
 
     const openSheet = () => {
@@ -39,49 +36,62 @@ export default function DatePickerInput({ label, value, onChange, minDate, maxDa
         []
     );
 
+    // Marking state based on props
     const markedDates = useMemo(() => {
-        if (!value) return {};
-        const dateStr = format(value, 'yyyy-MM-dd');
-        return {
-            [dateStr]: {
-                selected: true,
-                selectedColor: Colors.primary,
-                selectedTextColor: 'white',
+        const marks: any = {};
+        if (!startDate) return marks;
+
+        const startStr = format(startDate, 'yyyy-MM-dd');
+        marks[startStr] = { startingDay: true, color: Colors.primary, textColor: 'white' };
+
+        if (endDate) {
+            const endStr = format(endDate, 'yyyy-MM-dd');
+            marks[endStr] = { endingDay: true, color: Colors.primary, textColor: 'white' };
+
+            // Fill in between
+            if (isBefore(startDate, endDate)) {
+                const range = eachDayOfInterval({ start: startDate, end: endDate });
+                range.forEach(date => {
+                    const str = format(date, 'yyyy-MM-dd');
+                    if (str !== startStr && str !== endStr) {
+                        marks[str] = { color: '#E5E5EA', textColor: 'black' };
+                    }
+                });
             }
-        };
-    }, [value]);
+        } else {
+            marks[startStr] = { startingDay: true, endingDay: true, color: Colors.primary, textColor: 'white' };
+        }
+        return marks;
+    }, [startDate, endDate]);
 
     const handleDayPress = (day: DateData) => {
         const date = new Date(day.dateString + 'T00:00:00');
-        onChange(date);
-        closeSheet();
+
+        if (!startDate || (startDate && endDate)) {
+            // Start new range
+            onChange({ startDate: date, endDate: null });
+        } else if (startDate && !endDate) {
+            // Complete range
+            if (isBefore(date, startDate)) {
+                onChange({ startDate: date, endDate: null });
+            } else {
+                onChange({ startDate, endDate: date });
+            }
+        }
     };
 
     const displayText = useMemo(() => {
-        if (!value) return 'Selecionar data';
-        return format(value, 'dd/MM/yyyy');
-    }, [value]);
-
-    // Web handling - keep simple input for web
-    if (Platform.OS === 'web') {
-        return (
-            <View style={styles.container}>
-                <Text style={styles.label}>{label}</Text>
-                <View style={styles.inputTrigger}>
-                    <Text style={styles.inputText}>
-                        {value ? format(value, 'yyyy-MM-dd') : 'Select Date'}
-                    </Text>
-                </View>
-            </View>
-        );
-    }
+        if (!startDate) return 'Select dates';
+        if (!endDate) return format(startDate, 'dd/MM/yyyy') + ' - ...';
+        return `${format(startDate, 'dd/MM/yyyy')} - ${format(endDate, 'dd/MM/yyyy')}`;
+    }, [startDate, endDate]);
 
     return (
         <View style={styles.container}>
             <Text style={styles.label}>{label}</Text>
             <TouchableOpacity onPress={openSheet}>
                 <View style={styles.inputTrigger}>
-                    <Text style={[styles.inputText, !value && styles.inputPlaceholder]}>
+                    <Text style={[styles.inputText, !startDate && styles.inputPlaceholder]}>
                         {displayText}
                     </Text>
                     <Ionicons name="calendar-outline" size={20} color="#666" />
@@ -99,18 +109,16 @@ export default function DatePickerInput({ label, value, onChange, minDate, maxDa
             >
                 <BottomSheetView style={styles.sheetContent}>
                     <View style={styles.modalHeader}>
-                        <Text style={styles.modalTitle}>{label}</Text>
+                        <Text style={styles.modalTitle}>Select Travel Dates</Text>
                         <TouchableOpacity onPress={closeSheet}>
                             <Ionicons name="close" size={24} color={Colors.black} />
                         </TouchableOpacity>
                     </View>
 
                     <Calendar
-                        current={value ? format(value, 'yyyy-MM-dd') : initialMonth ? format(initialMonth, 'yyyy-MM-dd') : undefined}
+                        markingType={'period'}
                         markedDates={markedDates}
                         onDayPress={handleDayPress}
-                        minDate={minDate ? format(minDate, 'yyyy-MM-dd') : undefined}
-                        maxDate={maxDate ? format(maxDate, 'yyyy-MM-dd') : undefined}
                         theme={{
                             todayTextColor: Colors.primary,
                             arrowColor: Colors.primary,
@@ -118,6 +126,13 @@ export default function DatePickerInput({ label, value, onChange, minDate, maxDa
                             selectedDayTextColor: 'white',
                         }}
                     />
+
+                    <TouchableOpacity
+                        style={styles.confirmButton}
+                        onPress={closeSheet}
+                    >
+                        <Text style={styles.confirmButtonText}>Confirm</Text>
+                    </TouchableOpacity>
                 </BottomSheetView>
             </BottomSheetModal>
         </View>
@@ -173,4 +188,16 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: '600',
     },
+    confirmButton: {
+        backgroundColor: Colors.primary,
+        padding: 16,
+        borderRadius: 12,
+        alignItems: 'center',
+        marginTop: 20,
+    },
+    confirmButtonText: {
+        color: 'black',
+        fontWeight: '600',
+        fontSize: 16,
+    }
 });

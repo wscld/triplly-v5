@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, StyleSheet, Alert, SectionList } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, SectionList, ImageBackground } from 'react-native';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,12 +7,13 @@ import type { TravelListItem } from '@/lib/types';
 import { formatDateRange } from '@/utils/distance';
 import { useState, useMemo } from 'react';
 import SheetForm from '@/components/SheetForm';
-import DatePickerInput from '@/components/DatePickerInput';
+import DateRangePicker from '@/components/DateRangePicker';
 import { Input, InputField, VStack, Text as GText, Textarea, TextareaInput } from '@gluestack-ui/themed';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Skeleton from '@/components/Skeleton';
 import Animated, { useSharedValue, useAnimatedStyle, useAnimatedScrollHandler, interpolate, Extrapolation } from 'react-native-reanimated';
 import { Colors } from '@/constants/colors';
+import PlaceAutocomplete from '@/components/PlaceAutocomplete';
 
 const AnimatedSectionList = Animated.createAnimatedComponent(SectionList);
 
@@ -37,22 +38,49 @@ function TravelCard({ travel }: { travel: TravelListItem }) {
     return (
         <Link href={`/(app)/travel/${travel.id}`} asChild>
             <TouchableOpacity style={styles.card}>
-                <View style={styles.cardContent}>
-                    <View>
-                        <Text style={styles.cardTitle}>{travel.title}</Text>
-                        {(travel.startDate || travel.endDate) && (
-                            <Text style={styles.cardDates}>
-                                {formatDateRange(travel.startDate, travel.endDate)}
-                            </Text>
-                        )}
-                    </View>
-                    <View style={styles.cardFooter}>
-                        <View style={styles.roleBadge}>
-                            <Text style={styles.roleText}>{travel.role}</Text>
+                {travel.coverImageUrl ? (
+                    <ImageBackground
+                        source={{ uri: travel.coverImageUrl }}
+                        style={StyleSheet.absoluteFill}
+                        imageStyle={{ borderRadius: 32 }}
+                    >
+                        <View style={styles.cardOverlay}>
+                            <View style={styles.cardContent}>
+                                <View>
+                                    <Text style={[styles.cardTitle, { color: Colors.white }]}>{travel.title}</Text>
+                                    {(travel.startDate || travel.endDate) && (
+                                        <Text style={[styles.cardDates, { color: Colors.white }]}>
+                                            {formatDateRange(travel.startDate, travel.endDate)}
+                                        </Text>
+                                    )}
+                                </View>
+                                <View style={styles.cardFooter}>
+                                    <View style={styles.roleBadge}>
+                                        <Text style={styles.roleText}>{travel.role}</Text>
+                                    </View>
+                                    <Ionicons name="arrow-forward" size={20} color={Colors.white} />
+                                </View>
+                            </View>
                         </View>
-                        <Ionicons name="arrow-forward" size={20} color={Colors.black} />
+                    </ImageBackground>
+                ) : (
+                    <View style={styles.cardContent}>
+                        <View>
+                            <Text style={styles.cardTitle}>{travel.title}</Text>
+                            {(travel.startDate || travel.endDate) && (
+                                <Text style={styles.cardDates}>
+                                    {formatDateRange(travel.startDate, travel.endDate)}
+                                </Text>
+                            )}
+                        </View>
+                        <View style={styles.cardFooter}>
+                            <View style={styles.roleBadge}>
+                                <Text style={styles.roleText}>{travel.role}</Text>
+                            </View>
+                            <Ionicons name="arrow-forward" size={20} color={Colors.black} />
+                        </View>
                     </View>
-                </View>
+                )}
             </TouchableOpacity>
         </Link>
     );
@@ -68,6 +96,8 @@ export default function TravelListScreen() {
         description: '',
         startDate: null as Date | null,
         endDate: null as Date | null,
+        latitude: null as number | null,
+        longitude: null as number | null,
     });
 
     const { data: travels, isLoading, error } = useQuery({
@@ -143,7 +173,7 @@ export default function TravelListScreen() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['travels'] });
             setShowCreateSheet(false);
-            setFormData({ title: '', description: '', startDate: null, endDate: null });
+            setFormData({ title: '', description: '', startDate: null, endDate: null, latitude: null, longitude: null });
         },
         onError: (err) => {
             Alert.alert('Error', err instanceof Error ? err.message : 'Failed to create travel');
@@ -274,39 +304,26 @@ export default function TravelListScreen() {
             >
                 <VStack space="md">
                     <VStack space="xs">
-                        <GText size="xs" color="$coolGray500">TITLE</GText>
-                        <Input>
-                            <InputField
-                                placeholder="Where are you going?"
-                                value={formData.title}
-                                onChangeText={(t) => setFormData(d => ({ ...d, title: t }))}
-                                autoFocus
-                            />
-                        </Input>
+                        <GText size="xs" color="$coolGray500">DESTINATION</GText>
+                        <PlaceAutocomplete
+                            placeholder="Where are you going?"
+                            initialValue={formData.title}
+                            onSelect={(place) => {
+                                setFormData(d => ({
+                                    ...d,
+                                    title: place.name,
+                                    latitude: place.lat,
+                                    longitude: place.lon
+                                }));
+                            }}
+                        />
                     </VStack>
 
-                    <VStack space="xs">
-                        <GText size="xs" color="$coolGray500">DESCRIPTION</GText>
-                        <Textarea>
-                            <TextareaInput
-                                placeholder="Add details..."
-                                value={formData.description}
-                                onChangeText={(t) => setFormData(d => ({ ...d, description: t }))}
-                            />
-                        </Textarea>
-                    </VStack>
-
-                    <DatePickerInput
-                        label="START DATE"
-                        value={formData.startDate}
-                        onChange={(date) => setFormData(d => ({ ...d, startDate: date }))}
-                    />
-
-                    <DatePickerInput
-                        label="END DATE"
-                        value={formData.endDate}
-                        onChange={(date) => setFormData(d => ({ ...d, endDate: date }))}
-                        minDate={formData.startDate || undefined}
+                    <DateRangePicker
+                        startDate={formData.startDate}
+                        endDate={formData.endDate}
+                        onChange={({ startDate, endDate }) => setFormData(d => ({ ...d, startDate, endDate }))}
+                        label="TRAVEL DATES"
                     />
                 </VStack>
             </SheetForm>
@@ -471,5 +488,11 @@ const styles = StyleSheet.create({
     retryText: {
         color: Colors.text.primary,
         fontWeight: '600',
+    },
+    cardOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.3)',
+        borderRadius: 32,
+        padding: 24,
     },
 });

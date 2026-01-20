@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import {
     View,
     Text,
@@ -20,7 +20,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { api } from '@/lib/api';
 import ItineraryMap from '@/components/ItineraryMap';
 import SheetForm from '@/components/SheetForm';
-import { VStack, Input, InputField, Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetDragIndicatorWrapper, ActionsheetDragIndicator, ActionsheetItem, ActionsheetItemText } from '@gluestack-ui/themed';
+import { VStack, Input, InputField } from '@gluestack-ui/themed';
+import { BottomSheetModal, BottomSheetView, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Colors } from '@/constants/colors';
@@ -32,7 +33,7 @@ export default function ActivityScreen() {
     const queryClient = useQueryClient();
     const insets = useSafeAreaInsets();
     const [commentText, setCommentText] = useState('');
-    const [showAssignSheet, setShowAssignSheet] = useState(false);
+    const assignSheetRef = useRef<BottomSheetModal>(null);
     const [showEditSheet, setShowEditSheet] = useState(false);
     const [editData, setEditData] = useState({
         title: '',
@@ -192,7 +193,7 @@ export default function ActivityScreen() {
             queryClient.invalidateQueries({ queryKey: ['activity', activityId] });
             queryClient.invalidateQueries({ queryKey: ['travel', id] });
             queryClient.invalidateQueries({ queryKey: ['travel', id, 'wishlist'] });
-            setShowAssignSheet(false);
+            assignSheetRef.current?.dismiss();
             Alert.alert('Sucesso', 'Atividade movida para o roteiro');
         },
         onError: (err) => Alert.alert('Erro', err instanceof Error ? err.message : 'Falha ao mover atividade'),
@@ -307,7 +308,7 @@ export default function ActivityScreen() {
 
                         <TouchableOpacity
                             style={[styles.assignButton, activity.itineraryId && styles.assignButtonOutline]}
-                            onPress={() => setShowAssignSheet(true)}
+                            onPress={() => assignSheetRef.current?.present()}
                         >
                             <Ionicons
                                 name="calendar-outline"
@@ -454,33 +455,42 @@ export default function ActivityScreen() {
             </SheetForm>
 
             {/* Assign Sheet */}
-            <Actionsheet isOpen={showAssignSheet} onClose={() => setShowAssignSheet(false)}>
-                <ActionsheetBackdrop />
-                <ActionsheetContent>
-                    <ActionsheetDragIndicatorWrapper>
-                        <ActionsheetDragIndicator />
-                    </ActionsheetDragIndicatorWrapper>
+            <BottomSheetModal
+                ref={assignSheetRef}
+                enableDynamicSizing
+                enablePanDownToClose
+                backdropComponent={(props) => (
+                    <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} opacity={0.5} />
+                )}
+                handleIndicatorStyle={{ backgroundColor: '#D1D1D6', width: 36 }}
+                backgroundStyle={{ backgroundColor: '#fff' }}
+            >
+                <BottomSheetView style={{ padding: 16, paddingBottom: 32 }}>
                     <Text style={styles.sheetTitle}>Escolher dia</Text>
 
                     {activity?.itineraryId && (
-                        <ActionsheetItem onPress={() => assignActivity.mutate(null)}>
+                        <TouchableOpacity
+                            style={styles.sheetItem}
+                            onPress={() => assignActivity.mutate(null)}
+                        >
                             <Ionicons name="heart-outline" size={20} color={Colors.text.secondary} style={{ marginRight: 8 }} />
-                            <ActionsheetItemText>Mover para Wishlist</ActionsheetItemText>
-                        </ActionsheetItem>
+                            <Text style={styles.sheetItemText}>Mover para Wishlist</Text>
+                        </TouchableOpacity>
                     )}
 
                     {travel?.itineraries?.map((itinerary) => (
-                        <ActionsheetItem
+                        <TouchableOpacity
                             key={itinerary.id}
+                            style={styles.sheetItem}
                             onPress={() => assignActivity.mutate(itinerary.id)}
                         >
-                            <ActionsheetItemText>
+                            <Text style={styles.sheetItemText}>
                                 {itinerary?.date ? format(new Date(itinerary.date), "EEEE, d 'de' MMMM", { locale: ptBR }) : 'Sem data'}
-                            </ActionsheetItemText>
-                        </ActionsheetItem>
+                            </Text>
+                        </TouchableOpacity>
                     ))}
-                </ActionsheetContent>
-            </Actionsheet>
+                </BottomSheetView>
+            </BottomSheetModal>
         </GestureHandlerRootView>
     );
 }
@@ -752,5 +762,16 @@ const styles = StyleSheet.create({
         width: '100%',
         alignItems: 'center',
         paddingBottom: 8,
+    },
+    sheetItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: Colors.border.light,
+    },
+    sheetItemText: {
+        fontSize: 16,
+        color: Colors.text.primary,
     },
 });

@@ -1,18 +1,7 @@
-import React from 'react';
-import {
-    Actionsheet,
-    ActionsheetBackdrop,
-    ActionsheetContent,
-    ActionsheetDragIndicator,
-    ActionsheetDragIndicatorWrapper,
-    Box,
-    VStack,
-    Text,
-    Button,
-    ButtonText,
-    HStack,
-} from '@gluestack-ui/themed';
-import { KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useRef, useEffect, useCallback } from 'react';
+import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { BottomSheetModal, BottomSheetScrollView, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
+import { Colors } from '@/constants/colors';
 
 interface Props {
     isOpen: boolean;
@@ -33,39 +22,116 @@ export default function SheetForm({
     submitLabel = 'Save',
     isSubmitting = false,
 }: Props) {
+    const bottomSheetModalRef = useRef<BottomSheetModal>(null);
+
+    useEffect(() => {
+        if (isOpen) {
+            bottomSheetModalRef.current?.present();
+        } else {
+            bottomSheetModalRef.current?.dismiss();
+        }
+    }, [isOpen]);
+
+    const handleSheetChanges = useCallback((index: number) => {
+        if (index === -1) {
+            onClose();
+        }
+    }, [onClose]);
+
+    const renderBackdrop = useCallback(
+        (props: any) => (
+            <BottomSheetBackdrop
+                {...props}
+                disappearsOnIndex={-1}
+                appearsOnIndex={0}
+                opacity={0.5}
+            />
+        ),
+        []
+    );
+
     return (
-        <Actionsheet isOpen={isOpen} onClose={onClose} zIndex={999}>
-            <ActionsheetBackdrop />
-            <ActionsheetContent zIndex={999}>
-                <ActionsheetDragIndicatorWrapper>
-                    <ActionsheetDragIndicator />
-                </ActionsheetDragIndicatorWrapper>
-
-                <KeyboardAvoidingView
-                    behavior={Platform.OS === "ios" ? "padding" : undefined}
-                    style={{ width: '100%' }}
-                >
-                    <VStack space="md" w="$full" p="$4" pb="$8">
-                        <HStack justifyContent="space-between" alignItems="center" mb="$2">
-                            <Text size="xl" bold>{title}</Text>
-                            {onSubmit && (
-                                <Button
-                                    size="sm"
-                                    variant="link"
-                                    onPress={onSubmit}
-                                    isDisabled={isSubmitting}
-                                >
-                                    <ButtonText fontWeight="$bold">{submitLabel}</ButtonText>
-                                </Button>
-                            )}
-                        </HStack>
-
-                        <Box>
-                            {children}
-                        </Box>
-                    </VStack>
-                </KeyboardAvoidingView>
-            </ActionsheetContent>
-        </Actionsheet>
+        <BottomSheetModal
+            ref={bottomSheetModalRef}
+            onChange={handleSheetChanges}
+            snapPoints={['50%', '90%']}
+            enablePanDownToClose
+            backdropComponent={renderBackdrop}
+            handleIndicatorStyle={styles.handle}
+            backgroundStyle={styles.background}
+            keyboardBehavior="extend"
+            keyboardBlurBehavior="restore"
+            android_keyboardInputMode="adjustResize"
+        >
+            <BottomSheetScrollView
+                style={styles.scrollView}
+                contentContainerStyle={styles.contentContainer}
+            >
+                <View style={styles.header}>
+                    <Text style={styles.title}>{title}</Text>
+                    {onSubmit && (
+                        <TouchableOpacity
+                            onPress={onSubmit}
+                            disabled={isSubmitting}
+                            style={styles.submitButton}
+                        >
+                            <Text style={[
+                                styles.submitText,
+                                isSubmitting && styles.submitTextDisabled
+                            ]}>
+                                {submitLabel}
+                            </Text>
+                        </TouchableOpacity>
+                    )}
+                </View>
+                <View style={styles.body}>
+                    {children}
+                </View>
+            </BottomSheetScrollView>
+        </BottomSheetModal>
     );
 }
+
+const styles = StyleSheet.create({
+    scrollView: {
+        flex: 1,
+    },
+    contentContainer: {
+        paddingHorizontal: 16,
+        paddingBottom: 32,
+    },
+    handle: {
+        backgroundColor: '#D1D1D6',
+        width: 36,
+    },
+    background: {
+        backgroundColor: '#fff',
+    },
+    header: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingVertical: 8,
+        marginBottom: 8,
+    },
+    title: {
+        fontSize: 20,
+        fontWeight: '700',
+        color: Colors.text.primary,
+    },
+    submitButton: {
+        paddingHorizontal: 4,
+        paddingVertical: 4,
+    },
+    submitText: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: Colors.primary,
+    },
+    submitTextDisabled: {
+        opacity: 0.5,
+    },
+    body: {
+        marginTop: 8,
+    },
+});

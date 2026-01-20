@@ -1,5 +1,5 @@
 export const Colors = {
-    primary: '#C8E45D',   // Lime Green
+    primary: '#03db6cff',   // Lime Green
     background: '#F2F0E9', // Warm Beige
     black: '#1C1C1E',
     white: '#FFFFFF',

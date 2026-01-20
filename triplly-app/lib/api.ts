@@ -114,6 +114,29 @@ class ApiClient {
         });
     }
 
+    async uploadTravelCover(id: string, file: any): Promise<{ coverImageUrl: string }> {
+        const formData = new FormData();
+        formData.append('file', {
+            uri: file.uri,
+            name: file.fileName || 'cover.jpg',
+            type: file.mimeType || 'image/jpeg',
+        } as any);
+
+        const response = await fetch(`${API_URL}/travels/${id}/cover`, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                ...(this.token ? { 'Authorization': `Bearer ${this.token}` } : {}),
+            },
+        });
+
+        if (!response.ok) {
+            throw new Error('Upload failed');
+        }
+
+        return response.json();
+    }
+
     async deleteTravel(id: string): Promise<void> {
         await this.request(`/travels/${id}`, { method: 'DELETE' });
     }

@@ -1,22 +1,6 @@
-import React, { useState } from 'react';
-import Animated, { useSharedValue, useAnimatedStyle, useAnimatedScrollHandler, interpolate, Extrapolation } from 'react-native-reanimated';
-import {
-    Actionsheet,
-    ActionsheetBackdrop,
-    ActionsheetContent,
-    ActionsheetDragIndicator,
-    ActionsheetDragIndicatorWrapper,
-    VStack,
-    Text,
-    HStack,
-    Box,
-    Progress,
-    ProgressFilledTrack,
-    Input,
-    InputField,
-    Pressable,
-} from '@gluestack-ui/themed';
-import { KeyboardAvoidingView, Platform, FlatList, TouchableOpacity, ActivityIndicator, TouchableWithoutFeedback, Keyboard, FlatListProps } from 'react-native';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, FlatList } from 'react-native';
+import { BottomSheetModal, BottomSheetView, BottomSheetBackdrop, BottomSheetFlatList, BottomSheetTextInput } from '@gorhom/bottom-sheet';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
@@ -29,48 +13,36 @@ interface Props {
     travelId: string;
 }
 
-const AnimatedFlatList = Animated.createAnimatedComponent<FlatListProps<Todo>>(FlatList);
-
 export default function TodoList({ isOpen, onClose, travelId }: Props) {
     const queryClient = useQueryClient();
+    const bottomSheetModalRef = useRef<BottomSheetModal>(null);
     const [newTodoTitle, setNewTodoTitle] = useState('');
 
-    // Animation constants
-    const HEADER_HEIGHT = 140;
+    useEffect(() => {
+        if (isOpen) {
+            bottomSheetModalRef.current?.present();
+        } else {
+            bottomSheetModalRef.current?.dismiss();
+        }
+    }, [isOpen]);
 
-    // Animation state
-    const scrollY = useSharedValue(0);
-    const scrollHandler = useAnimatedScrollHandler({
-        onScroll: (event) => {
-            scrollY.value = event.contentOffset.y;
-        },
-    });
+    const handleSheetChanges = useCallback((index: number) => {
+        if (index === -1) {
+            onClose();
+        }
+    }, [onClose]);
 
-    const headerStyle = useAnimatedStyle(() => {
-        const translateY = interpolate(
-            scrollY.value,
-            [0, HEADER_HEIGHT],
-            [0, -HEADER_HEIGHT],
-            Extrapolation.CLAMP
-        );
-
-        const opacity = interpolate(
-            scrollY.value,
-            [0, HEADER_HEIGHT / 2],
-            [1, 0],
-            Extrapolation.CLAMP
-        );
-
-        return {
-            transform: [{ translateY }],
-            opacity,
-            position: 'absolute',
-            top: 0,
-            left: 20, // Padding from parent container
-            right: 20,
-            zIndex: 1,
-        };
-    });
+    const renderBackdrop = useCallback(
+        (props: any) => (
+            <BottomSheetBackdrop
+                {...props}
+                disappearsOnIndex={-1}
+                appearsOnIndex={0}
+                opacity={0.5}
+            />
+        ),
+        []
+    );
 
     const { data: todos, isLoading } = useQuery({
         queryKey: ['todos', travelId],
@@ -167,148 +139,237 @@ export default function TodoList({ isOpen, onClose, travelId }: Props) {
     };
 
     const renderItem = ({ item }: { item: Todo }) => (
-        <HStack
-            alignItems="center"
-            justifyContent="space-between"
-            p="$4"
-            bg="$white"
-            borderRadius="$xl"
-            mb="$3"
-            borderWidth={1}
-            borderColor="$borderLight200"
-        >
+        <View style={styles.todoItem}>
             <TouchableOpacity
-                style={{ flexDirection: 'row', alignItems: 'center', flex: 1, gap: 12 }}
+                style={styles.todoContent}
                 onPress={() => toggleTodo.mutate(item)}
             >
-                <Box
-                    w="$6"
-                    h="$6"
-                    borderRadius="$full"
-                    borderWidth={2}
-                    borderColor={item.isCompleted ? Colors.primary : Colors.border.light}
-                    bg={item.isCompleted ? Colors.primary : 'transparent'}
-                    alignItems="center"
-                    justifyContent="center"
-                >
+                <View style={[
+                    styles.checkbox,
+                    item.isCompleted && styles.checkboxChecked
+                ]}>
                     {item.isCompleted && <Ionicons name="checkmark" size={14} color={Colors.text.primary} />}
-                </Box>
-                <Text
-                    fontSize="$md"
-                    color={item.isCompleted ? '$textLight400' : '$textLight900'}
-                    textDecorationLine={item.isCompleted ? 'line-through' : 'none'}
-                    flex={1}
-                >
+                </View>
+                <Text style={[
+                    styles.todoText,
+                    item.isCompleted && styles.todoTextCompleted
+                ]}>
                     {item.title}
                 </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity onPress={() => deleteTodo.mutate(item.id)} style={{ padding: 4 }}>
-                <Ionicons name="trash-outline" size={18} color={Colors.text.error} />
+            <TouchableOpacity onPress={() => deleteTodo.mutate(item.id)} style={styles.deleteButton}>
+                <Ionicons name="trash-outline" size={18} color={Colors.error} />
             </TouchableOpacity>
-        </HStack>
+        </View>
     );
 
     return (
-        <Actionsheet isOpen={isOpen} onClose={onClose} zIndex={999}>
-            <ActionsheetBackdrop />
-            <ActionsheetContent zIndex={999} bg={Colors.background}>
-                <ActionsheetDragIndicatorWrapper>
-                    <ActionsheetDragIndicator />
-                </ActionsheetDragIndicatorWrapper>
+        <BottomSheetModal
+            ref={bottomSheetModalRef}
+            onChange={handleSheetChanges}
+            snapPoints={['70%']}
+            enablePanDownToClose
+            backdropComponent={renderBackdrop}
+            handleIndicatorStyle={styles.handle}
+            backgroundStyle={styles.background}
+            keyboardBehavior="interactive"
+            keyboardBlurBehavior="restore"
+        >
+            <View style={styles.container}>
+                {/* Header */}
+                <View style={styles.header}>
+                    <Text style={styles.title}>Planejamento</Text>
+                    <Text style={styles.subtitle}>Complete os itens para organizar sua viagem.</Text>
+                </View>
 
-                <KeyboardAvoidingView
-                    behavior={Platform.OS === "ios" ? "padding" : "height"}
-                    style={{ width: '100%', height: 600 }}
-                    keyboardVerticalOffset={Platform.OS === "ios" ? 180 : 0}
-                >
-                    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-                        <VStack space="md" w="$full" h="$full" p="$5" pb="$10" flex={1} overflow="hidden">
+                {/* Progress */}
+                <View style={styles.progressContainer}>
+                    <Text style={styles.progressText}>{Math.round(progress)}%</Text>
+                    <View style={styles.progressBar}>
+                        <View style={[styles.progressFill, { width: `${progress}%` }]} />
+                    </View>
+                </View>
 
-                            <Animated.View style={headerStyle}>
-                                <VStack space="xs" mb="$4">
-                                    <Text size="2xl" bold color="$textLight900">Planejamento</Text>
-                                    <Text size="sm" color="$textLight500">
-                                        Complete os itens para organizar sua viagem.
-                                    </Text>
-                                </VStack>
+                {/* List - takes remaining space */}
+                <View style={styles.listWrapper}>
+                    {isLoading ? (
+                        <ActivityIndicator size="small" style={styles.loader} />
+                    ) : (
+                        <BottomSheetFlatList
+                            data={todos}
+                            keyExtractor={(item: Todo) => item.id}
+                            renderItem={renderItem}
+                            contentContainerStyle={styles.listContent}
+                            ListEmptyComponent={
+                                <View style={styles.empty}>
+                                    <Text style={styles.emptyText}>Nenhum item adicionado ainda.</Text>
+                                </View>
+                            }
+                        />
+                    )}
+                </View>
 
-                                <HStack alignItems="center" space="sm" mb="$4">
-                                    <Text bold size="lg">{Math.round(progress)}%</Text>
-                                    <Box flex={1}>
-                                        <Progress value={progress} size="md" h="$2" bg="white">
-                                            <ProgressFilledTrack bg={Colors.primary} />
-                                        </Progress>
-                                    </Box>
-                                </HStack>
-                            </Animated.View>
-
-                            <Box flex={1}>
-                                {isLoading ? (
-                                    <ActivityIndicator size="small" />
-                                ) : (
-                                    <AnimatedFlatList
-                                        data={todos}
-                                        keyExtractor={(item: any) => item.id}
-                                        renderItem={renderItem}
-                                        contentContainerStyle={{ paddingBottom: 20, paddingTop: HEADER_HEIGHT }}
-                                        showsVerticalScrollIndicator={false}
-                                        onScroll={scrollHandler}
-                                        scrollEventThrottle={16}
-                                        ListEmptyComponent={
-                                            <Box py="$10" alignItems="center">
-                                                <Text color="$textLight400">Nenhum item adicionado ainda.</Text>
-                                            </Box>
-                                        }
-                                    />
-                                )}
-                            </Box>
-
-                            <Box
-                                mt="auto"
-                                pt="$2"
-                                pb="$5"
-                            >
-                                <HStack space="sm">
-                                    <Input
-                                        flex={1}
-                                        variant="outline"
-                                        size="md"
-                                        bg="$white"
-                                        borderRadius="$full"
-                                        borderColor="$borderLight200"
-                                    >
-                                        <InputField
-                                            placeholder="Adicionar novo item..."
-                                            placeholderTextColor={Colors.text.secondary}
-                                            value={newTodoTitle}
-                                            onChangeText={setNewTodoTitle}
-                                            onSubmitEditing={handleAdd}
-                                        />
-                                    </Input>
-                                    <Pressable
-                                        w="$10"
-                                        h="$10"
-                                        bg={Colors.primary}
-                                        borderRadius="$full"
-                                        alignItems="center"
-                                        justifyContent="center"
-                                        onPress={handleAdd}
-                                        opacity={!newTodoTitle.trim() ? 0.5 : 1}
-                                        disabled={!newTodoTitle.trim() || createTodo.isPending}
-                                    >
-                                        {createTodo.isPending ? (
-                                            <ActivityIndicator color={Colors.text.primary} size="small" />
-                                        ) : (
-                                            <Ionicons name="arrow-up" size={20} color={Colors.text.primary} />
-                                        )}
-                                    </Pressable>
-                                </HStack>
-                            </Box>
-                        </VStack>
-                    </TouchableWithoutFeedback>
-                </KeyboardAvoidingView>
-            </ActionsheetContent>
-        </Actionsheet>
+                {/* Input - stays at bottom */}
+                <View style={styles.inputContainer}>
+                    <BottomSheetTextInput
+                        style={styles.input}
+                        placeholder="Adicionar novo item..."
+                        placeholderTextColor={Colors.text.secondary}
+                        value={newTodoTitle}
+                        onChangeText={setNewTodoTitle}
+                        onSubmitEditing={handleAdd}
+                    />
+                    <TouchableOpacity
+                        style={[styles.addButton, !newTodoTitle.trim() && styles.addButtonDisabled]}
+                        onPress={handleAdd}
+                        disabled={!newTodoTitle.trim() || createTodo.isPending}
+                    >
+                        {createTodo.isPending ? (
+                            <ActivityIndicator color={Colors.text.primary} size="small" />
+                        ) : (
+                            <Ionicons name="arrow-up" size={20} color={Colors.text.primary} />
+                        )}
+                    </TouchableOpacity>
+                </View>
+            </View>
+        </BottomSheetModal>
     );
 }
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        paddingHorizontal: 20,
+    },
+    handle: {
+        backgroundColor: '#D1D1D6',
+        width: 36,
+    },
+    background: {
+        backgroundColor: Colors.background,
+    },
+    header: {
+        marginBottom: 16,
+    },
+    title: {
+        fontSize: 24,
+        fontWeight: '700',
+        color: Colors.text.primary,
+    },
+    subtitle: {
+        fontSize: 14,
+        color: Colors.text.secondary,
+        marginTop: 4,
+    },
+    progressContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 16,
+        gap: 12,
+    },
+    progressText: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: Colors.text.primary,
+    },
+    progressBar: {
+        flex: 1,
+        height: 8,
+        backgroundColor: '#fff',
+        borderRadius: 4,
+        overflow: 'hidden',
+    },
+    progressFill: {
+        height: '100%',
+        backgroundColor: Colors.primary,
+        borderRadius: 4,
+    },
+    listWrapper: {
+        flex: 1,
+    },
+    listContent: {
+        paddingBottom: 20,
+    },
+    todoItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        backgroundColor: '#fff',
+        padding: 16,
+        borderRadius: 16,
+        marginBottom: 12,
+        borderWidth: 1,
+        borderColor: Colors.border.light,
+    },
+    todoContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
+        gap: 12,
+    },
+    checkbox: {
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        borderWidth: 2,
+        borderColor: Colors.border.light,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    checkboxChecked: {
+        backgroundColor: Colors.primary,
+        borderColor: Colors.primary,
+    },
+    todoText: {
+        fontSize: 16,
+        color: Colors.text.primary,
+        flex: 1,
+    },
+    todoTextCompleted: {
+        color: Colors.text.secondary,
+        textDecorationLine: 'line-through',
+    },
+    deleteButton: {
+        padding: 4,
+    },
+    empty: {
+        alignItems: 'center',
+        paddingVertical: 40,
+    },
+    emptyText: {
+        color: Colors.text.secondary,
+    },
+    loader: {
+        marginTop: 20,
+    },
+    inputContainer: {
+        flexDirection: 'row',
+        gap: 12,
+        paddingTop: 12,
+        paddingBottom: 24,
+        borderTopWidth: 1,
+        borderTopColor: Colors.border.light,
+    },
+    input: {
+        flex: 1,
+        backgroundColor: '#fff',
+        borderRadius: 24,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        fontSize: 16,
+        borderWidth: 1,
+        borderColor: Colors.border.light,
+    },
+    addButton: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: Colors.primary,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    addButtonDisabled: {
+        opacity: 0.5,
+    },
+});

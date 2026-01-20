@@ -13,6 +13,8 @@ export interface Travel {
     startDate: string | null;
     endDate: string | null;
     coverImageUrl: string | null;
+    latitude: number | null;
+    longitude: number | null;
     ownerId: string;
     owner: { id: string; name: string; email?: string };
     createdAt: string;
@@ -72,6 +74,8 @@ export interface CreateTravelData {
     description?: string | null;
     startDate?: string | null;
     endDate?: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
 }
 
 export interface CreateItineraryData {

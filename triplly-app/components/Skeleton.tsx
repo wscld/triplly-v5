@@ -21,7 +21,7 @@ export default function Skeleton({
         Animated.loop(
             Animated.timing(shimmerAnim, {
                 toValue: 1,
-                duration: 1000,
+                duration: 1500,
                 useNativeDriver: true,
             })
         ).start();
@@ -47,7 +47,7 @@ export default function Skeleton({
                 ]}
             >
                 <LinearGradient
-                    colors={['transparent', 'rgba(255,255,255,0.3)', 'transparent']}
+                    colors={['transparent', 'rgba(255,255,255,0.1)', 'transparent']}
                     start={{ x: 0, y: 0.5 }}
                     end={{ x: 1, y: 0.5 }}
                     style={StyleSheet.absoluteFill}

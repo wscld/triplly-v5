@@ -4,6 +4,8 @@ import { z } from 'zod';
 import { AppDataSource } from '../data-source.js';
 import { Travel, TravelMember, MemberRole, User } from '../entities/index.js';
 import { authMiddleware, getAuth, requireTravelAccess } from '../middleware/index.js';
+import { getPlaceImage } from '../services/unsplash.js';
+import { uploadImage } from '../services/storage.js';
 
 const travels = new Hono();
 
@@ -16,6 +18,8 @@ const createTravelSchema = z.object({
     startDate: z.string().nullable().optional(),
     endDate: z.string().nullable().optional(),
     coverImageUrl: z.string().url().nullable().optional(),
+    latitude: z.number().nullable().optional(),
+    longitude: z.number().nullable().optional(),
 });
 
 const updateTravelSchema = createTravelSchema.partial();
@@ -38,6 +42,8 @@ travels.get('/', async (c) => {
         startDate: m.travel.startDate,
         endDate: m.travel.endDate,
         coverImageUrl: m.travel.coverImageUrl,
+        latitude: m.travel.latitude,
+        longitude: m.travel.longitude,
         role: m.role,
         owner: {
             id: m.travel.owner.id,
@@ -56,9 +62,16 @@ travels.post('/', zValidator('json', createTravelSchema), async (c) => {
     const travelRepo = AppDataSource.getRepository(Travel);
     const memberRepo = AppDataSource.getRepository(TravelMember);
 
+    // Auto-fetch cover image if not provided
+    let coverImageUrl = data.coverImageUrl;
+    if (!coverImageUrl && data.title) {
+        coverImageUrl = await getPlaceImage(data.title);
+    }
+
     // Create travel
     const travel = travelRepo.create({
         ...data,
+        coverImageUrl,
         startDate: data.startDate ? new Date(data.startDate) : null,
         endDate: data.endDate ? new Date(data.endDate) : null,
         ownerId: userId,
@@ -119,6 +132,8 @@ travels.patch('/:travelId', requireTravelAccess('editor'), zValidator('json', up
     if (data.startDate !== undefined) travel.startDate = data.startDate ? new Date(data.startDate) : null;
     if (data.endDate !== undefined) travel.endDate = data.endDate ? new Date(data.endDate) : null;
     if (data.coverImageUrl !== undefined) travel.coverImageUrl = data.coverImageUrl;
+    if (data.latitude !== undefined) travel.latitude = data.latitude;
+    if (data.longitude !== undefined) travel.longitude = data.longitude;
 
     await travelRepo.save(travel);
     return c.json(travel);
@@ -131,6 +146,45 @@ travels.delete('/:travelId', requireTravelAccess('owner'), async (c) => {
 
     await travelRepo.delete({ id: travelId });
     return c.json({ success: true });
+});
+
+// POST /travels/:travelId/cover - Upload cover image
+travels.post('/:travelId/cover', requireTravelAccess('editor'), async (c) => {
+    const travelId = c.req.param('travelId');
+    const body = await c.req.parseBody();
+    const file = body['file'];
+
+    if (!file || !(file instanceof File)) {
+        return c.json({ error: 'No file uploaded' }, 400);
+    }
+
+    // Basic validation
+    if (!file.type.startsWith('image/')) {
+        return c.json({ error: 'Invalid file type' }, 400);
+    }
+
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        return c.json({ error: 'File too large (max 5MB)' }, 400);
+    }
+
+    try {
+        const fileExt = file.name.split('.').pop() || 'jpg';
+        const fileName = `${travelId}/${Date.now()}.${fileExt}`;
+        const publicUrl = await uploadImage(file, fileName);
+
+        if (!publicUrl) {
+            throw new Error('Failed to get public URL');
+        }
+
+        // Update travel
+        const travelRepo = AppDataSource.getRepository(Travel);
+        await travelRepo.update({ id: travelId }, { coverImageUrl: publicUrl });
+
+        return c.json({ coverImageUrl: publicUrl });
+    } catch (error) {
+        console.error('Upload failed:', error);
+        return c.json({ error: 'Upload failed' }, 500);
+    }
 });
 
 // --- Member Management ---

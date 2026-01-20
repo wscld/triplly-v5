@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useCallback } from 'react';
 import {
     View,
     Text,
@@ -17,7 +17,8 @@ import ItineraryMap from '@/components/ItineraryMap';
 import SheetForm from '@/components/SheetForm';
 import PlaceAutocomplete from '@/components/PlaceAutocomplete';
 import GlassHeader from '@/components/GlassHeader';
-import { VStack, Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetItem, ActionsheetItemText } from '@gluestack-ui/themed';
+import { VStack } from '@gluestack-ui/themed';
+import { BottomSheetModal, BottomSheetView, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -38,7 +39,7 @@ export default function ItineraryScreen() {
 
     // Form State
     const [showAddSheet, setShowAddSheet] = useState(false);
-    const [showEditSheet, setShowEditSheet] = useState(false);
+    const editSheetRef = useRef<BottomSheetModal>(null);
     const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
     const [formData, setFormData] = useState({
         title: '',
@@ -99,7 +100,7 @@ export default function ItineraryScreen() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['itinerary', selectedItineraryId] });
             queryClient.invalidateQueries({ queryKey: ['travel', id] });
-            setShowEditSheet(false);
+            editSheetRef.current?.dismiss();
         },
         onError: (err) => Alert.alert('Error', err instanceof Error ? err.message : 'Failed to delete activity'),
     });
@@ -206,7 +207,7 @@ export default function ItineraryScreen() {
                                     onPress={() => router.push(`/(app)/travel/${id}/itinerary/activity/${activity.id}?itineraryId=${selectedItineraryId}`)}
                                     onLongPress={() => {
                                         setSelectedActivity(activity);
-                                        setShowEditSheet(true);
+                                        editSheetRef.current?.present();
                                     }}
                                 >
                                     <View style={styles.activityIcon}>
@@ -317,35 +318,49 @@ export default function ItineraryScreen() {
             </SheetForm>
 
             {/* Edit/Delete Activity Sheet */}
-            <Actionsheet isOpen={showEditSheet} onClose={() => setShowEditSheet(false)}>
-                <ActionsheetBackdrop />
-                <ActionsheetContent>
+            <BottomSheetModal
+                ref={editSheetRef}
+                enableDynamicSizing
+                enablePanDownToClose
+                backdropComponent={(props) => (
+                    <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} opacity={0.5} />
+                )}
+                handleIndicatorStyle={{ backgroundColor: '#D1D1D6', width: 36 }}
+                backgroundStyle={{ backgroundColor: '#fff' }}
+            >
+                <BottomSheetView style={{ padding: 16, paddingBottom: 32 }}>
                     <Text style={styles.sheetTitle}>{selectedActivity?.title}</Text>
-                    <ActionsheetItem onPress={() => {
-                        setShowEditSheet(false);
-                        if (selectedActivity) {
-                            router.push(`/(app)/travel/${id}/itinerary/activity/${selectedActivity.id}?itineraryId=${selectedItineraryId}`);
-                        }
-                    }}>
-                        <ActionsheetItemText>Ver detalhes</ActionsheetItemText>
-                    </ActionsheetItem>
-                    <ActionsheetItem onPress={() => {
-                        setShowEditSheet(false);
-                        if (selectedActivity) {
-                            Alert.alert(
-                                'Remover local',
-                                `Deseja remover "${selectedActivity.title}"?`,
-                                [
-                                    { text: 'Cancelar', style: 'cancel' },
-                                    { text: 'Remover', style: 'destructive', onPress: () => deleteActivity.mutate(selectedActivity.id) }
-                                ]
-                            );
-                        }
-                    }}>
-                        <ActionsheetItemText style={{ color: '#FF3B30' }}>Remover</ActionsheetItemText>
-                    </ActionsheetItem>
-                </ActionsheetContent>
-            </Actionsheet>
+                    <TouchableOpacity
+                        style={styles.sheetItem}
+                        onPress={() => {
+                            editSheetRef.current?.dismiss();
+                            if (selectedActivity) {
+                                router.push(`/(app)/travel/${id}/itinerary/activity/${selectedActivity.id}?itineraryId=${selectedItineraryId}`);
+                            }
+                        }}
+                    >
+                        <Text style={styles.sheetItemText}>Ver detalhes</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={styles.sheetItem}
+                        onPress={() => {
+                            editSheetRef.current?.dismiss();
+                            if (selectedActivity) {
+                                Alert.alert(
+                                    'Remover local',
+                                    `Deseja remover "${selectedActivity.title}"?`,
+                                    [
+                                        { text: 'Cancelar', style: 'cancel' },
+                                        { text: 'Remover', style: 'destructive', onPress: () => deleteActivity.mutate(selectedActivity.id) }
+                                    ]
+                                );
+                            }
+                        }}
+                    >
+                        <Text style={[styles.sheetItemText, { color: '#FF3B30' }]}>Remover</Text>
+                    </TouchableOpacity>
+                </BottomSheetView>
+            </BottomSheetModal>
         </View>
     );
 }
@@ -535,5 +550,16 @@ const styles = StyleSheet.create({
     errorText: {
         fontSize: 16,
         color: '#666',
+    },
+    sheetItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: Colors.border.light,
+    },
+    sheetItemText: {
+        fontSize: 16,
+        color: Colors.text.primary,
     },
 });

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator, ScrollView } from 'react-native';
-import { Input, InputField, VStack, Box } from '@gluestack-ui/themed';
+import { View, Text, TouchableOpacity, ActivityIndicator, ScrollView, StyleSheet } from 'react-native';
+import { BottomSheetTextInput } from '@gorhom/bottom-sheet';
 import { Ionicons } from '@expo/vector-icons';
+import { Colors } from '@/constants/colors';
 
 interface Place {
     place_id: number;
@@ -26,7 +27,6 @@ export default function PlaceAutocomplete({ onSelect, placeholder = "Search for 
     // Debounced search function
     useEffect(() => {
         const searchPlaces = async () => {
-            // ... existing logic ...
             if (query.length < 3) {
                 setResults([]);
                 return;
@@ -77,53 +77,84 @@ export default function PlaceAutocomplete({ onSelect, placeholder = "Search for 
     };
 
     return (
-        <VStack space="md" zIndex={999}>
-            <Input>
-                <InputField
+        <View style={styles.container}>
+            <View style={styles.inputContainer}>
+                <BottomSheetTextInput
+                    style={styles.input}
                     placeholder={placeholder}
+                    placeholderTextColor={Colors.text.secondary}
                     value={query}
                     onChangeText={setQuery}
                     onFocus={() => query.length >= 3 && setShowResults(true)}
                 />
                 {loading && (
-                    <Box position="absolute" right={12} top={12}>
-                        <ActivityIndicator size="small" color="#007AFF" />
-                    </Box>
+                    <View style={styles.loadingContainer}>
+                        <ActivityIndicator size="small" color={Colors.primary} />
+                    </View>
                 )}
-            </Input>
+            </View>
 
             {showResults && results.length > 0 && (
-                <View
-                    style={{
-                        backgroundColor: 'white',
-                        borderRadius: 8,
-                        borderWidth: 1,
-                        borderColor: '#E5E5E5',
-                        marginTop: 4,
-                        maxHeight: 200,
-                    }}
-                >
+                <View style={styles.resultsContainer}>
                     <ScrollView keyboardShouldPersistTaps="handled">
                         {results.map((item) => (
                             <TouchableOpacity
                                 key={item.place_id}
                                 onPress={() => handleSelect(item)}
-                                style={{
-                                    padding: 12,
-                                    borderBottomWidth: 1,
-                                    borderBottomColor: '#F0F0F0',
-                                    flexDirection: 'row',
-                                    alignItems: 'center',
-                                    gap: 10,
-                                }}
+                                style={styles.resultItem}
                             >
                                 <Ionicons name="location-outline" size={20} color="#666" />
-                                <Text style={{ fontSize: 14, color: '#333', flex: 1 }}>{item.display_name}</Text>
+                                <Text style={styles.resultText}>{item.display_name}</Text>
                             </TouchableOpacity>
                         ))}
                     </ScrollView>
                 </View>
             )}
-        </VStack>
+        </View>
     );
 }
+
+const styles = StyleSheet.create({
+    container: {
+        zIndex: 999,
+    },
+    inputContainer: {
+        position: 'relative',
+    },
+    input: {
+        borderWidth: 1,
+        borderColor: '#E5E5E5',
+        borderRadius: 4,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        fontSize: 16,
+        backgroundColor: '#fff',
+        color: Colors.text.primary,
+    },
+    loadingContainer: {
+        position: 'absolute',
+        right: 12,
+        top: 12,
+    },
+    resultsContainer: {
+        backgroundColor: 'white',
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#E5E5E5',
+        marginTop: 4,
+        maxHeight: 200,
+    },
+    resultItem: {
+        padding: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F0F0F0',
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+    },
+    resultText: {
+        fontSize: 14,
+        color: '#333',
+        flex: 1,
+    },
+});

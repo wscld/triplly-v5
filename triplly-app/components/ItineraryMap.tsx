@@ -67,6 +67,7 @@ export default function ItineraryMap({ activities }: Props) {
                     coordinates={coordinates}
                     strokeColor="#007AFF"
                     strokeWidth={3}
+                    lineDashPattern={[10, 5]}
                 />
             )}
         </MapView>

@@ -33,27 +33,27 @@ export default function TravelDetailSkeleton() {
 
                 {/* Day Selector */}
                 <View style={styles.daySelector}>
-                    {[1, 2, 3, 4, 5].map((_, i) => (
+                    {[1, 2, 3, 4].map((_, i) => (
                         <Skeleton
                             key={i}
-                            width={60}
-                            height={70}
-                            borderRadius={16}
-                            style={{ marginRight: 12 }}
+                            width={50}
+                            height={60}
+                            borderRadius={12}
+                            style={{ marginRight: 10 }}
                         />
                     ))}
                 </View>
 
                 {/* Activity List */}
                 <View style={styles.activityList}>
-                    {[1, 2, 3].map((_, i) => (
+                    {[1, 2].map((_, i) => (
                         <View key={i} style={styles.activityCard}>
                             <View style={styles.timeColumn}>
-                                <Skeleton width={40} height={14} borderRadius={4} />
+                                <Skeleton width={40} height={12} borderRadius={4} />
                             </View>
                             <View style={styles.cardContent}>
-                                <Skeleton width="80%" height={20} borderRadius={4} style={{ marginBottom: 8 }} />
-                                <Skeleton width="50%" height={14} borderRadius={4} />
+                                <Skeleton width="60%" height={16} borderRadius={4} style={{ marginBottom: 8 }} />
+                                <Skeleton width="40%" height={12} borderRadius={4} />
                             </View>
                         </View>
                     ))}

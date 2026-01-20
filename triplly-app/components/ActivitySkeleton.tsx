@@ -33,12 +33,11 @@ export default function ActivitySkeleton() {
                 {/* Details Card */}
                 <View style={styles.card}>
                     <Skeleton width="100%" height={16} borderRadius={4} style={{ marginBottom: 8 }} />
-                    <Skeleton width="90%" height={16} borderRadius={4} style={{ marginBottom: 8 }} />
-                    <Skeleton width="40%" height={16} borderRadius={4} style={{ marginBottom: 24 }} />
+                    <Skeleton width="80%" height={16} borderRadius={4} style={{ marginBottom: 24 }} />
 
                     {/* Added By Section */}
                     <View style={styles.addedBy}>
-                        <Skeleton width="60%" height={14} borderRadius={4} />
+                        <Skeleton width="40%" height={12} borderRadius={4} />
                     </View>
 
                     {/* Action Button */}
