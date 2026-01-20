@@ -160,6 +160,15 @@ export default function TravelDetailScreen() {
     const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
     const assignSheetRef = useRef<BottomSheetModal>(null);
 
+    // Itinerary edit menu
+    const itineraryMenuRef = useRef<BottomSheetModal>(null);
+    const [selectedItineraryForEdit, setSelectedItineraryForEdit] = useState<Itinerary | null>(null);
+    const [showEditItinerary, setShowEditItinerary] = useState(false);
+    const [editItineraryData, setEditItineraryData] = useState({
+        title: '',
+        date: null as Date | null,
+    });
+
     // Queries
     const { data: travel, isLoading, error } = useQuery({
         queryKey: ['travel', id],
@@ -230,6 +239,30 @@ export default function TravelDetailScreen() {
             setNewItineraryDate(null);
         },
         onError: (err) => Alert.alert('Erro', err instanceof Error ? err.message : 'Falha ao criar dia'),
+    });
+
+    const deleteItinerary = useMutation({
+        mutationFn: (itineraryId: string) => api.deleteItinerary(itineraryId),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['travel', id] });
+            itineraryMenuRef.current?.dismiss();
+            setSelectedItineraryForEdit(null);
+            setSelectedDayIndex(-1); // Go back to wishlist
+        },
+        onError: (err) => Alert.alert('Erro', err instanceof Error ? err.message : 'Falha ao excluir dia'),
+    });
+
+    const updateItinerary = useMutation({
+        mutationFn: () => api.updateItinerary(selectedItineraryForEdit!.id, {
+            title: editItineraryData.title,
+            date: editItineraryData.date ? format(editItineraryData.date, 'yyyy-MM-dd') : null,
+        }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['travel', id] });
+            setShowEditItinerary(false);
+            setSelectedItineraryForEdit(null);
+        },
+        onError: (err) => Alert.alert('Erro', err instanceof Error ? err.message : 'Falha ao atualizar dia'),
     });
 
     const createActivity = useMutation({
@@ -609,6 +642,11 @@ export default function TravelDetailScreen() {
                                             setDirection(index > selectedDayIndex ? 1 : -1);
                                             setSelectedDayIndex(index);
                                         }}
+                                        onLongPress={() => {
+                                            setSelectedItineraryForEdit(it);
+                                            itineraryMenuRef.current?.present();
+                                        }}
+                                        delayLongPress={300}
                                         style={[
                                             styles.dayCircle,
                                             index === selectedDayIndex && styles.dayCircleActive
@@ -683,28 +721,38 @@ export default function TravelDetailScreen() {
                                             }
                                         }}
                                         renderItem={({ item, getIndex, drag, isActive }: RenderItemParams<Activity>) => {
+                                            const index = getIndex() ?? 0;
+                                            const isFirst = index === 0;
+                                            const isLast = index === activities.length - 1;
+
                                             return (
                                                 <ScaleDecorator>
-                                                    <TouchableOpacity
-                                                        style={[styles.activityCard, isActive && styles.activityCardActive]}
-                                                        onPress={() => {
-                                                            const targetItineraryId = selectedItinerary?.id || 'wishlist';
-                                                            router.push(`/(app)/travel/${id}/itinerary/activity/${item.id}?itineraryId=${targetItineraryId}`);
-                                                        }}
-                                                        onLongPress={drag}
-                                                    >
-                                                        <TouchableOpacity onPressIn={drag} style={styles.dragHandle}>
-                                                            <Ionicons name="reorder-two" size={20} color={Colors.border.medium} />
+                                                    <View style={styles.timelineRow}>
+                                                        {/* Timeline line and dot */}
+                                                        <View style={styles.timelineContainer}>
+                                                            {!isFirst && <View style={styles.timelineLineTop} />}
+                                                            <View style={styles.timelineDot} />
+                                                            {!isLast && <View style={styles.timelineLineBottom} />}
+                                                        </View>
+
+                                                        {/* Activity Card */}
+                                                        <TouchableOpacity
+                                                            style={[styles.activityCard, isActive && styles.activityCardActive]}
+                                                            onPress={() => {
+                                                                const targetItineraryId = selectedItinerary?.id || 'wishlist';
+                                                                router.push(`/(app)/travel/${id}/itinerary/activity/${item.id}?itineraryId=${targetItineraryId}`);
+                                                            }}
+                                                            onLongPress={drag}
+                                                        >
+                                                            <TouchableOpacity onPressIn={drag} style={styles.dragHandle}>
+                                                                <Ionicons name="reorder-two" size={20} color={Colors.border.medium} />
+                                                            </TouchableOpacity>
+                                                            <Text style={styles.activityTitle} numberOfLines={1}>
+                                                                {item.title}
+                                                            </Text>
+                                                            <Ionicons name="chevron-forward" size={20} color={Colors.border.medium} />
                                                         </TouchableOpacity>
-                                                        <Text style={styles.activityTitle} numberOfLines={1}>
-                                                            {item.title}
-                                                        </Text>
-                                                        {selectedDayIndex === -1 ? (
-                                                            <Ionicons name="chevron-forward" size={20} color={Colors.border.medium} />
-                                                        ) : (
-                                                            <Ionicons name="chevron-forward" size={20} color={Colors.border.medium} />
-                                                        )}
-                                                    </TouchableOpacity>
+                                                    </View>
                                                 </ScaleDecorator>
                                             );
                                         }}
@@ -980,6 +1028,96 @@ export default function TravelDetailScreen() {
                 </BottomSheetView>
             </BottomSheetModal>
 
+            {/* Itinerary Edit/Delete Sheet */}
+            <BottomSheetModal
+                ref={itineraryMenuRef}
+                enableDynamicSizing
+                enablePanDownToClose
+                backdropComponent={(props) => (
+                    <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} opacity={0.5} />
+                )}
+                handleIndicatorStyle={{ backgroundColor: '#D1D1D6', width: 36 }}
+                backgroundStyle={{ backgroundColor: '#fff' }}
+            >
+                <BottomSheetView style={{ padding: 16, paddingBottom: 32 }}>
+                    <Text style={styles.sheetTitle}>
+                        {selectedItineraryForEdit?.title || 'Dia'}
+                    </Text>
+                    <TouchableOpacity
+                        style={styles.sheetItem}
+                        onPress={() => {
+                            if (selectedItineraryForEdit) {
+                                setEditItineraryData({
+                                    title: selectedItineraryForEdit.title,
+                                    date: selectedItineraryForEdit.date ? new Date(selectedItineraryForEdit.date) : null,
+                                });
+                                itineraryMenuRef.current?.dismiss();
+                                setShowEditItinerary(true);
+                            }
+                        }}
+                    >
+                        <Ionicons name="pencil" size={20} color={Colors.text.primary} style={{ marginRight: 12 }} />
+                        <Text style={styles.sheetItemText}>Editar dia</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={styles.sheetItem}
+                        onPress={() => {
+                            if (selectedItineraryForEdit) {
+                                Alert.alert(
+                                    'Excluir dia',
+                                    `Deseja excluir "${selectedItineraryForEdit.title}"? Todas as atividades serão movidas para a lista de desejos.`,
+                                    [
+                                        { text: 'Cancelar', style: 'cancel' },
+                                        {
+                                            text: 'Excluir',
+                                            style: 'destructive',
+                                            onPress: () => deleteItinerary.mutate(selectedItineraryForEdit.id)
+                                        }
+                                    ]
+                                );
+                            }
+                        }}
+                    >
+                        <Ionicons name="trash-outline" size={20} color={Colors.error} style={{ marginRight: 12 }} />
+                        <Text style={[styles.sheetItemText, { color: Colors.error }]}>Excluir dia</Text>
+                    </TouchableOpacity>
+                </BottomSheetView>
+            </BottomSheetModal>
+
+            {/* Edit Itinerary Sheet */}
+            <SheetForm
+                isOpen={showEditItinerary}
+                onClose={() => {
+                    setShowEditItinerary(false);
+                    setSelectedItineraryForEdit(null);
+                }}
+                title="Editar Dia"
+                onSubmit={() => editItineraryData.title.trim() && updateItinerary.mutate()}
+                isSubmitting={updateItinerary.isPending}
+                submitLabel="Salvar"
+            >
+                <VStack space="md">
+                    <VStack space="xs">
+                        <Text style={styles.inputLabel}>NOME</Text>
+                        <Input>
+                            <InputField
+                                value={editItineraryData.title}
+                                onChangeText={(t) => setEditItineraryData(d => ({ ...d, title: t }))}
+                                autoFocus
+                            />
+                        </Input>
+                    </VStack>
+                    <DatePickerInput
+                        label="DATA"
+                        value={editItineraryData.date}
+                        onChange={(date) => setEditItineraryData(d => ({ ...d, date }))}
+                        minDate={travel?.startDate ? new Date(travel.startDate) : undefined}
+                        maxDate={travel?.endDate ? new Date(travel.endDate) : undefined}
+                        initialMonth={travel?.startDate ? new Date(travel.startDate) : undefined}
+                    />
+                </VStack>
+            </SheetForm>
+
             {/* Members Sheet */}
             <SheetForm
                 isOpen={showMembers}
@@ -1168,7 +1306,42 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         color: Colors.text.secondary,
     },
+    timelineRow: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        minHeight: 60,
+    },
+    timelineContainer: {
+        width: 24,
+        alignItems: 'center',
+        position: 'relative',
+    },
+    timelineDot: {
+        width: 10,
+        height: 10,
+        borderRadius: 5,
+        backgroundColor: Colors.primary,
+        marginTop: 22,
+        zIndex: 1,
+    },
+    timelineLineTop: {
+        position: 'absolute',
+        top: 0,
+        left: 11,
+        width: 2,
+        height: 22,
+        backgroundColor: Colors.border.light,
+    },
+    timelineLineBottom: {
+        position: 'absolute',
+        top: 32,
+        left: 11,
+        width: 2,
+        height: '100%',
+        backgroundColor: Colors.border.light,
+    },
     activityCard: {
+        flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: Colors.white,
@@ -1176,6 +1349,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         borderRadius: 16,
         marginBottom: 12,
+        marginLeft: 12,
         borderWidth: 1,
         borderColor: 'rgba(0,0,0,0.08)',
     },
