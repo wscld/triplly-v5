@@ -12,8 +12,6 @@ import {
 } from 'react-native';
 import { Link, router } from 'expo-router';
 import { useAuth } from '@/lib/auth';
-import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
 import { Colors } from '@/constants/colors';
 
 export default function RegisterScreen() {

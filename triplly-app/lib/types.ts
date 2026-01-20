@@ -113,6 +113,7 @@ export interface Todo {
     title: string;
     isCompleted: boolean;
     createdAt: string;
+    updatedAt: string;
 }
 
 export interface CreateTodoData {

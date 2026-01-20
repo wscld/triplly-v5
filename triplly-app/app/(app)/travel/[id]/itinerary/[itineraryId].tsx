@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import {
     View,
     Text,
@@ -6,9 +6,7 @@ import {
     StyleSheet,
     ActivityIndicator,
     Alert,
-    Dimensions,
     ScrollView,
-    FlatList,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -19,13 +17,12 @@ import ItineraryMap from '@/components/ItineraryMap';
 import SheetForm from '@/components/SheetForm';
 import PlaceAutocomplete from '@/components/PlaceAutocomplete';
 import GlassHeader from '@/components/GlassHeader';
-import { VStack, Input, InputField, Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetItem, ActionsheetItemText } from '@gluestack-ui/themed';
+import { VStack, Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetItem, ActionsheetItemText } from '@gluestack-ui/themed';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Colors } from '@/constants/colors';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const MAP_HEIGHT = 200;
 
 export default function ItineraryScreen() {
@@ -75,7 +72,7 @@ export default function ItineraryScreen() {
         });
     }, [travel?.itineraries]);
 
-    const currentDayIndex = sortedItineraries.findIndex(it => it.id === selectedItineraryId);
+
 
     // Mutations
     const createActivity = useMutation({
@@ -303,8 +300,8 @@ export default function ItineraryScreen() {
                         onSelect={(place) => {
                             setFormData({
                                 title: place.name,
-                                latitude: place.latitude,
-                                longitude: place.longitude,
+                                latitude: place.latitude || 0,
+                                longitude: place.longitude || 0,
                                 googlePlaceId: place.placeId,
                                 address: place.address || null,
                             });

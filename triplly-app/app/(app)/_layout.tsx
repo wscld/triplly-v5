@@ -29,6 +29,10 @@ export default function AppLayout() {
                 options={{ title: 'Itinerary', headerBackTitle: 'Back', headerShown: false }}
             />
             <Stack.Screen
+                name="travel/[id]/itinerary/[itineraryId]/activity/[activityId]"
+                options={{ title: 'Activity', headerBackTitle: 'Back', headerShown: false }}
+            />
+            <Stack.Screen
                 name="travel/new"
                 options={{ title: 'New Travel', presentation: 'modal' }}
             />

@@ -3,7 +3,6 @@ import { View, TouchableOpacity, Platform, Modal, StyleSheet } from 'react-nativ
 import { Text, VStack, Input, InputField } from '@gluestack-ui/themed';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
-import { format } from 'date-fns'; // We might need date-fns or just use standard formatting
 
 interface Props {
     label: string;
@@ -38,7 +37,6 @@ export default function DatePickerInput({ label, value, onChange, minDate, maxDa
                 <Text size="xs" color="$coolGray500">{label}</Text>
                 <Input>
                     <InputField
-                        type="date"
                         value={formatDate(value)}
                         onChange={(e: any) => {
                             const date = new Date(e.target.value);

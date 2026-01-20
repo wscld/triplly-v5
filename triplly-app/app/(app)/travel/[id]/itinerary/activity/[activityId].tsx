@@ -8,7 +8,6 @@ import {
     TouchableOpacity,
     KeyboardAvoidingView,
     Platform,
-    ScrollView,
     Alert,
     Dimensions
 } from 'react-native';
@@ -25,6 +24,8 @@ import { VStack, Input, InputField, Actionsheet, ActionsheetBackdrop, Actionshee
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Colors } from '@/constants/colors';
+import ActivitySkeleton from '@/components/ActivitySkeleton';
+
 
 export default function ActivityScreen() {
     const { id, itineraryId, activityId } = useLocalSearchParams<{ id: string; itineraryId: string; activityId: string }>();
@@ -198,11 +199,7 @@ export default function ActivityScreen() {
     });
 
     if (isLoadingActivity || !activity) {
-        return (
-            <View style={styles.centered}>
-                <ActivityIndicator size="large" color={Colors.black} />
-            </View>
-        );
+        return <ActivitySkeleton />;
     }
 
     const handleSendComment = () => {
@@ -401,7 +398,6 @@ export default function ActivityScreen() {
                     <View style={[{ flex: 1, marginTop: 10, borderRadius: 16, overflow: 'hidden' }]}>
                         <ItineraryMap
                             activities={[activity]}
-                            focusedActivityId={activity.id}
                         />
                     </View>
                 </Animated.View>
@@ -479,7 +475,7 @@ export default function ActivityScreen() {
                             onPress={() => assignActivity.mutate(itinerary.id)}
                         >
                             <ActionsheetItemText>
-                                {format(new Date(itinerary.date), "EEEE, d 'de' MMMM", { locale: ptBR })}
+                                {itinerary?.date ? format(new Date(itinerary.date), "EEEE, d 'de' MMMM", { locale: ptBR }) : 'Sem data'}
                             </ActionsheetItemText>
                         </ActionsheetItem>
                     ))}

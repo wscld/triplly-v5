@@ -1,17 +1,18 @@
 import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView, ActivityIndicator, Dimensions, Image } from 'react-native';
-import { GestureHandlerRootView, GestureDetector, Gesture, Directions } from 'react-native-gesture-handler';
+import { GestureHandlerRootView, GestureDetector, Gesture } from 'react-native-gesture-handler';
 import DraggableFlatList, { ScaleDecorator, RenderItemParams } from 'react-native-draggable-flatlist';
-import Animated, { FadeIn, FadeOut, SlideInRight, SlideInLeft, SlideOutLeft, SlideOutRight, runOnJS, useSharedValue, useAnimatedStyle, withSpring, interpolate, Extrapolation, useAnimatedScrollHandler } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeOut, runOnJS, useSharedValue, useAnimatedStyle, withSpring, interpolate, Extrapolation, useAnimatedScrollHandler } from 'react-native-reanimated';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '@/lib/api';
-import type { Itinerary, Activity, TravelMember } from '@/lib/types';
-import { useState, useRef, useEffect } from 'react';
+import type { Activity, Travel, TravelMember, Itinerary } from '@/lib/types';
+import { useState } from 'react';
 import SheetForm from '@/components/SheetForm';
 import TodoList from '@/components/TodoList';
 import PlaceAutocomplete from '@/components/PlaceAutocomplete';
 import ItineraryMap from '@/components/ItineraryMap';
+import TravelDetailSkeleton from '@/components/TravelDetailSkeleton';
 import { VStack, HStack, Input, InputField, Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetItem, ActionsheetItemText } from '@gluestack-ui/themed';
 import { Colors } from '@/constants/colors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -112,10 +113,9 @@ export default function TravelDetailScreen() {
             ],
         };
     });
-
-    // Selected day state: -1 = wishlist, 0+ = itinerary index
     const [selectedDayIndex, setSelectedDayIndex] = useState(-1);
     const [direction, setDirection] = useState(0);
+
 
     // Form states
     const [showAddItinerary, setShowAddItinerary] = useState(false);
@@ -263,7 +263,7 @@ export default function TravelDetailScreen() {
                     if (!old || !old.itineraries) return old;
                     return {
                         ...old,
-                        itineraries: old.itineraries.map((it, idx) => {
+                        itineraries: old.itineraries.map((it: Itinerary, idx: number) => {
                             if (idx === selectedDayIndex) {
                                 return { ...it, activities: newOrder.newActivities };
                             }
@@ -296,7 +296,7 @@ export default function TravelDetailScreen() {
     });
 
     const inviteMember = useMutation({
-        mutationFn: (email: string) => api.inviteMember(id!, email),
+        mutationFn: (email: string) => api.inviteMember(id!, email, 'viewer'),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['travel', id, 'members'] });
             setInviteEmail('');
@@ -322,11 +322,7 @@ export default function TravelDetailScreen() {
     };
 
     if (isLoading) {
-        return (
-            <View style={styles.centered}>
-                <ActivityIndicator size="large" color={Colors.text.primary} />
-            </View>
-        );
+        return <TravelDetailSkeleton />;
     }
 
     if (error || !travel) {
@@ -546,7 +542,7 @@ export default function TravelDetailScreen() {
                                 <Text style={styles.emptyText}>
                                     {selectedDayIndex === -1 ? 'Nenhum local na lista' : 'Nenhum local adicionado'}
                                 </Text>
-                                <Text style={styles.emptySubtext}>Toque no + para adicionar</Text>
+                                <Text style={styles.emptyStateSubtext}>Clique em &quot;+&quot; para adicionar atividades</Text>
                             </View>
                         ) : (
                             // Draggable list for both wishlist and itinerary
@@ -610,7 +606,7 @@ export default function TravelDetailScreen() {
                 {/* Drag Handle */}
                 <GestureDetector gesture={mapGesture}>
                     <Animated.View style={styles.mapDragHandleContainer}>
-                        <View style={styles.mapDragHandlePill} />
+                        <View style={styles.sheetHandle} />
                         <View style={styles.mapHeaderRow}>
                             <Text style={styles.mapTitle}>MAPA</Text>
                             <Animated.View style={animatedHandleStyle}>
@@ -737,7 +733,7 @@ export default function TravelDetailScreen() {
                 <ActionsheetBackdrop />
                 <ActionsheetContent>
                     <Text style={styles.sheetTitle}>
-                        Mover "{selectedActivity?.title}" para:
+                        Mover &quot;{selectedActivity?.title}&quot; para:
                     </Text>
                     {sortedItineraries.map((itinerary, idx) => (
                         <ActionsheetItem
@@ -981,7 +977,7 @@ const styles = StyleSheet.create({
         fontWeight: '500',
         color: Colors.text.secondary,
     },
-    emptySubtext: {
+    emptyStateSubtext: {
         fontSize: 14,
         color: Colors.text.secondary,
         marginTop: 4,
@@ -1014,10 +1010,10 @@ const styles = StyleSheet.create({
         paddingHorizontal: 24,
         backgroundColor: Colors.white,
     },
-    mapDragHandlePill: {
-        width: 36,
+    sheetHandle: {
+        backgroundColor: Colors.border.medium,
+        width: 40,
         height: 4,
-        backgroundColor: Colors.border.light,
         borderRadius: 2,
         alignSelf: 'center',
         marginBottom: 12,
@@ -1064,12 +1060,7 @@ const styles = StyleSheet.create({
         color: Colors.text.primary,
         flex: 1,
     },
-    sheetTitle: {
-        fontSize: 17,
-        fontWeight: '600',
-        padding: 16,
-        textAlign: 'center',
-    },
+
     inputLabel: {
         fontSize: 13,
         fontWeight: '600',

@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, FlatList, ActivityIndicator, Platform, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, ActivityIndicator, ScrollView } from 'react-native';
 import { Input, InputField, VStack, Box } from '@gluestack-ui/themed';
 import { Ionicons } from '@expo/vector-icons';
-import { debounce } from 'lodash';
 
 interface Place {
     place_id: number;

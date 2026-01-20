@@ -15,4 +15,5 @@ export const Colors = {
     },
     success: '#2E7D32',
     successLight: '#E8F5E9',
+    error: '#FF3B30',
 };

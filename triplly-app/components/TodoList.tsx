@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Animated, { useSharedValue, useAnimatedStyle, useAnimatedScrollHandler, interpolate, Extrapolation } from 'react-native-reanimated';
 import {
     Actionsheet,
     ActionsheetBackdrop,
@@ -15,7 +16,7 @@ import {
     InputField,
     Pressable,
 } from '@gluestack-ui/themed';
-import { KeyboardAvoidingView, Platform, FlatList, TouchableOpacity, ActivityIndicator, TouchableWithoutFeedback, Keyboard } from 'react-native';
+import { KeyboardAvoidingView, Platform, FlatList, TouchableOpacity, ActivityIndicator, TouchableWithoutFeedback, Keyboard, FlatListProps } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
@@ -28,9 +29,7 @@ interface Props {
     travelId: string;
 }
 
-import Animated, { useSharedValue, useAnimatedStyle, useAnimatedScrollHandler, interpolate, Extrapolation, withSpring } from 'react-native-reanimated';
-
-const AnimatedFlatList = Animated.createAnimatedComponent(FlatList);
+const AnimatedFlatList = Animated.createAnimatedComponent<FlatListProps<Todo>>(FlatList);
 
 export default function TodoList({ isOpen, onClose, travelId }: Props) {
     const queryClient = useQueryClient();

@@ -12,8 +12,6 @@ import {
 } from 'react-native';
 import { Link, router } from 'expo-router';
 import { useAuth } from '@/lib/auth';
-import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
 import { Colors } from '@/constants/colors';
 
 export default function LoginScreen() {
@@ -87,7 +85,7 @@ export default function LoginScreen() {
                     </View>
 
                     <View style={styles.footer}>
-                        <Text style={styles.footerText}>Don't have an account? </Text>
+                        <Text style={styles.footerText}>Don&apos;t have an account? </Text>
                         <Link href="/(auth)/register" asChild>
                             <TouchableOpacity>
                                 <Text style={styles.link}>Sign Up</Text>

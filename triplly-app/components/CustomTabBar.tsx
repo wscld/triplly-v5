@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, StyleSheet, LayoutAnimation } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { Colors } from '@/constants/colors';
