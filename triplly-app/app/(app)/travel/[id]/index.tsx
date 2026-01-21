@@ -23,6 +23,12 @@ import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import * as ImagePicker from 'expo-image-picker';
 
+// Helper to parse date strings without timezone shift
+// Appending T12:00:00 ensures the date stays correct regardless of local timezone
+const parseDateSafe = (dateStr: string | null | undefined): Date | null => {
+    if (!dateStr) return null;
+    return parseISO(`${dateStr}T12:00:00`);
+};
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const MAP_COLLAPSED_HEIGHT = 120;
@@ -144,7 +150,9 @@ export default function TravelDetailScreen() {
         title: '',
         startDate: null as Date | null,
         endDate: null as Date | null,
-        coverImage: null as ImagePicker.ImagePickerAsset | null
+        coverImage: null as ImagePicker.ImagePickerAsset | null,
+        latitude: null as number | null,
+        longitude: null as number | null,
     });
 
     const [activityFormData, setActivityFormData] = useState({
@@ -214,6 +222,8 @@ export default function TravelDetailScreen() {
                 title: editFormData.title,
                 startDate: editFormData.startDate?.toISOString().split('T')[0] ?? null,
                 endDate: editFormData.endDate?.toISOString().split('T')[0] ?? null,
+                latitude: editFormData.latitude,
+                longitude: editFormData.longitude,
             });
 
             // 2. Upload image if changed
@@ -224,7 +234,7 @@ export default function TravelDetailScreen() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['travel', id] });
             setShowEditSheet(false);
-            setEditFormData({ title: '', startDate: null, endDate: null, coverImage: null });
+            setEditFormData({ title: '', startDate: null, endDate: null, coverImage: null, latitude: null, longitude: null });
         },
         onError: (err) => Alert.alert('Erro', 'Falha ao atualizar viagem'),
     });
@@ -513,7 +523,7 @@ export default function TravelDetailScreen() {
                 <Text style={[styles.bigTitle, { color: Colors.white }]}>{travel.title}</Text>
                 <Text style={[styles.subtitle, { color: Colors.white }]}>
                     {travel.startDate && travel.endDate
-                        ? `${format(new Date(travel.startDate), "d MMM", { locale: ptBR })} - ${format(new Date(travel.endDate), "d MMM, yyyy", { locale: ptBR })}`
+                        ? `${format(parseDateSafe(travel.startDate)!, "d MMM", { locale: ptBR })} - ${format(parseDateSafe(travel.endDate)!, "d MMM, yyyy", { locale: ptBR })}`
                         : 'Sem data definida'
                     }
                 </Text>
@@ -525,9 +535,11 @@ export default function TravelDetailScreen() {
                             if (travel) {
                                 setEditFormData({
                                     title: travel.title,
-                                    startDate: travel.startDate ? new Date(travel.startDate) : null,
-                                    endDate: travel.endDate ? new Date(travel.endDate) : null,
-                                    coverImage: null
+                                    startDate: parseDateSafe(travel.startDate),
+                                    endDate: parseDateSafe(travel.endDate),
+                                    coverImage: null,
+                                    latitude: travel.latitude ?? null,
+                                    longitude: travel.longitude ?? null,
                                 });
                                 setShowEditSheet(true);
                             }
@@ -552,11 +564,8 @@ export default function TravelDetailScreen() {
 
 
             {/* Main Content */}
-            <Animated.View
+            <View
                 style={{ flex: 1 }}
-                key={selectedDayIndex}
-                entering={FadeIn}
-                exiting={FadeOut}
             >
                 <Animated.ScrollView
                     style={styles.content}
@@ -698,9 +707,9 @@ export default function TravelDetailScreen() {
                                     <Text style={styles.emptyStateSubtext}>Clique em &quot;+&quot; para adicionar atividades</Text>
                                 </View>
                             ) : (
-                                // Draggable list for both wishlist and itinerary
                                 <GestureHandlerRootView style={{ flex: 1 }}>
                                     <DraggableFlatList
+                                        key={`draggable-${selectedDayIndex}`}
                                         data={activities}
                                         scrollEnabled={false}
                                         keyExtractor={(item) => item.id}
@@ -728,12 +737,14 @@ export default function TravelDetailScreen() {
                                             return (
                                                 <ScaleDecorator>
                                                     <View style={styles.timelineRow}>
-                                                        {/* Timeline line and dot */}
-                                                        <View style={styles.timelineContainer}>
-                                                            {!isFirst && <View style={styles.timelineLineTop} />}
-                                                            <View style={styles.timelineDot} />
-                                                            {!isLast && <View style={styles.timelineLineBottom} />}
-                                                        </View>
+                                                        {/* Timeline line and dot - hidden when dragging */}
+                                                        {!isActive && (
+                                                            <View style={styles.timelineContainer}>
+                                                                {!isFirst && <View style={styles.timelineLineTop} />}
+                                                                <View style={styles.timelineDot} />
+                                                                {!isLast && <View style={styles.timelineLineBottom} />}
+                                                            </View>
+                                                        )}
 
                                                         {/* Activity Card */}
                                                         <TouchableOpacity
@@ -763,7 +774,7 @@ export default function TravelDetailScreen() {
 
                     </View>
                 </Animated.ScrollView>
-            </Animated.View>
+            </View>
 
             {/* Expandable Map at Bottom */}
             <Animated.View style={[styles.fixedMapContainer, { bottom: insets.bottom }, animatedMapStyle]}>
@@ -821,9 +832,9 @@ export default function TravelDetailScreen() {
                         label="DATA"
                         value={newItineraryDate}
                         onChange={setNewItineraryDate}
-                        minDate={travel.startDate ? new Date(travel.startDate) : undefined}
-                        maxDate={travel.endDate ? new Date(travel.endDate) : undefined}
-                        initialMonth={travel.startDate ? new Date(travel.startDate) : undefined}
+                        minDate={parseDateSafe(travel.startDate) ?? undefined}
+                        maxDate={parseDateSafe(travel.endDate) ?? undefined}
+                        initialMonth={parseDateSafe(travel.startDate) ?? undefined}
                     />
                 </VStack>
             </SheetForm>
@@ -838,13 +849,21 @@ export default function TravelDetailScreen() {
                 submitLabel="Salvar"
             >
                 <VStack space="md">
-                    <Input>
-                        <InputField
-                            placeholder="Nome da viagem"
-                            value={editFormData.title}
-                            onChangeText={(text) => setEditFormData(prev => ({ ...prev, title: text }))}
+                    <VStack space="xs">
+                        <Text style={{ fontSize: 12, color: Colors.text.secondary, marginBottom: 4, fontWeight: '600' }}>DESTINO</Text>
+                        <PlaceAutocomplete
+                            placeholder="Para onde você vai?"
+                            initialValue={editFormData.title}
+                            onSelect={(place) => {
+                                setEditFormData(prev => ({
+                                    ...prev,
+                                    title: place.name,
+                                    latitude: place.lat ?? place.latitude ?? null,
+                                    longitude: place.lon ?? place.longitude ?? null,
+                                }));
+                            }}
                         />
-                    </Input>
+                    </VStack>
 
                     <DateRangePicker
                         startDate={editFormData.startDate}
@@ -1111,9 +1130,9 @@ export default function TravelDetailScreen() {
                         label="DATA"
                         value={editItineraryData.date}
                         onChange={(date) => setEditItineraryData(d => ({ ...d, date }))}
-                        minDate={travel?.startDate ? new Date(travel.startDate) : undefined}
-                        maxDate={travel?.endDate ? new Date(travel.endDate) : undefined}
-                        initialMonth={travel?.startDate ? new Date(travel.startDate) : undefined}
+                        minDate={parseDateSafe(travel?.startDate) ?? undefined}
+                        maxDate={parseDateSafe(travel?.endDate) ?? undefined}
+                        initialMonth={parseDateSafe(travel?.startDate) ?? undefined}
                     />
                 </VStack>
             </SheetForm>
@@ -1580,7 +1599,7 @@ const styles = StyleSheet.create({
     },
     activityCardActive: {
         backgroundColor: Colors.successLight,
-        transform: [{ scale: 1.02 }],
+        transform: [{ scale: 0.88 }],
     },
     sheetItem: {
         flexDirection: 'row',

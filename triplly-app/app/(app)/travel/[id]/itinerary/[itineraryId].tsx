@@ -111,7 +111,8 @@ export default function ItineraryScreen() {
     const formatItineraryDate = (dateStr: string | null) => {
         if (!dateStr) return 'Sem data';
         try {
-            const date = parseISO(dateStr);
+            // Parse at noon to avoid timezone shift issues
+            const date = parseISO(`${dateStr}T12:00:00`);
             return format(date, "EEEE, d 'de' MMMM", { locale: ptBR });
         } catch {
             return dateStr;

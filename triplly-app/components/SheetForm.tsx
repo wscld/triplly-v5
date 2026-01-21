@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useCallback } from 'react';
-import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { View, TouchableOpacity, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { BottomSheetModal, BottomSheetScrollView, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
 import { Colors } from '@/constants/colors';
 
@@ -75,12 +75,13 @@ export default function SheetForm({
                             disabled={isSubmitting}
                             style={styles.submitButton}
                         >
-                            <Text style={[
-                                styles.submitText,
-                                isSubmitting && styles.submitTextDisabled
-                            ]}>
-                                {submitLabel}
-                            </Text>
+                            {isSubmitting ? (
+                                <ActivityIndicator size="small" color={Colors.primary} />
+                            ) : (
+                                <Text style={styles.submitText}>
+                                    {submitLabel}
+                                </Text>
+                            )}
                         </TouchableOpacity>
                     )}
                 </View>
@@ -127,9 +128,6 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '600',
         color: Colors.primary,
-    },
-    submitTextDisabled: {
-        opacity: 0.5,
     },
     body: {
         marginTop: 8,

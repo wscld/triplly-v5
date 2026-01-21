@@ -20,8 +20,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { api } from '@/lib/api';
 import ItineraryMap from '@/components/ItineraryMap';
 import SheetForm from '@/components/SheetForm';
-import { VStack, Input, InputField } from '@gluestack-ui/themed';
-import { BottomSheetModal, BottomSheetView, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
+import { VStack } from '@gluestack-ui/themed';
+import { BottomSheetModal, BottomSheetView, BottomSheetBackdrop, BottomSheetTextInput } from '@gorhom/bottom-sheet';
+import PlaceAutocomplete from '@/components/PlaceAutocomplete';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Colors } from '@/constants/colors';
@@ -39,6 +40,10 @@ export default function ActivityScreen() {
         title: '',
         description: '',
         startTime: '',
+        latitude: 0,
+        longitude: 0,
+        googlePlaceId: null as string | null,
+        address: null as string | null,
     });
 
     const { height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -143,13 +148,16 @@ export default function ActivityScreen() {
         enabled: !!activityId,
     });
 
-    // Update edit data when activity loads
     useEffect(() => {
         if (activity) {
             setEditData({
                 title: activity.title,
                 description: activity.description || '',
                 startTime: activity.startTime || '',
+                latitude: activity.latitude || 0,
+                longitude: activity.longitude || 0,
+                googlePlaceId: activity.googlePlaceId || null,
+                address: activity.address || null,
             });
         }
     }, [activity]);
@@ -167,6 +175,10 @@ export default function ActivityScreen() {
             title: editData.title,
             description: editData.description || null,
             startTime: editData.startTime || null,
+            latitude: editData.latitude,
+            longitude: editData.longitude,
+            googlePlaceId: editData.googlePlaceId,
+            address: editData.address,
         }),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['activity', activityId] });
@@ -414,38 +426,24 @@ export default function ActivityScreen() {
                 submitLabel="Salvar"
             >
                 <VStack space="md">
-                    <VStack space="xs">
-                        <Text style={styles.inputLabel}>NOME</Text>
-                        <Input>
-                            <InputField
-                                value={editData.title}
-                                onChangeText={(t) => setEditData(d => ({ ...d, title: t }))}
-                                autoFocus
-                            />
-                        </Input>
-                    </VStack>
-
-                    <VStack space="xs">
-                        <Text style={styles.inputLabel}>DESCRIÇÃO</Text>
-                        <Input>
-                            <InputField
-                                value={editData.description}
-                                onChangeText={(t) => setEditData(d => ({ ...d, description: t }))}
-                                multiline
-                            />
-                        </Input>
-                    </VStack>
-
-                    <VStack space="xs">
-                        <Text style={styles.inputLabel}>HORÁRIO</Text>
-                        <Input>
-                            <InputField
-                                value={editData.startTime}
-                                onChangeText={(t) => setEditData(d => ({ ...d, startTime: t }))}
-                                placeholder="Ex: 10:00"
-                            />
-                        </Input>
-                    </VStack>
+                    <PlaceAutocomplete
+                        onSelect={(place) => {
+                            setEditData(d => ({
+                                ...d,
+                                title: place.name,
+                                latitude: place.latitude ?? place.lat ?? 0,
+                                longitude: place.longitude ?? place.lon ?? 0,
+                                googlePlaceId: place.placeId,
+                                address: place.address || null,
+                            }));
+                        }}
+                    />
+                    {editData.title && (
+                        <View style={styles.selectedPlace}>
+                            <Ionicons name="location" size={16} color={Colors.black} />
+                            <Text style={styles.selectedPlaceText}>{editData.title}</Text>
+                        </View>
+                    )}
 
                     <TouchableOpacity style={styles.deleteBtn} onPress={handleDelete}>
                         <Ionicons name="trash-outline" size={18} color={Colors.error} />
@@ -773,5 +771,30 @@ const styles = StyleSheet.create({
     sheetItemText: {
         fontSize: 16,
         color: Colors.text.primary,
+    },
+    sheetInput: {
+        backgroundColor: '#F5F5F5',
+        borderRadius: 12,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        fontSize: 16,
+        color: Colors.text.primary,
+    },
+    sheetInputMultiline: {
+        minHeight: 80,
+        textAlignVertical: 'top',
+    },
+    selectedPlace: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#E8F5E9',
+        padding: 12,
+        borderRadius: 8,
+        gap: 8,
+    },
+    selectedPlaceText: {
+        fontSize: 15,
+        color: Colors.text.primary,
+        flex: 1,
     },
 });

@@ -103,6 +103,7 @@ export interface UpdateActivityData {
     longitude?: number;
     googlePlaceId?: string | null;
     startTime?: string | null;
+    address?: string | null;
 }
 
 export interface ReorderActivityData {
