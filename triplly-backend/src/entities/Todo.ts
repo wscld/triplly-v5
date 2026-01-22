@@ -5,7 +5,8 @@ import {
     CreateDateColumn,
     UpdateDateColumn,
     ManyToOne,
-    JoinColumn
+    JoinColumn,
+    type Relation,
 } from 'typeorm';
 import { Travel } from './Travel.js';
 
@@ -25,7 +26,7 @@ export class Todo {
 
     @ManyToOne(() => Travel, (travel) => travel.todos, { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'travelId' })
-    travel: Travel;
+    travel: Relation<Travel>;
 
     @CreateDateColumn()
     createdAt: Date;

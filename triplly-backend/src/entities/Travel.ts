@@ -6,6 +6,7 @@ import {
     ManyToOne,
     OneToMany,
     JoinColumn,
+    type Relation,
 } from 'typeorm';
 import { User } from './User.js';
 import { TravelMember } from './TravelMember.js';
@@ -47,7 +48,7 @@ export class Travel {
 
     @ManyToOne(() => User)
     @JoinColumn({ name: 'ownerId' })
-    owner: User;
+    owner: Relation<User>;
 
     @OneToMany(() => TravelMember, (member) => member.travel)
     members: TravelMember[];

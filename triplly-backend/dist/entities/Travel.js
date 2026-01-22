@@ -71,7 +71,7 @@ __decorate([
 __decorate([
     ManyToOne(() => User),
     JoinColumn({ name: 'ownerId' }),
-    __metadata("design:type", User)
+    __metadata("design:type", Object)
 ], Travel.prototype, "owner", void 0);
 __decorate([
     OneToMany(() => TravelMember, (member) => member.travel),

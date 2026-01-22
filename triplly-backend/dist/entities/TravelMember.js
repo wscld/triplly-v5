@@ -48,12 +48,12 @@ __decorate([
 __decorate([
     ManyToOne(() => Travel, (travel) => travel.members, { onDelete: 'CASCADE' }),
     JoinColumn({ name: 'travelId' }),
-    __metadata("design:type", Travel)
+    __metadata("design:type", Object)
 ], TravelMember.prototype, "travel", void 0);
 __decorate([
     ManyToOne(() => User, (user) => user.memberships, { onDelete: 'CASCADE' }),
     JoinColumn({ name: 'userId' }),
-    __metadata("design:type", User)
+    __metadata("design:type", Object)
 ], TravelMember.prototype, "user", void 0);
 TravelMember = __decorate([
     Entity('travel_members'),

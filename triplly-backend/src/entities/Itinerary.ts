@@ -5,6 +5,7 @@ import {
     ManyToOne,
     OneToMany,
     JoinColumn,
+    type Relation,
 } from 'typeorm';
 import { Travel } from './Travel.js';
 import { Activity } from './Activity.js';
@@ -28,7 +29,7 @@ export class Itinerary {
 
     @ManyToOne(() => Travel, (travel) => travel.itineraries, { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'travelId' })
-    travel: Travel;
+    travel: Relation<Travel>;
 
     @OneToMany(() => Activity, (activity) => activity.itinerary)
     activities: Activity[];

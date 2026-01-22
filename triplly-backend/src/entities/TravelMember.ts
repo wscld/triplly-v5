@@ -6,6 +6,7 @@ import {
     JoinColumn,
     CreateDateColumn,
     Unique,
+    type Relation,
 } from 'typeorm';
 import { User } from './User.js';
 import { Travel } from './Travel.js';
@@ -36,9 +37,9 @@ export class TravelMember {
 
     @ManyToOne(() => Travel, (travel) => travel.members, { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'travelId' })
-    travel: Travel;
+    travel: Relation<Travel>;
 
     @ManyToOne(() => User, (user) => user.memberships, { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'userId' })
-    user: User;
+    user: Relation<User>;
 }

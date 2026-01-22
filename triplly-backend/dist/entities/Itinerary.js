@@ -42,7 +42,7 @@ __decorate([
 __decorate([
     ManyToOne(() => Travel, (travel) => travel.itineraries, { onDelete: 'CASCADE' }),
     JoinColumn({ name: 'travelId' }),
-    __metadata("design:type", Travel)
+    __metadata("design:type", Object)
 ], Itinerary.prototype, "travel", void 0);
 __decorate([
     OneToMany(() => Activity, (activity) => activity.itinerary),
