@@ -42,12 +42,12 @@ __decorate([
 __decorate([
     ManyToOne(() => Activity, (activity) => activity.comments, { onDelete: 'CASCADE' }),
     JoinColumn({ name: 'activityId' }),
-    __metadata("design:type", Activity)
+    __metadata("design:type", Object)
 ], ActivityComment.prototype, "activity", void 0);
 __decorate([
     ManyToOne(() => User, (user) => user.activityComments, { onDelete: 'CASCADE' }),
     JoinColumn({ name: 'userId' }),
-    __metadata("design:type", User)
+    __metadata("design:type", Object)
 ], ActivityComment.prototype, "user", void 0);
 ActivityComment = __decorate([
     Entity('activity_comments')

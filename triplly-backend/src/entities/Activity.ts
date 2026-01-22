@@ -6,6 +6,7 @@ import {
     JoinColumn,
     CreateDateColumn,
     OneToMany,
+    type Relation,
 } from 'typeorm';
 import { Itinerary } from './Itinerary.js';
 import { ActivityComment } from './ActivityComment.js';
@@ -55,15 +56,15 @@ export class Activity {
 
     @ManyToOne(() => User, { nullable: true })
     @JoinColumn({ name: 'createdById' })
-    createdBy: User | null;
+    createdBy: Relation<User> | null;
 
     @ManyToOne(() => Travel, { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'travelId' })
-    travel: Travel;
+    travel: Relation<Travel>;
 
     @ManyToOne(() => Itinerary, (itinerary) => itinerary.activities, { onDelete: 'CASCADE', nullable: true })
     @JoinColumn({ name: 'itineraryId' })
-    itinerary: Itinerary | null;
+    itinerary: Relation<Itinerary> | null;
 
     @OneToMany(() => ActivityComment, (comment) => comment.activity)
     comments: ActivityComment[];

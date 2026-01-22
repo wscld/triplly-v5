@@ -91,7 +91,7 @@ __decorate([
 __decorate([
     ManyToOne(() => Travel, { onDelete: 'CASCADE' }),
     JoinColumn({ name: 'travelId' }),
-    __metadata("design:type", Travel)
+    __metadata("design:type", Object)
 ], Activity.prototype, "travel", void 0);
 __decorate([
     ManyToOne(() => Itinerary, (itinerary) => itinerary.activities, { onDelete: 'CASCADE', nullable: true }),

@@ -5,6 +5,7 @@ import {
     ManyToOne,
     JoinColumn,
     CreateDateColumn,
+    type Relation,
 } from 'typeorm';
 import { Activity } from './Activity.js';
 import { User } from './User.js';
@@ -28,9 +29,9 @@ export class ActivityComment {
 
     @ManyToOne(() => Activity, (activity) => activity.comments, { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'activityId' })
-    activity: Activity;
+    activity: Relation<Activity>;
 
     @ManyToOne(() => User, (user) => user.activityComments, { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'userId' })
-    user: User;
+    user: Relation<User>;
 }
