@@ -5,8 +5,8 @@ import {
     CreateDateColumn,
     OneToMany,
 } from 'typeorm';
-import { TravelMember } from './TravelMember.js';
-import { ActivityComment } from './ActivityComment.js';
+import type { TravelMember } from './TravelMember.js';
+import type { ActivityComment } from './ActivityComment.js';
 
 @Entity('users')
 export class User {
@@ -28,9 +28,9 @@ export class User {
     @CreateDateColumn()
     createdAt: Date;
 
-    @OneToMany(() => TravelMember, (member) => member.user)
+    @OneToMany("TravelMember", (member: TravelMember) => member.user)
     memberships: TravelMember[];
 
-    @OneToMany(() => ActivityComment, (comment) => comment.user)
+    @OneToMany("ActivityComment", (comment: ActivityComment) => comment.user)
     activityComments: ActivityComment[];
 }

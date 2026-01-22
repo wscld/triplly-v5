@@ -8,8 +8,6 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, OneToMany, } from 'typeorm';
-import { TravelMember } from './TravelMember.js';
-import { ActivityComment } from './ActivityComment.js';
 let User = class User {
     id;
     email;
@@ -45,11 +43,11 @@ __decorate([
     __metadata("design:type", Date)
 ], User.prototype, "createdAt", void 0);
 __decorate([
-    OneToMany(() => TravelMember, (member) => member.user),
+    OneToMany("TravelMember", (member) => member.user),
     __metadata("design:type", Array)
 ], User.prototype, "memberships", void 0);
 __decorate([
-    OneToMany(() => ActivityComment, (comment) => comment.user),
+    OneToMany("ActivityComment", (comment) => comment.user),
     __metadata("design:type", Array)
 ], User.prototype, "activityComments", void 0);
 User = __decorate([
