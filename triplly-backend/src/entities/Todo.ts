@@ -8,7 +8,7 @@ import {
     JoinColumn,
     type Relation,
 } from 'typeorm';
-import { Travel } from './Travel.js';
+import type { Travel } from './Travel.js';
 
 @Entity('todos')
 export class Todo {
@@ -24,7 +24,7 @@ export class Todo {
     @Column('uuid')
     travelId: string;
 
-    @ManyToOne(() => Travel, (travel) => travel.todos, { onDelete: 'CASCADE' })
+    @ManyToOne("Travel", (travel: Travel) => travel.todos, { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'travelId' })
     travel: Relation<Travel>;
 

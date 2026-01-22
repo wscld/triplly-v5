@@ -8,8 +8,6 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn, Unique, } from 'typeorm';
-import { User } from './User.js';
-import { Travel } from './Travel.js';
 export var MemberRole;
 (function (MemberRole) {
     MemberRole["OWNER"] = "owner";
@@ -46,12 +44,12 @@ __decorate([
     __metadata("design:type", Date)
 ], TravelMember.prototype, "joinedAt", void 0);
 __decorate([
-    ManyToOne(() => Travel, (travel) => travel.members, { onDelete: 'CASCADE' }),
+    ManyToOne("Travel", (travel) => travel.members, { onDelete: 'CASCADE' }),
     JoinColumn({ name: 'travelId' }),
     __metadata("design:type", Object)
 ], TravelMember.prototype, "travel", void 0);
 __decorate([
-    ManyToOne(() => User, (user) => user.memberships, { onDelete: 'CASCADE' }),
+    ManyToOne("User", (user) => user.memberships, { onDelete: 'CASCADE' }),
     JoinColumn({ name: 'userId' }),
     __metadata("design:type", Object)
 ], TravelMember.prototype, "user", void 0);

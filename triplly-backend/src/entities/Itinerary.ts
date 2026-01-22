@@ -7,8 +7,8 @@ import {
     JoinColumn,
     type Relation,
 } from 'typeorm';
-import { Travel } from './Travel.js';
-import { Activity } from './Activity.js';
+import type { Travel } from './Travel.js';
+import type { Activity } from './Activity.js';
 
 @Entity('itineraries')
 export class Itinerary {
@@ -27,10 +27,10 @@ export class Itinerary {
     @Column({ type: 'float', default: 0 })
     orderIndex: number;
 
-    @ManyToOne(() => Travel, (travel) => travel.itineraries, { onDelete: 'CASCADE' })
+    @ManyToOne("Travel", (travel: Travel) => travel.itineraries, { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'travelId' })
     travel: Relation<Travel>;
 
-    @OneToMany(() => Activity, (activity) => activity.itinerary)
+    @OneToMany("Activity", (activity: Activity) => activity.itinerary)
     activities: Activity[];
 }

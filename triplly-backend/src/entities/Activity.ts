@@ -8,10 +8,10 @@ import {
     OneToMany,
     type Relation,
 } from 'typeorm';
-import { Itinerary } from './Itinerary.js';
-import { ActivityComment } from './ActivityComment.js';
-import { Travel } from './Travel.js';
-import { User } from './User.js';
+import type { Itinerary } from './Itinerary.js';
+import type { ActivityComment } from './ActivityComment.js';
+import type { Travel } from './Travel.js';
+import type { User } from './User.js';
 
 @Entity('activities')
 export class Activity {
@@ -54,19 +54,19 @@ export class Activity {
     @Column('uuid', { nullable: true })
     createdById: string | null;
 
-    @ManyToOne(() => User, { nullable: true })
+    @ManyToOne("User", { nullable: true })
     @JoinColumn({ name: 'createdById' })
     createdBy: Relation<User> | null;
 
-    @ManyToOne(() => Travel, { onDelete: 'CASCADE' })
+    @ManyToOne("Travel", { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'travelId' })
     travel: Relation<Travel>;
 
-    @ManyToOne(() => Itinerary, (itinerary) => itinerary.activities, { onDelete: 'CASCADE', nullable: true })
+    @ManyToOne("Itinerary", (itinerary: Itinerary) => itinerary.activities, { onDelete: 'CASCADE', nullable: true })
     @JoinColumn({ name: 'itineraryId' })
     itinerary: Relation<Itinerary> | null;
 
-    @OneToMany(() => ActivityComment, (comment) => comment.activity)
+    @OneToMany("ActivityComment", (comment: ActivityComment) => comment.activity)
     comments: ActivityComment[];
 }
 

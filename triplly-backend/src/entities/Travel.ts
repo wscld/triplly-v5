@@ -8,10 +8,10 @@ import {
     JoinColumn,
     type Relation,
 } from 'typeorm';
-import { User } from './User.js';
-import { TravelMember } from './TravelMember.js';
-import { Itinerary } from './Itinerary.js';
-import { Todo } from './Todo.js';
+import type { User } from './User.js';
+import type { TravelMember } from './TravelMember.js';
+import type { Itinerary } from './Itinerary.js';
+import type { Todo } from './Todo.js';
 
 @Entity('travels')
 export class Travel {
@@ -46,16 +46,16 @@ export class Travel {
     @Column('uuid')
     ownerId: string;
 
-    @ManyToOne(() => User)
+    @ManyToOne("User")
     @JoinColumn({ name: 'ownerId' })
     owner: Relation<User>;
 
-    @OneToMany(() => TravelMember, (member) => member.travel)
+    @OneToMany("TravelMember", (member: TravelMember) => member.travel)
     members: TravelMember[];
 
-    @OneToMany(() => Itinerary, (itinerary) => itinerary.travel)
+    @OneToMany("Itinerary", (itinerary: Itinerary) => itinerary.travel)
     itineraries: Itinerary[];
 
-    @OneToMany(() => Todo, (todo) => todo.travel)
+    @OneToMany("Todo", (todo: Todo) => todo.travel)
     todos: Todo[];
 }

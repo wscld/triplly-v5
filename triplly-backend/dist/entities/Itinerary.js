@@ -8,8 +8,6 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany, JoinColumn, } from 'typeorm';
-import { Travel } from './Travel.js';
-import { Activity } from './Activity.js';
 let Itinerary = class Itinerary {
     id;
     travelId;
@@ -40,12 +38,12 @@ __decorate([
     __metadata("design:type", Number)
 ], Itinerary.prototype, "orderIndex", void 0);
 __decorate([
-    ManyToOne(() => Travel, (travel) => travel.itineraries, { onDelete: 'CASCADE' }),
+    ManyToOne("Travel", (travel) => travel.itineraries, { onDelete: 'CASCADE' }),
     JoinColumn({ name: 'travelId' }),
     __metadata("design:type", Object)
 ], Itinerary.prototype, "travel", void 0);
 __decorate([
-    OneToMany(() => Activity, (activity) => activity.itinerary),
+    OneToMany("Activity", (activity) => activity.itinerary),
     __metadata("design:type", Array)
 ], Itinerary.prototype, "activities", void 0);
 Itinerary = __decorate([

@@ -8,8 +8,8 @@ import {
     Unique,
     type Relation,
 } from 'typeorm';
-import { User } from './User.js';
-import { Travel } from './Travel.js';
+import type { User } from './User.js';
+import type { Travel } from './Travel.js';
 
 export enum MemberRole {
     OWNER = 'owner',
@@ -35,11 +35,11 @@ export class TravelMember {
     @CreateDateColumn()
     joinedAt: Date;
 
-    @ManyToOne(() => Travel, (travel) => travel.members, { onDelete: 'CASCADE' })
+    @ManyToOne("Travel", (travel: Travel) => travel.members, { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'travelId' })
     travel: Relation<Travel>;
 
-    @ManyToOne(() => User, (user) => user.memberships, { onDelete: 'CASCADE' })
+    @ManyToOne("User", (user: User) => user.memberships, { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'userId' })
     user: Relation<User>;
 }

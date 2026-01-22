@@ -8,8 +8,6 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn, } from 'typeorm';
-import { Activity } from './Activity.js';
-import { User } from './User.js';
 let ActivityComment = class ActivityComment {
     id;
     activityId;
@@ -40,12 +38,12 @@ __decorate([
     __metadata("design:type", Date)
 ], ActivityComment.prototype, "createdAt", void 0);
 __decorate([
-    ManyToOne(() => Activity, (activity) => activity.comments, { onDelete: 'CASCADE' }),
+    ManyToOne("Activity", (activity) => activity.comments, { onDelete: 'CASCADE' }),
     JoinColumn({ name: 'activityId' }),
     __metadata("design:type", Object)
 ], ActivityComment.prototype, "activity", void 0);
 __decorate([
-    ManyToOne(() => User, (user) => user.activityComments, { onDelete: 'CASCADE' }),
+    ManyToOne("User", (user) => user.activityComments, { onDelete: 'CASCADE' }),
     JoinColumn({ name: 'userId' }),
     __metadata("design:type", Object)
 ], ActivityComment.prototype, "user", void 0);

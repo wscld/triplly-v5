@@ -7,8 +7,8 @@ import {
     CreateDateColumn,
     type Relation,
 } from 'typeorm';
-import { Activity } from './Activity.js';
-import { User } from './User.js';
+import type { Activity } from './Activity.js';
+import type { User } from './User.js';
 
 @Entity('activity_comments')
 export class ActivityComment {
@@ -27,11 +27,11 @@ export class ActivityComment {
     @CreateDateColumn()
     createdAt: Date;
 
-    @ManyToOne(() => Activity, (activity) => activity.comments, { onDelete: 'CASCADE' })
+    @ManyToOne("Activity", (activity: Activity) => activity.comments, { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'activityId' })
     activity: Relation<Activity>;
 
-    @ManyToOne(() => User, (user) => user.activityComments, { onDelete: 'CASCADE' })
+    @ManyToOne("User", (user: User) => user.activityComments, { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'userId' })
     user: Relation<User>;
 }

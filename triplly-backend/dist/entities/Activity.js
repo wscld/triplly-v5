@@ -8,10 +8,6 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn, OneToMany, } from 'typeorm';
-import { Itinerary } from './Itinerary.js';
-import { ActivityComment } from './ActivityComment.js';
-import { Travel } from './Travel.js';
-import { User } from './User.js';
 let Activity = class Activity {
     id;
     travelId;
@@ -84,22 +80,22 @@ __decorate([
     __metadata("design:type", Object)
 ], Activity.prototype, "createdById", void 0);
 __decorate([
-    ManyToOne(() => User, { nullable: true }),
+    ManyToOne("User", { nullable: true }),
     JoinColumn({ name: 'createdById' }),
     __metadata("design:type", Object)
 ], Activity.prototype, "createdBy", void 0);
 __decorate([
-    ManyToOne(() => Travel, { onDelete: 'CASCADE' }),
+    ManyToOne("Travel", { onDelete: 'CASCADE' }),
     JoinColumn({ name: 'travelId' }),
     __metadata("design:type", Object)
 ], Activity.prototype, "travel", void 0);
 __decorate([
-    ManyToOne(() => Itinerary, (itinerary) => itinerary.activities, { onDelete: 'CASCADE', nullable: true }),
+    ManyToOne("Itinerary", (itinerary) => itinerary.activities, { onDelete: 'CASCADE', nullable: true }),
     JoinColumn({ name: 'itineraryId' }),
     __metadata("design:type", Object)
 ], Activity.prototype, "itinerary", void 0);
 __decorate([
-    OneToMany(() => ActivityComment, (comment) => comment.activity),
+    OneToMany("ActivityComment", (comment) => comment.activity),
     __metadata("design:type", Array)
 ], Activity.prototype, "comments", void 0);
 Activity = __decorate([

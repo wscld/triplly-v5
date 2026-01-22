@@ -8,10 +8,6 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, OneToMany, JoinColumn, } from 'typeorm';
-import { User } from './User.js';
-import { TravelMember } from './TravelMember.js';
-import { Itinerary } from './Itinerary.js';
-import { Todo } from './Todo.js';
 let Travel = class Travel {
     id;
     title;
@@ -69,20 +65,20 @@ __decorate([
     __metadata("design:type", String)
 ], Travel.prototype, "ownerId", void 0);
 __decorate([
-    ManyToOne(() => User),
+    ManyToOne("User"),
     JoinColumn({ name: 'ownerId' }),
     __metadata("design:type", Object)
 ], Travel.prototype, "owner", void 0);
 __decorate([
-    OneToMany(() => TravelMember, (member) => member.travel),
+    OneToMany("TravelMember", (member) => member.travel),
     __metadata("design:type", Array)
 ], Travel.prototype, "members", void 0);
 __decorate([
-    OneToMany(() => Itinerary, (itinerary) => itinerary.travel),
+    OneToMany("Itinerary", (itinerary) => itinerary.travel),
     __metadata("design:type", Array)
 ], Travel.prototype, "itineraries", void 0);
 __decorate([
-    OneToMany(() => Todo, (todo) => todo.travel),
+    OneToMany("Todo", (todo) => todo.travel),
     __metadata("design:type", Array)
 ], Travel.prototype, "todos", void 0);
 Travel = __decorate([

@@ -8,7 +8,6 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, } from 'typeorm';
-import { Travel } from './Travel.js';
 let Todo = class Todo {
     id;
     title;
@@ -35,7 +34,7 @@ __decorate([
     __metadata("design:type", String)
 ], Todo.prototype, "travelId", void 0);
 __decorate([
-    ManyToOne(() => Travel, (travel) => travel.todos, { onDelete: 'CASCADE' }),
+    ManyToOne("Travel", (travel) => travel.todos, { onDelete: 'CASCADE' }),
     JoinColumn({ name: 'travelId' }),
     __metadata("design:type", Object)
 ], Todo.prototype, "travel", void 0);
