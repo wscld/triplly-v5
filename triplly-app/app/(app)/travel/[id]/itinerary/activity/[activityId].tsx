@@ -57,10 +57,10 @@ export default function ActivityScreen() {
     // Toggle map expansion
     const toggleMapExpansion = () => {
         if (isMapExpanded) {
-            mapHeight.value = withSpring(MAP_COLLAPSED_HEIGHT, { damping: 20, stiffness: 150 });
+            mapHeight.value = withSpring(MAP_COLLAPSED_HEIGHT, { damping: 30, stiffness: 150 });
             setIsMapExpanded(false);
         } else {
-            mapHeight.value = withSpring(MAP_EXPANDED_HEIGHT, { damping: 20, stiffness: 150 });
+            mapHeight.value = withSpring(MAP_EXPANDED_HEIGHT, { damping: 30, stiffness: 150 });
             setIsMapExpanded(true);
         }
     };
@@ -84,15 +84,15 @@ export default function ActivityScreen() {
             const shouldCollapse = velocity > 500 || (isMapExpanded && mapHeight.value < (MAP_COLLAPSED_HEIGHT + MAP_EXPANDED_HEIGHT) / 2);
 
             if (shouldExpand) {
-                mapHeight.value = withSpring(MAP_EXPANDED_HEIGHT, { damping: 20, stiffness: 150 });
+                mapHeight.value = withSpring(MAP_EXPANDED_HEIGHT, { damping: 30, stiffness: 150 });
                 runOnJS(setIsMapExpanded)(true);
             } else if (shouldCollapse) {
-                mapHeight.value = withSpring(MAP_COLLAPSED_HEIGHT, { damping: 20, stiffness: 150 });
+                mapHeight.value = withSpring(MAP_COLLAPSED_HEIGHT, { damping: 30, stiffness: 150 });
                 runOnJS(setIsMapExpanded)(false);
             } else {
                 mapHeight.value = withSpring(
                     isMapExpanded ? MAP_EXPANDED_HEIGHT : MAP_COLLAPSED_HEIGHT,
-                    { damping: 20, stiffness: 150 }
+                    { damping: 30, stiffness: 150 }
                 );
             }
         });
@@ -408,7 +408,7 @@ export default function ActivityScreen() {
                     </View>
 
                     {/* Map Component */}
-                    <View style={[{ flex: 1, marginTop: 10, borderRadius: 16, overflow: 'hidden' }]}>
+                    <View style={[{ flex: 1, marginTop: 10 }]}>
                         <ItineraryMap
                             activities={[activity]}
                         />

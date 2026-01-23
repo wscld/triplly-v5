@@ -15,7 +15,7 @@ import ItineraryMap from '@/components/ItineraryMap';
 import TravelDetailSkeleton from '@/components/TravelDetailSkeleton';
 import DateRangePicker from '@/components/DateRangePicker';
 import { VStack, HStack, Input, InputField, Button, ButtonText } from '@gluestack-ui/themed';
-import { BottomSheetModal, BottomSheetView, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
+import { BottomSheetModal, BottomSheetView, BottomSheetBackdrop, BottomSheetTextInput } from '@gorhom/bottom-sheet';
 import { Colors } from '@/constants/colors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import DatePickerInput from '@/components/DatePickerInput';
@@ -46,10 +46,10 @@ export default function TravelDetailScreen() {
     // Toggle map expansion
     const toggleMapExpansion = () => {
         if (isMapExpanded) {
-            mapHeight.value = withSpring(MAP_COLLAPSED_HEIGHT, { damping: 20, stiffness: 150 });
+            mapHeight.value = withSpring(MAP_COLLAPSED_HEIGHT, { damping: 30, stiffness: 150 });
             setIsMapExpanded(false);
         } else {
-            mapHeight.value = withSpring(MAP_EXPANDED_HEIGHT, { damping: 20, stiffness: 150 });
+            mapHeight.value = withSpring(MAP_EXPANDED_HEIGHT, { damping: 30, stiffness: 150 });
             setIsMapExpanded(true);
         }
     };
@@ -73,16 +73,16 @@ export default function TravelDetailScreen() {
             const shouldCollapse = velocity > 500 || (isMapExpanded && mapHeight.value < (MAP_COLLAPSED_HEIGHT + MAP_EXPANDED_HEIGHT) / 2);
 
             if (shouldExpand) {
-                mapHeight.value = withSpring(MAP_EXPANDED_HEIGHT, { damping: 20, stiffness: 150 });
+                mapHeight.value = withSpring(MAP_EXPANDED_HEIGHT, { damping: 30, stiffness: 150 });
                 runOnJS(setIsMapExpanded)(true);
             } else if (shouldCollapse) {
-                mapHeight.value = withSpring(MAP_COLLAPSED_HEIGHT, { damping: 20, stiffness: 150 });
+                mapHeight.value = withSpring(MAP_COLLAPSED_HEIGHT, { damping: 30, stiffness: 150 });
                 runOnJS(setIsMapExpanded)(false);
             } else {
                 // Snap back to current state
                 mapHeight.value = withSpring(
                     isMapExpanded ? MAP_EXPANDED_HEIGHT : MAP_COLLAPSED_HEIGHT,
-                    { damping: 20, stiffness: 150 }
+                    { damping: 30, stiffness: 150 }
                 );
             }
         });
@@ -820,14 +820,13 @@ export default function TravelDetailScreen() {
                 submitLabel="Adicionar"
             >
                 <VStack space="md">
-                    <Input>
-                        <InputField
-                            placeholder="Nome do dia (ex: Dia 1 - Centro)"
-                            value={newItineraryTitle}
-                            onChangeText={setNewItineraryTitle}
-                            autoFocus
-                        />
-                    </Input>
+                    <BottomSheetTextInput
+                        style={styles.sheetInput}
+                        placeholder="Nome do dia (ex: Dia 1 - Centro)"
+                        value={newItineraryTitle}
+                        onChangeText={setNewItineraryTitle}
+                        placeholderTextColor={Colors.text.secondary}
+                    />
                     <DatePickerInput
                         label="DATA"
                         value={newItineraryDate}
@@ -1155,15 +1154,15 @@ export default function TravelDetailScreen() {
                 <VStack space="lg">
                     <VStack space="xs">
                         <Text style={styles.inputLabel}>Convidar por email</Text>
-                        <Input>
-                            <InputField
-                                placeholder="email@exemplo.com"
-                                value={inviteEmail}
-                                onChangeText={setInviteEmail}
-                                autoCapitalize="none"
-                                keyboardType="email-address"
-                            />
-                        </Input>
+                        <BottomSheetTextInput
+                            style={styles.sheetInput}
+                            placeholder="email@exemplo.com"
+                            value={inviteEmail}
+                            onChangeText={setInviteEmail}
+                            autoCapitalize="none"
+                            keyboardType="email-address"
+                            placeholderTextColor={Colors.text.secondary}
+                        />
                     </VStack>
 
                     <VStack space="md">
@@ -1611,5 +1610,15 @@ const styles = StyleSheet.create({
     sheetItemText: {
         fontSize: 16,
         color: Colors.text.primary,
+    },
+    sheetInput: {
+        backgroundColor: '#F9F9F9',
+        borderRadius: 8,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        fontSize: 16,
+        color: Colors.text.primary,
+        borderWidth: 1,
+        borderColor: Colors.border.light,
     },
 });

@@ -18,7 +18,9 @@ import type {
 } from './types';
 import { tokenStorage } from './storage';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api';
+const API_URL = process.env.EXPO_PUBLIC_API_URL
+    ? `${process.env.EXPO_PUBLIC_API_URL}/api`
+    : 'http://localhost:3000/api';
 
 class ApiClient {
     private token: string | null = null;
