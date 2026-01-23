@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import {
     View,
     Text,
@@ -13,6 +13,7 @@ import {
 import { Link, router } from 'expo-router';
 import { useAuth } from '@/lib/auth';
 import { Colors } from '@/constants/colors';
+import { getEmailError, getPasswordError } from '@/lib/validation';
 
 export default function RegisterScreen() {
     const { register } = useAuth();
@@ -20,15 +21,33 @@ export default function RegisterScreen() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
+    const [emailError, setEmailError] = useState<string | null>(null);
+    const [passwordError, setPasswordError] = useState<string | null>(null);
+
+    const handleEmailBlur = useCallback(() => {
+        setEmailError(getEmailError(email));
+    }, [email]);
+
+    const handlePasswordBlur = useCallback(() => {
+        setPasswordError(getPasswordError(password));
+    }, [password]);
 
     const handleRegister = async () => {
-        if (!name || !email || !password) {
-            Alert.alert('Error', 'Please fill in all fields');
+        const emailValidationError = getEmailError(email);
+        const passwordValidationError = getPasswordError(password);
+
+        if (emailValidationError) {
+            setEmailError(emailValidationError);
+        }
+        if (passwordValidationError) {
+            setPasswordError(passwordValidationError);
+        }
+        if (emailValidationError || passwordValidationError) {
             return;
         }
 
-        if (password.length < 6) {
-            Alert.alert('Error', 'Password must be at least 6 characters');
+        if (!name || !email || !password) {
+            Alert.alert('Error', 'Please fill in all fields');
             return;
         }
 
@@ -64,30 +83,53 @@ export default function RegisterScreen() {
                                 value={name}
                                 onChangeText={setName}
                                 autoCapitalize="words"
+                                accessibilityLabel="Name input"
                             />
-                            <TextInput
-                                style={styles.input}
-                                placeholder="Email"
-                                placeholderTextColor="#999"
-                                value={email}
-                                onChangeText={setEmail}
-                                keyboardType="email-address"
-                                autoCapitalize="none"
-                                autoCorrect={false}
-                            />
-                            <TextInput
-                                style={styles.input}
-                                placeholder="Password"
-                                placeholderTextColor="#999"
-                                value={password}
-                                onChangeText={setPassword}
-                                secureTextEntry
-                            />
+                            <View>
+                                <TextInput
+                                    style={[styles.input, emailError && styles.inputError]}
+                                    placeholder="Email"
+                                    placeholderTextColor="#999"
+                                    value={email}
+                                    onChangeText={(text) => {
+                                        setEmail(text);
+                                        if (emailError) setEmailError(null);
+                                    }}
+                                    onBlur={handleEmailBlur}
+                                    keyboardType="email-address"
+                                    autoCapitalize="none"
+                                    autoCorrect={false}
+                                    accessibilityLabel="Email input"
+                                />
+                                {emailError && (
+                                    <Text style={styles.errorText}>{emailError}</Text>
+                                )}
+                            </View>
+                            <View>
+                                <TextInput
+                                    style={[styles.input, passwordError && styles.inputError]}
+                                    placeholder="Password"
+                                    placeholderTextColor="#999"
+                                    value={password}
+                                    onChangeText={(text) => {
+                                        setPassword(text);
+                                        if (passwordError) setPasswordError(null);
+                                    }}
+                                    onBlur={handlePasswordBlur}
+                                    secureTextEntry
+                                    accessibilityLabel="Password input"
+                                />
+                                {passwordError && (
+                                    <Text style={styles.errorText}>{passwordError}</Text>
+                                )}
+                            </View>
 
                             <TouchableOpacity
                                 style={[styles.button, loading && styles.buttonDisabled]}
                                 onPress={handleRegister}
                                 disabled={loading}
+                                accessibilityRole="button"
+                                accessibilityLabel="Create account"
                             >
                                 {loading ? (
                                     <ActivityIndicator color="#fff" />
@@ -163,6 +205,16 @@ const styles = StyleSheet.create({
         fontSize: 17,
         backgroundColor: Colors.background,
         color: Colors.text.primary,
+    },
+    inputError: {
+        borderWidth: 1,
+        borderColor: '#FF3B30',
+    },
+    errorText: {
+        color: '#FF3B30',
+        fontSize: 13,
+        marginTop: 4,
+        marginLeft: 4,
     },
     button: {
         height: 56,

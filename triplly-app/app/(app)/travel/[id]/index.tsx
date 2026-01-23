@@ -1,20 +1,19 @@
-import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView, ActivityIndicator, Dimensions, Image } from 'react-native';
-import { GestureHandlerRootView, GestureDetector, Gesture } from 'react-native-gesture-handler';
-import DraggableFlatList, { ScaleDecorator, RenderItemParams } from 'react-native-draggable-flatlist';
-import Animated, { FadeIn, FadeOut, runOnJS, useSharedValue, useAnimatedStyle, withSpring, interpolate, Extrapolation, useAnimatedScrollHandler } from 'react-native-reanimated';
-import { useLocalSearchParams, router } from 'expo-router';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, Image, ScrollView } from 'react-native';
+import { Gesture, GestureDetector, GestureHandlerRootView, Swipeable } from 'react-native-gesture-handler';
+import Animated, { useSharedValue, useAnimatedScrollHandler, useAnimatedStyle, interpolate, Extrapolation, withSpring, runOnJS } from 'react-native-reanimated';
+import { Dimensions } from 'react-native';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '@/lib/api';
-import type { Activity, Travel, TravelMember, Itinerary } from '@/lib/types';
-import { useState, useRef } from 'react';
+import type { Activity, Travel, Itinerary } from '@/lib/types';
+import { useState, useRef, useMemo, useCallback } from 'react';
 import SheetForm from '@/components/SheetForm';
 import TodoList from '@/components/TodoList';
 import PlaceAutocomplete from '@/components/PlaceAutocomplete';
-import ItineraryMap from '@/components/ItineraryMap';
 import TravelDetailSkeleton from '@/components/TravelDetailSkeleton';
 import DateRangePicker from '@/components/DateRangePicker';
-import { VStack, HStack, Input, InputField, Button, ButtonText } from '@gluestack-ui/themed';
+import { VStack, HStack, Input, InputField } from '@gluestack-ui/themed';
 import { BottomSheetModal, BottomSheetView, BottomSheetBackdrop, BottomSheetTextInput } from '@gorhom/bottom-sheet';
 import { Colors } from '@/constants/colors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -22,17 +21,22 @@ import DatePickerInput from '@/components/DatePickerInput';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import * as ImagePicker from 'expo-image-picker';
+import { isValidEmail } from '@/lib/validation';
+import {
+    TravelHeader,
+    HeaderParallax,
+    DaySelector,
+    ActivitiesList,
+    MapSection,
+    MAP_COLLAPSED_HEIGHT,
+} from '@/components/travel';
+import ItineraryMap from '@/components/ItineraryMap';
+import DraggableFlatList, { RenderItemParams, ScaleDecorator } from 'react-native-draggable-flatlist';
 
-// Helper to parse date strings without timezone shift
-// Appending T12:00:00 ensures the date stays correct regardless of local timezone
 const parseDateSafe = (dateStr: string | null | undefined): Date | null => {
     if (!dateStr) return null;
     return parseISO(`${dateStr}T12:00:00`);
 };
-
-const { height: SCREEN_HEIGHT } = Dimensions.get('window');
-const MAP_COLLAPSED_HEIGHT = 120;
-const MAP_EXPANDED_HEIGHT = SCREEN_HEIGHT * 0.5;
 
 export default function TravelDetailScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
@@ -43,8 +47,38 @@ export default function TravelDetailScreen() {
     const mapHeight = useSharedValue(MAP_COLLAPSED_HEIGHT);
     const [isMapExpanded, setIsMapExpanded] = useState(false);
 
-    // Toggle map expansion
-    const toggleMapExpansion = () => {
+    const handleMapToggle = useCallback((expanded: boolean) => {
+        setIsMapExpanded(expanded);
+    }, []);
+
+    // Scroll handling for collapsible header
+    const scrollY = useSharedValue(0);
+    const scrollHandler = useAnimatedScrollHandler({
+        onScroll: (event) => {
+            scrollY.value = event.contentOffset.y;
+        },
+    });
+
+    // Animated styles for parallax header
+    const headerContentStyle = useAnimatedStyle(() => ({
+        opacity: interpolate(scrollY.value, [0, 60], [1, 0], Extrapolation.CLAMP),
+        transform: [
+            { translateY: interpolate(scrollY.value, [0, 100], [0, -50], Extrapolation.CLAMP) }
+        ],
+    }));
+
+    const imageAnimatedStyle = useAnimatedStyle(() => ({
+        transform: [
+            { translateY: interpolate(scrollY.value, [-300, 0, 300], [150, 0, -150]) },
+            { scale: interpolate(scrollY.value, [-300, 0], [2, 1], Extrapolation.CLAMP) }
+        ]
+    }));
+
+    // Map gesture handling
+    const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+    const MAP_EXPANDED_HEIGHT = SCREEN_HEIGHT * 0.5;
+
+    const toggleMapExpansion = useCallback(() => {
         if (isMapExpanded) {
             mapHeight.value = withSpring(MAP_COLLAPSED_HEIGHT, { damping: 30, stiffness: 150 });
             setIsMapExpanded(false);
@@ -52,9 +86,8 @@ export default function TravelDetailScreen() {
             mapHeight.value = withSpring(MAP_EXPANDED_HEIGHT, { damping: 30, stiffness: 150 });
             setIsMapExpanded(true);
         }
-    };
+    }, [isMapExpanded, mapHeight, MAP_EXPANDED_HEIGHT]);
 
-    // Gesture for expanding/collapsing map
     const mapTapGesture = Gesture.Tap()
         .onEnd(() => {
             runOnJS(toggleMapExpansion)();
@@ -79,7 +112,6 @@ export default function TravelDetailScreen() {
                 mapHeight.value = withSpring(MAP_COLLAPSED_HEIGHT, { damping: 30, stiffness: 150 });
                 runOnJS(setIsMapExpanded)(false);
             } else {
-                // Snap back to current state
                 mapHeight.value = withSpring(
                     isMapExpanded ? MAP_EXPANDED_HEIGHT : MAP_COLLAPSED_HEIGHT,
                     { damping: 30, stiffness: 150 }
@@ -104,33 +136,6 @@ export default function TravelDetailScreen() {
         }],
     }));
 
-
-
-    // Scroll handling for collapsible header
-    const scrollY = useSharedValue(0);
-    const scrollHandler = useAnimatedScrollHandler({
-        onScroll: (event) => {
-            scrollY.value = event.contentOffset.y;
-        },
-    });
-
-    const headerContentStyle = useAnimatedStyle(() => {
-        return {
-            opacity: interpolate(scrollY.value, [0, 60], [1, 0], Extrapolation.CLAMP),
-            transform: [
-                { translateY: interpolate(scrollY.value, [0, 100], [0, -50], Extrapolation.CLAMP) }
-            ],
-        };
-    });
-
-    const imageAnimatedStyle = useAnimatedStyle(() => {
-        return {
-            transform: [
-                { translateY: interpolate(scrollY.value, [-300, 0, 300], [150, 0, -150]) },
-                { scale: interpolate(scrollY.value, [-300, 0], [2, 1], Extrapolation.CLAMP) }
-            ]
-        };
-    });
     const [selectedDayIndex, setSelectedDayIndex] = useState(-1);
     const [direction, setDirection] = useState(0);
 
@@ -734,6 +739,28 @@ export default function TravelDetailScreen() {
                                             const isFirst = index === 0;
                                             const isLast = index === activities.length - 1;
 
+                                            const renderRightActions = (progress: any, dragX: any) => {
+                                                return (
+                                                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12, marginRight: 12, marginLeft: 8 }}>
+                                                        <TouchableOpacity
+                                                            onPress={() => {
+                                                                Alert.alert(
+                                                                    'Remover local',
+                                                                    `Deseja remover "${item.title}"?`,
+                                                                    [
+                                                                        { text: 'Cancelar', style: 'cancel' },
+                                                                        { text: 'Remover', style: 'destructive', onPress: () => deleteActivity.mutate(item.id) }
+                                                                    ]
+                                                                );
+                                                            }}
+                                                            style={[styles.swipeAction, { backgroundColor: Colors.error }]}
+                                                        >
+                                                            <Ionicons name="trash-outline" size={20} color={Colors.white} />
+                                                        </TouchableOpacity>
+                                                    </View>
+                                                );
+                                            };
+
                                             return (
                                                 <ScaleDecorator>
                                                     <View style={styles.timelineRow}>
@@ -746,23 +773,31 @@ export default function TravelDetailScreen() {
                                                             </View>
                                                         )}
 
-                                                        {/* Activity Card */}
-                                                        <TouchableOpacity
-                                                            style={[styles.activityCard, isActive && styles.activityCardActive]}
-                                                            onPress={() => {
-                                                                const targetItineraryId = selectedItinerary?.id || 'wishlist';
-                                                                router.push(`/(app)/travel/${id}/itinerary/activity/${item.id}?itineraryId=${targetItineraryId}`);
-                                                            }}
-                                                            onLongPress={drag}
-                                                        >
-                                                            <TouchableOpacity onPressIn={drag} style={styles.dragHandle}>
-                                                                <Ionicons name="reorder-two" size={20} color={Colors.border.medium} />
-                                                            </TouchableOpacity>
-                                                            <Text style={styles.activityTitle} numberOfLines={1}>
-                                                                {item.title}
-                                                            </Text>
-                                                            <Ionicons name="chevron-forward" size={20} color={Colors.border.medium} />
-                                                        </TouchableOpacity>
+                                                        <View style={{ flex: 1 }}>
+                                                            <Swipeable
+                                                                renderRightActions={renderRightActions}
+                                                                containerStyle={{ overflow: 'visible' }}
+                                                            >
+                                                                {/* Activity Card */}
+                                                                <TouchableOpacity
+                                                                    style={[styles.activityCard, isActive && styles.activityCardActive]}
+                                                                    onPress={() => {
+                                                                        const targetItineraryId = selectedItinerary?.id || 'wishlist';
+                                                                        router.push(`/(app)/travel/${id}/itinerary/activity/${item.id}?itineraryId=${targetItineraryId}`);
+                                                                    }}
+                                                                    onLongPress={drag}
+                                                                    activeOpacity={1}
+                                                                >
+                                                                    <TouchableOpacity onPressIn={drag} style={styles.dragHandle}>
+                                                                        <Ionicons name="reorder-two" size={20} color={Colors.border.medium} />
+                                                                    </TouchableOpacity>
+                                                                    <Text style={styles.activityTitle} numberOfLines={1}>
+                                                                        {item.title}
+                                                                    </Text>
+                                                                    <Ionicons name="chevron-forward" size={20} color={Colors.border.medium} />
+                                                                </TouchableOpacity>
+                                                            </Swipeable>
+                                                        </View>
                                                     </View>
                                                 </ScaleDecorator>
                                             );
@@ -1143,6 +1178,10 @@ export default function TravelDetailScreen() {
                 title="Membros"
                 onSubmit={() => {
                     if (inviteEmail.trim()) {
+                        if (!isValidEmail(inviteEmail.trim())) {
+                            Alert.alert('Erro', 'Por favor, insira um email válido');
+                            return;
+                        }
                         inviteMember.mutate(inviteEmail.trim());
                     } else {
                         setShowMembers(false);
@@ -1620,5 +1659,13 @@ const styles = StyleSheet.create({
         color: Colors.text.primary,
         borderWidth: 1,
         borderColor: Colors.border.light,
+    },
+    swipeAction: {
+        width: 48,
+        height: '100%',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderRadius: 12,
+        marginLeft: 8,
     },
 });

@@ -1,16 +1,15 @@
-import { View, Text, TouchableOpacity, StyleSheet, Alert, SectionList, ImageBackground } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, SectionList } from 'react-native';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Link } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '@/lib/api';
 import type { TravelListItem } from '@/lib/types';
-import { formatDateRange } from '@/utils/distance';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import SheetForm from '@/components/SheetForm';
 import DateRangePicker from '@/components/DateRangePicker';
-import { Input, InputField, VStack, Text as GText, Textarea, TextareaInput } from '@gluestack-ui/themed';
+import { VStack, Text as GText } from '@gluestack-ui/themed';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Skeleton from '@/components/Skeleton';
+import { TravelCard } from '@/components/TravelCard';
 import Animated, { useSharedValue, useAnimatedStyle, useAnimatedScrollHandler, interpolate, Extrapolation } from 'react-native-reanimated';
 import { Colors } from '@/constants/colors';
 import PlaceAutocomplete from '@/components/PlaceAutocomplete';
@@ -19,72 +18,15 @@ const AnimatedSectionList = Animated.createAnimatedComponent(SectionList);
 
 function TravelCardSkeleton() {
     return (
-        <View style={styles.card}>
+        <View style={styles.card} accessibilityLabel="Loading travel card">
             <View style={styles.cardContent}>
-                <View>
-                    <Skeleton width={200} height={32} borderRadius={8} />
-                    <Skeleton width={120} height={16} borderRadius={4} style={{ marginTop: 8 }} />
-                </View>
-                <View style={styles.cardFooter}>
-                    <Skeleton width={60} height={28} borderRadius={14} />
-                    <Skeleton width={20} height={20} borderRadius={10} />
-                </View>
+                <Skeleton width="65%" height={28} borderRadius={6} style={{ marginBottom: 8 }} />
+                <Skeleton width="40%" height={14} borderRadius={4} />
             </View>
         </View>
     );
 }
 
-function TravelCard({ travel }: { travel: TravelListItem }) {
-    return (
-        <Link href={`/(app)/travel/${travel.id}`} asChild>
-            <TouchableOpacity style={styles.card}>
-                {travel.coverImageUrl ? (
-                    <ImageBackground
-                        source={{ uri: travel.coverImageUrl }}
-                        style={StyleSheet.absoluteFill}
-                        imageStyle={{ borderRadius: 32 }}
-                    >
-                        <View style={styles.cardOverlay}>
-                            <View style={styles.cardContent}>
-                                <View>
-                                    <Text style={[styles.cardTitle, { color: Colors.white }]}>{travel.title}</Text>
-                                    {(travel.startDate || travel.endDate) && (
-                                        <Text style={[styles.cardDates, { color: Colors.white }]}>
-                                            {formatDateRange(travel.startDate, travel.endDate)}
-                                        </Text>
-                                    )}
-                                </View>
-                                <View style={styles.cardFooter}>
-                                    <View style={styles.roleBadge}>
-                                        <Text style={styles.roleText}>{travel.role}</Text>
-                                    </View>
-                                    <Ionicons name="arrow-forward" size={20} color={Colors.white} />
-                                </View>
-                            </View>
-                        </View>
-                    </ImageBackground>
-                ) : (
-                    <View style={styles.cardContent}>
-                        <View>
-                            <Text style={styles.cardTitle}>{travel.title}</Text>
-                            {(travel.startDate || travel.endDate) && (
-                                <Text style={styles.cardDates}>
-                                    {formatDateRange(travel.startDate, travel.endDate)}
-                                </Text>
-                            )}
-                        </View>
-                        <View style={styles.cardFooter}>
-                            <View style={styles.roleBadge}>
-                                <Text style={styles.roleText}>{travel.role}</Text>
-                            </View>
-                            <Ionicons name="arrow-forward" size={20} color={Colors.black} />
-                        </View>
-                    </View>
-                )}
-            </TouchableOpacity>
-        </Link>
-    );
-}
 
 export default function TravelListScreen() {
     const queryClient = useQueryClient();
@@ -201,7 +143,12 @@ export default function TravelListScreen() {
         return (
             <View style={styles.centered}>
                 <Text style={styles.errorText}>Failed to load travels: {error instanceof Error ? error.message : 'Unknown error'}</Text>
-                <TouchableOpacity onPress={() => queryClient.refetchQueries({ queryKey: ['travels'] })} style={styles.retryButton}>
+                <TouchableOpacity
+                    onPress={() => queryClient.refetchQueries({ queryKey: ['travels'] })}
+                    style={styles.retryButton}
+                    accessibilityRole="button"
+                    accessibilityLabel="Retry loading travels"
+                >
                     <Text style={styles.retryText}>Retry</Text>
                 </TouchableOpacity>
             </View>
@@ -222,6 +169,8 @@ export default function TravelListScreen() {
                 <TouchableOpacity
                     style={styles.headerButton}
                     onPress={() => setShowCreateSheet(true)}
+                    accessibilityRole="button"
+                    accessibilityLabel="Create new travel"
                 >
                     <Ionicons name="add" size={24} color={Colors.text.primary} />
                 </TouchableOpacity>
@@ -415,7 +364,6 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.white,
         borderRadius: 32,
         padding: 24,
-        justifyContent: 'space-between',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 8 },
         shadowOpacity: 0.05,
@@ -425,39 +373,7 @@ const styles = StyleSheet.create({
     },
     cardContent: {
         flex: 1,
-        justifyContent: 'space-between',
-    },
-    cardTitle: {
-        fontSize: 32,
-        fontWeight: '400',
-        color: Colors.text.primary,
-        lineHeight: 36,
-    },
-    cardDates: {
-        fontSize: 15,
-        color: Colors.text.secondary,
-        fontWeight: '500',
-        marginTop: 4,
-        textTransform: 'uppercase',
-        letterSpacing: 1,
-    },
-    cardFooter: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-    },
-    roleBadge: {
-        backgroundColor: Colors.background,
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 100,
-    },
-    roleText: {
-        fontSize: 12,
-        color: Colors.text.primary,
-        textTransform: 'uppercase',
-        fontWeight: '600',
-        letterSpacing: 0.5,
+        justifyContent: 'center',
     },
     empty: {
         alignItems: 'center',
@@ -488,11 +404,5 @@ const styles = StyleSheet.create({
     retryText: {
         color: Colors.text.primary,
         fontWeight: '600',
-    },
-    cardOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.3)',
-        borderRadius: 32,
-        padding: 24,
     },
 });

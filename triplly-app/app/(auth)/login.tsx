@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import {
     View,
     Text,
@@ -13,14 +13,26 @@ import {
 import { Link, router } from 'expo-router';
 import { useAuth } from '@/lib/auth';
 import { Colors } from '@/constants/colors';
+import { isValidEmail, getEmailError } from '@/lib/validation';
 
 export default function LoginScreen() {
     const { login } = useAuth();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
+    const [emailError, setEmailError] = useState<string | null>(null);
+
+    const handleEmailBlur = useCallback(() => {
+        setEmailError(getEmailError(email));
+    }, [email]);
 
     const handleLogin = async () => {
+        const emailValidationError = getEmailError(email);
+        if (emailValidationError) {
+            setEmailError(emailValidationError);
+            return;
+        }
+
         if (!email || !password) {
             Alert.alert('Error', 'Please fill in all fields');
             return;
@@ -51,16 +63,26 @@ export default function LoginScreen() {
 
                     <View style={styles.formCard}>
                         <View style={styles.form}>
-                            <TextInput
-                                style={styles.input}
-                                placeholder="Email"
-                                placeholderTextColor="#999"
-                                value={email}
-                                onChangeText={setEmail}
-                                keyboardType="email-address"
-                                autoCapitalize="none"
-                                autoCorrect={false}
-                            />
+                            <View>
+                                <TextInput
+                                    style={[styles.input, emailError && styles.inputError]}
+                                    placeholder="Email"
+                                    placeholderTextColor="#999"
+                                    value={email}
+                                    onChangeText={(text) => {
+                                        setEmail(text);
+                                        if (emailError) setEmailError(null);
+                                    }}
+                                    onBlur={handleEmailBlur}
+                                    keyboardType="email-address"
+                                    autoCapitalize="none"
+                                    autoCorrect={false}
+                                    accessibilityLabel="Email input"
+                                />
+                                {emailError && (
+                                    <Text style={styles.errorText}>{emailError}</Text>
+                                )}
+                            </View>
                             <TextInput
                                 style={styles.input}
                                 placeholder="Password"
@@ -68,12 +90,15 @@ export default function LoginScreen() {
                                 value={password}
                                 onChangeText={setPassword}
                                 secureTextEntry
+                                accessibilityLabel="Password input"
                             />
 
                             <TouchableOpacity
                                 style={[styles.button, loading && styles.buttonDisabled]}
                                 onPress={handleLogin}
                                 disabled={loading}
+                                accessibilityRole="button"
+                                accessibilityLabel="Sign in"
                             >
                                 {loading ? (
                                     <ActivityIndicator color="#fff" />
@@ -147,8 +172,18 @@ const styles = StyleSheet.create({
         borderRadius: 16,
         paddingHorizontal: 20,
         fontSize: 17,
-        backgroundColor: Colors.background, // Warm beige input background
+        backgroundColor: Colors.background,
         color: Colors.text.primary,
+    },
+    inputError: {
+        borderWidth: 1,
+        borderColor: '#FF3B30',
+    },
+    errorText: {
+        color: '#FF3B30',
+        fontSize: 13,
+        marginTop: 4,
+        marginLeft: 4,
     },
     button: {
         height: 56,

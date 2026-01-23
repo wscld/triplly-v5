@@ -21,7 +21,7 @@ export default function Skeleton({
         Animated.loop(
             Animated.timing(shimmerAnim, {
                 toValue: 1,
-                duration: 1500,
+                duration: 800,
                 useNativeDriver: true,
             })
         ).start();
@@ -29,7 +29,7 @@ export default function Skeleton({
 
     const translateX = shimmerAnim.interpolate({
         inputRange: [0, 1],
-        outputRange: [-200, 200],
+        outputRange: [-150, 150],
     });
 
     return (
@@ -39,6 +39,8 @@ export default function Skeleton({
                 { width, height, borderRadius },
                 style,
             ]}
+            accessibilityLabel="Loading"
+            accessibilityRole="progressbar"
         >
             <Animated.View
                 style={[
@@ -47,7 +49,7 @@ export default function Skeleton({
                 ]}
             >
                 <LinearGradient
-                    colors={['transparent', 'rgba(255,255,255,0.1)', 'transparent']}
+                    colors={['transparent', 'rgba(255,255,255,0.05)', 'transparent']}
                     start={{ x: 0, y: 0.5 }}
                     end={{ x: 1, y: 0.5 }}
                     style={StyleSheet.absoluteFill}

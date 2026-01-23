@@ -102,6 +102,8 @@ export default function PlaceAutocomplete({ onSelect, placeholder = "Search for 
                                 key={item.place_id}
                                 onPress={() => handleSelect(item)}
                                 style={styles.resultItem}
+                                accessibilityRole="button"
+                                accessibilityLabel={`Select ${item.display_name.split(',')[0]}`}
                             >
                                 <Ionicons name="location-outline" size={20} color="#666" />
                                 <Text style={styles.resultText}>{item.display_name}</Text>
