@@ -99,6 +99,11 @@ final class TravelDetailViewModel: ObservableObject {
         return Double(completed) / Double(todos.count)
     }
 
+    func isCurrentUserOwner(currentUserId: String?) -> Bool {
+        guard let userId = currentUserId, let travel = travel else { return false }
+        return travel.owner.id == userId
+    }
+
     // MARK: - Load Data
     func loadTravel() async {
         isLoading = true
@@ -415,9 +420,10 @@ final class TravelDetailViewModel: ObservableObject {
     }
 
     // MARK: - Member Actions
-    func inviteMember(email: String, role: TravelRole) async throws {
-        let member = try await apiClient.inviteMember(travelId: travelId, email: email, role: role)
-        members.append(member)
+    func sendInvite(email: String, role: TravelRole) async throws {
+        _ = try await apiClient.inviteMember(travelId: travelId, email: email, role: role)
+        // Note: inviteMember now creates an invite, not a member directly
+        // The member will be added when the invite is accepted
     }
 
     func removeMember(_ member: TravelMember) async {
@@ -432,6 +438,14 @@ final class TravelDetailViewModel: ObservableObject {
     func deleteTravel() async {
         do {
             try await apiClient.deleteTravel(id: travelId)
+        } catch {
+            self.error = error
+        }
+    }
+
+    func leaveTravel() async {
+        do {
+            try await apiClient.leaveTravel(travelId: travelId)
         } catch {
             self.error = error
         }

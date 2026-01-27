@@ -269,6 +269,31 @@ actor APIClient {
         try await requestVoid(path: "/travels/\(travelId)/members/\(memberId)", method: .delete)
     }
 
+    // MARK: - Invite Endpoints
+    func getMyInvites() async throws -> [TravelInvite] {
+        try await request(path: "/invites")
+    }
+
+    func acceptInvite(inviteId: String) async throws {
+        try await requestVoid(path: "/invites/\(inviteId)/accept", method: .post)
+    }
+
+    func rejectInvite(inviteId: String) async throws {
+        try await requestVoid(path: "/invites/\(inviteId)/reject", method: .post)
+    }
+
+    func getTravelInvites(travelId: String) async throws -> [PendingInvite] {
+        try await request(path: "/travels/\(travelId)/invites")
+    }
+
+    func cancelInvite(travelId: String, inviteId: String) async throws {
+        try await requestVoid(path: "/travels/\(travelId)/invites/\(inviteId)", method: .delete)
+    }
+
+    func leaveTravel(travelId: String) async throws {
+        try await requestVoid(path: "/travels/\(travelId)/leave", method: .post)
+    }
+
     // MARK: - Itinerary Endpoints
     func getItinerary(id: String) async throws -> Itinerary {
         try await request(path: "/itineraries/\(id)")

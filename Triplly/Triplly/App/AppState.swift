@@ -9,10 +9,29 @@ final class AppState: ObservableObject {
     @Published var currentUser: User?
     @Published var error: AppError?
 
+    // MARK: - Subscription Properties
+    @Published var isSubscribed = false
+    @Published var showPaywall = false
+    @Published var travelsCount = 0
+
+    // MARK: - Onboarding Properties
+    @Published var hasCompletedOnboarding = false
+    @Published var showOnboarding = false
+
+    // MARK: - Constants
+    private let freeTravelLimit = 1
+    private let onboardingKey = "hasCompletedOnboarding"
+    private let subscriptionKey = "isSubscribed"
+
     // MARK: - Dependencies
     private let apiClient: APIClient
     private let keychainManager: KeychainManager
     private var cancellables = Set<AnyCancellable>()
+
+    // MARK: - Computed Properties
+    var canCreateTravel: Bool {
+        isSubscribed || travelsCount < freeTravelLimit
+    }
 
     // MARK: - Initialization
     init(
@@ -21,6 +40,12 @@ final class AppState: ObservableObject {
     ) {
         self.apiClient = apiClient
         self.keychainManager = keychainManager
+
+        // Check onboarding status
+        hasCompletedOnboarding = keychainManager.get(key: onboardingKey) == "true"
+
+        // Check subscription status (in a real app, this would verify with StoreKit/RevenueCat)
+        isSubscribed = keychainManager.get(key: subscriptionKey) == "true"
 
         Task {
             await checkAuthStatus()
@@ -43,6 +68,11 @@ final class AppState: ObservableObject {
             let user = try await apiClient.getCurrentUser()
             self.currentUser = user
             self.isAuthenticated = true
+
+            // Show onboarding if first time after authentication
+            if !hasCompletedOnboarding {
+                showOnboarding = true
+            }
         } catch {
             // Token is invalid, clear it
             keychainManager.deleteToken()
@@ -82,6 +112,45 @@ final class AppState: ObservableObject {
 
     func updateUser(_ user: User) {
         currentUser = user
+    }
+
+    // MARK: - Subscription Methods
+    func updateTravelsCount(_ count: Int) {
+        travelsCount = count
+    }
+
+    func checkPaywallNeeded() -> Bool {
+        if isSubscribed {
+            return false
+        }
+        if travelsCount >= freeTravelLimit {
+            showPaywall = true
+            return true
+        }
+        return false
+    }
+
+    func purchaseSubscription() {
+        // In a real app, this would integrate with StoreKit 2 or RevenueCat
+        // For now, we'll just mark as subscribed
+        isSubscribed = true
+        keychainManager.save("true", forKey: subscriptionKey)
+        showPaywall = false
+    }
+
+    func restorePurchases() {
+        // In a real app, this would restore purchases from StoreKit/RevenueCat
+        // For now, we'll check if previously subscribed
+        if keychainManager.get(key: subscriptionKey) == "true" {
+            isSubscribed = true
+        }
+    }
+
+    // MARK: - Onboarding Methods
+    func completeOnboarding() {
+        hasCompletedOnboarding = true
+        keychainManager.save("true", forKey: onboardingKey)
+        showOnboarding = false
     }
 }
 

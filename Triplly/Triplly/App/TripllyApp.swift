@@ -29,6 +29,13 @@ struct RootView: View {
         .animation(.easeInOut(duration: 0.3), value: appState.isAuthenticated)
         .animation(.easeInOut(duration: 0.3), value: appState.isLoading)
         .globalErrorAlert()
+        .sheet(isPresented: $appState.showOnboarding) {
+            OnboardingView()
+                .interactiveDismissDisabled()
+        }
+        .sheet(isPresented: $appState.showPaywall) {
+            PaywallView()
+        }
     }
 }
 

@@ -53,6 +53,9 @@ final class TravelsViewModel: ObservableObject {
     var upcomingCount: Int { travels.filter { $0.isUpcoming }.count }
     var pastCount: Int { travels.filter { !$0.isUpcoming }.count }
 
+    // MARK: - App State Reference
+    weak var appState: AppState?
+
     // MARK: - Actions
     func loadTravels() async {
         isLoading = true
@@ -60,6 +63,12 @@ final class TravelsViewModel: ObservableObject {
 
         do {
             travels = try await apiClient.getTravels()
+            // Update travels count in AppState for paywall logic
+            // Only count travels where user is owner (they created it)
+            let ownedTravels = travels.filter { $0.role == .owner }.count
+            await MainActor.run {
+                appState?.updateTravelsCount(ownedTravels)
+            }
         } catch {
             self.error = error
         }
@@ -82,6 +91,12 @@ final class TravelsViewModel: ObservableObject {
     func createTravel() async {
         guard !newTravelTitle.isEmpty else {
             createError = "Please enter a title"
+            return
+        }
+
+        // Check if paywall is needed
+        if let appState = appState, appState.checkPaywallNeeded() {
+            showingCreateSheet = false
             return
         }
 
@@ -121,6 +136,11 @@ final class TravelsViewModel: ObservableObject {
             )
 
             travels.insert(listItem, at: 0)
+
+            // Update travels count in AppState
+            let ownedTravels = travels.filter { $0.role == .owner }.count
+            appState?.updateTravelsCount(ownedTravels)
+
             resetCreateForm()
             showingCreateSheet = false
         } catch {

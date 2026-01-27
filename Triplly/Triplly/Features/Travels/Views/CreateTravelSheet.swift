@@ -84,24 +84,11 @@ struct CreateTravelSheet: View {
                     )
 
                     // Dates
-                    VStack(alignment: .leading, spacing: 16) {
-                        Text("Travel Dates (optional)")
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-
-                        HStack(spacing: 12) {
-                            AppDatePicker(
-                                title: "Start Date",
-                                date: $viewModel.newTravelStartDate
-                            )
-
-                            AppDatePicker(
-                                title: "End Date",
-                                date: $viewModel.newTravelEndDate,
-                                minimumDate: viewModel.newTravelStartDate
-                            )
-                        }
-                    }
+                    AppDateRangePicker(
+                        title: "Travel Dates (optional)",
+                        startDate: $viewModel.newTravelStartDate,
+                        endDate: $viewModel.newTravelEndDate
+                    )
 
                     // Error
                     if let error = viewModel.createError {

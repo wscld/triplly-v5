@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { AppDataSource } from '../data-source.js';
-import { Travel, TravelMember, MemberRole, User } from '../entities/index.js';
+import { Travel, TravelMember, MemberRole, TravelInvite, InviteStatus, User } from '../entities/index.js';
 import { authMiddleware, getAuth, requireTravelAccess } from '../middleware/index.js';
 import { getPlaceImage } from '../services/unsplash.js';
 import { uploadImage } from '../services/storage.js';
@@ -225,12 +225,14 @@ travels.get('/:travelId/members', requireTravelAccess('viewer'), async (c) => {
     );
 });
 
-// POST /travels/:travelId/members - Invite member
+// POST /travels/:travelId/members - Send invite to user
 travels.post('/:travelId/members', requireTravelAccess('owner'), zValidator('json', inviteSchema), async (c) => {
+    const { userId } = getAuth(c);
     const travelId = c.req.param('travelId');
     const { email, role } = c.req.valid('json');
     const userRepo = AppDataSource.getRepository(User);
     const memberRepo = AppDataSource.getRepository(TravelMember);
+    const inviteRepo = AppDataSource.getRepository(TravelInvite);
 
     // Find user by email
     const user = await userRepo.findOne({ where: { email } });
@@ -239,27 +241,37 @@ travels.post('/:travelId/members', requireTravelAccess('owner'), zValidator('jso
     }
 
     // Check if already member
-    const existing = await memberRepo.findOne({
+    const existingMember = await memberRepo.findOne({
         where: { travelId, userId: user.id },
     });
-    if (existing) {
+    if (existingMember) {
         return c.json({ error: 'User is already a member' }, 400);
     }
 
-    // Create membership
-    const member = memberRepo.create({
-        travelId,
-        userId: user.id,
-        role: role === 'editor' ? MemberRole.EDITOR : MemberRole.VIEWER,
+    // Check if already has pending invite
+    const existingInvite = await inviteRepo.findOne({
+        where: { travelId, invitedUserId: user.id, status: InviteStatus.PENDING },
     });
-    await memberRepo.save(member);
+    if (existingInvite) {
+        return c.json({ error: 'User already has a pending invite' }, 400);
+    }
+
+    // Create invite
+    const invite = inviteRepo.create({
+        travelId,
+        invitedUserId: user.id,
+        invitedByUserId: userId,
+        role: role === 'editor' ? MemberRole.EDITOR : MemberRole.VIEWER,
+        status: InviteStatus.PENDING,
+    });
+    await inviteRepo.save(invite);
 
     return c.json({
-        id: member.id,
-        userId: member.userId,
-        role: member.role,
-        joinedAt: member.joinedAt,
-        user: { id: user.id, name: user.name, email: user.email },
+        id: invite.id,
+        role: invite.role,
+        status: invite.status,
+        createdAt: invite.createdAt,
+        user: { id: user.id, name: user.name, email: user.email, profilePhotoUrl: user.profilePhotoUrl },
     }, 201);
 });
 
@@ -301,6 +313,76 @@ travels.delete('/:travelId/members/:memberId', requireTravelAccess('owner'), asy
     }
 
     await memberRepo.delete({ id: memberId });
+    return c.json({ success: true });
+});
+
+// --- Invite Management ---
+
+// GET /travels/:travelId/invites - List pending invites for travel
+travels.get('/:travelId/invites', requireTravelAccess('owner'), async (c) => {
+    const travelId = c.req.param('travelId');
+    const inviteRepo = AppDataSource.getRepository(TravelInvite);
+
+    const invites = await inviteRepo.find({
+        where: { travelId, status: InviteStatus.PENDING },
+        relations: ['invitedUser'],
+        order: { createdAt: 'DESC' },
+    });
+
+    return c.json(
+        invites.map((invite) => ({
+            id: invite.id,
+            role: invite.role,
+            status: invite.status,
+            createdAt: invite.createdAt,
+            user: {
+                id: invite.invitedUser.id,
+                name: invite.invitedUser.name,
+                email: invite.invitedUser.email,
+                profilePhotoUrl: invite.invitedUser.profilePhotoUrl,
+            },
+        }))
+    );
+});
+
+// DELETE /travels/:travelId/invites/:inviteId - Cancel pending invite
+travels.delete('/:travelId/invites/:inviteId', requireTravelAccess('owner'), async (c) => {
+    const travelId = c.req.param('travelId');
+    const inviteId = c.req.param('inviteId');
+    const inviteRepo = AppDataSource.getRepository(TravelInvite);
+
+    const invite = await inviteRepo.findOne({
+        where: { id: inviteId, travelId, status: InviteStatus.PENDING },
+    });
+
+    if (!invite) {
+        return c.json({ error: 'Invite not found' }, 404);
+    }
+
+    await inviteRepo.delete({ id: inviteId });
+    return c.json({ success: true });
+});
+
+// POST /travels/:travelId/leave - Non-owner leaves travel
+travels.post('/:travelId/leave', requireTravelAccess('viewer'), async (c) => {
+    const { userId } = getAuth(c);
+    const travelId = c.req.param('travelId');
+    const memberRepo = AppDataSource.getRepository(TravelMember);
+
+    const member = await memberRepo.findOne({
+        where: { travelId, userId },
+    });
+
+    if (!member) {
+        return c.json({ error: 'Not a member of this travel' }, 404);
+    }
+
+    // Owner cannot leave
+    if (member.role === MemberRole.OWNER) {
+        return c.json({ error: 'Owner cannot leave the travel. Delete the travel instead.' }, 400);
+    }
+
+    await memberRepo.delete({ id: member.id });
     return c.json({ success: true });
 });
 

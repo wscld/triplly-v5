@@ -6,7 +6,7 @@ import { logger } from 'hono/logger';
 import { config } from 'dotenv';
 
 import { AppDataSource } from './data-source.js';
-import { authRoutes, travelRoutes, itineraryRoutes, activityRoutes, commentRoutes, todoRoutes } from './routes/index.js';
+import { authRoutes, travelRoutes, inviteRoutes, itineraryRoutes, activityRoutes, commentRoutes, todoRoutes } from './routes/index.js';
 
 config();
 
@@ -26,6 +26,7 @@ app.get('/', (c) => c.json({ status: 'ok', name: 'Triplly API' }));
 // API Routes
 app.route('/api/auth', authRoutes);
 app.route('/api/travels', travelRoutes);
+app.route('/api/invites', inviteRoutes);
 app.route('/api/itineraries', itineraryRoutes);
 app.route('/api/activities', activityRoutes);
 app.route('/api/comments', commentRoutes);

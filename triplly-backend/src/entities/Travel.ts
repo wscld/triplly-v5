@@ -10,6 +10,7 @@ import {
 } from 'typeorm';
 import type { User } from './User.js';
 import type { TravelMember } from './TravelMember.js';
+import type { TravelInvite } from './TravelInvite.js';
 import type { Itinerary } from './Itinerary.js';
 import type { Todo } from './Todo.js';
 
@@ -58,4 +59,7 @@ export class Travel {
 
     @OneToMany("Todo", (todo: Todo) => todo.travel)
     todos: Todo[];
+
+    @OneToMany("TravelInvite", (invite: TravelInvite) => invite.travel)
+    invites: TravelInvite[];
 }

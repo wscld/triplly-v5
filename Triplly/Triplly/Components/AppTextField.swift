@@ -307,6 +307,230 @@ struct AppDatePicker: View {
     }
 }
 
+// MARK: - Date Range Picker
+struct AppDateRangePicker: View {
+    let title: String
+    @Binding var startDate: Date?
+    @Binding var endDate: Date?
+
+    @State private var showPicker = false
+    @State private var tempStartDate = Date()
+    @State private var tempEndDate = Date()
+    @State private var selectingEndDate = false
+
+    private var dateRangeText: String? {
+        guard let start = startDate else { return nil }
+
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM d"
+
+        if let end = endDate {
+            let yearFormatter = DateFormatter()
+            yearFormatter.dateFormat = "MMM d, yyyy"
+
+            let startYear = Calendar.current.component(.year, from: start)
+            let endYear = Calendar.current.component(.year, from: end)
+
+            if startYear == endYear {
+                return "\(formatter.string(from: start)) - \(yearFormatter.string(from: end))"
+            } else {
+                return "\(yearFormatter.string(from: start)) - \(yearFormatter.string(from: end))"
+            }
+        } else {
+            formatter.dateFormat = "MMM d, yyyy"
+            return formatter.string(from: start)
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.subheadline)
+                .fontWeight(.medium)
+                .foregroundStyle(Color.textPrimary)
+
+            Button {
+                tempStartDate = startDate ?? Date()
+                tempEndDate = endDate ?? (startDate ?? Date())
+                selectingEndDate = false
+                showPicker = true
+            } label: {
+                HStack {
+                    Image(systemName: "calendar")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundStyle(Color.secondary)
+
+                    if let text = dateRangeText {
+                        Text(text)
+                            .font(.body)
+                            .foregroundStyle(Color.textPrimary)
+                    } else {
+                        Text("Select dates")
+                            .font(.body)
+                            .foregroundStyle(Color(.placeholderText))
+                    }
+
+                    Spacer()
+
+                    if startDate != nil {
+                        Button {
+                            startDate = nil
+                            endDate = nil
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 16))
+                                .foregroundStyle(Color(.placeholderText))
+                        }
+                    } else {
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundStyle(Color(.placeholderText))
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 14)
+                .background(Color(.systemBackground))
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .stroke(Color(.systemGray4), lineWidth: 1)
+                }
+            }
+            .buttonStyle(.plain)
+        }
+        .sheet(isPresented: $showPicker) {
+            DateRangePickerSheet(
+                startDate: $tempStartDate,
+                endDate: $tempEndDate,
+                selectingEndDate: $selectingEndDate,
+                onSave: {
+                    startDate = tempStartDate
+                    endDate = tempEndDate > tempStartDate ? tempEndDate : nil
+                    showPicker = false
+                },
+                onCancel: {
+                    showPicker = false
+                }
+            )
+        }
+    }
+}
+
+// MARK: - Date Range Picker Sheet
+private struct DateRangePickerSheet: View {
+    @Binding var startDate: Date
+    @Binding var endDate: Date
+    @Binding var selectingEndDate: Bool
+    let onSave: () -> Void
+    let onCancel: () -> Void
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 0) {
+                // Date selection tabs
+                HStack(spacing: 0) {
+                    DateTabButton(
+                        title: "Start Date",
+                        date: startDate,
+                        isSelected: !selectingEndDate
+                    ) {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            selectingEndDate = false
+                        }
+                    }
+
+                    DateTabButton(
+                        title: "End Date",
+                        date: endDate,
+                        isSelected: selectingEndDate
+                    ) {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            selectingEndDate = true
+                        }
+                    }
+                }
+                .padding(.horizontal)
+                .padding(.top, 8)
+
+                // Calendar
+                if selectingEndDate {
+                    DatePicker(
+                        "End Date",
+                        selection: $endDate,
+                        in: startDate...,
+                        displayedComponents: .date
+                    )
+                    .datePickerStyle(.graphical)
+                    .tint(Color.appPrimary)
+                    .padding(.horizontal)
+                } else {
+                    DatePicker(
+                        "Start Date",
+                        selection: $startDate,
+                        displayedComponents: .date
+                    )
+                    .datePickerStyle(.graphical)
+                    .tint(Color.appPrimary)
+                    .padding(.horizontal)
+                    .onChange(of: startDate) { _, newValue in
+                        if endDate < newValue {
+                            endDate = newValue
+                        }
+                    }
+                }
+
+                Spacer()
+            }
+            .navigationTitle("Select Dates")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel", action: onCancel)
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done", action: onSave)
+                        .fontWeight(.semibold)
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+    }
+}
+
+// MARK: - Date Tab Button
+private struct DateTabButton: View {
+    let title: String
+    let date: Date
+    let isSelected: Bool
+    let action: () -> Void
+
+    private var formattedDate: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM d, yyyy"
+        return formatter.string(from: date)
+    }
+
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 4) {
+                Text(title)
+                    .font(.caption)
+                    .foregroundStyle(isSelected ? Color.appPrimary : .secondary)
+
+                Text(formattedDate)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(isSelected ? Color.appPrimary : .primary)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
+            .background(isSelected ? Color.appPrimary.opacity(0.1) : Color.clear)
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+        }
+        .buttonStyle(.plain)
+    }
+}
+
 #Preview {
     ScrollView {
         VStack(spacing: 24) {
@@ -346,6 +570,12 @@ struct AppDatePicker: View {
             AppButton(title: "Cancel", style: .secondary) {}
 
             AppDatePicker(title: "Start Date", date: .constant(nil))
+
+            AppDateRangePicker(
+                title: "Travel Dates",
+                startDate: .constant(Date()),
+                endDate: .constant(Date().addingTimeInterval(86400 * 7))
+            )
         }
         .padding()
     }

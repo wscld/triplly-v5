@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct TravelsListView: View {
+    @EnvironmentObject var appState: AppState
     @StateObject private var viewModel = TravelsViewModel()
 
     var body: some View {
@@ -53,6 +54,7 @@ struct TravelsListView: View {
             Text("Are you sure you want to delete \"\(viewModel.travelToDelete?.title ?? "this trip")\"? This action cannot be undone.")
         }
         .task {
+            viewModel.appState = appState
             await viewModel.loadTravels()
         }
     }

@@ -5,14 +5,16 @@ internal import UniformTypeIdentifiers
 struct TravelDetailView: View {
     let travelId: String
     @StateObject private var viewModel: TravelDetailViewModel
+    @EnvironmentObject private var appState: AppState
     @Environment(\.dismiss) private var dismiss
 
     @State private var selectedActivity: Activity?
     @State private var showMapSheet: Bool = true
     @State private var itineraryToEdit: Itinerary?
 
-    // Delete confirmation state
+    // Delete/Leave confirmation state
     @State private var showingDeleteTravelAlert = false
+    @State private var showingLeaveTravelAlert = false
     @State private var activityToDelete: Activity?
     @State private var showingDeleteActivityAlert = false
 
@@ -88,10 +90,18 @@ struct TravelDetailView: View {
 
                         Divider()
 
-                        Button(role: .destructive) {
-                            showingDeleteTravelAlert = true
-                        } label: {
-                            Label("Delete Trip", systemImage: "trash")
+                        if viewModel.isCurrentUserOwner(currentUserId: appState.currentUser?.id) {
+                            Button(role: .destructive) {
+                                showingDeleteTravelAlert = true
+                            } label: {
+                                Label("Delete Trip", systemImage: "trash")
+                            }
+                        } else {
+                            Button(role: .destructive) {
+                                showingLeaveTravelAlert = true
+                            } label: {
+                                Label("Leave Trip", systemImage: "rectangle.portrait.and.arrow.right")
+                            }
                         }
                     } label: {
                         Image(systemName: "ellipsis")
@@ -157,6 +167,17 @@ struct TravelDetailView: View {
             }
         } message: {
             Text("Are you sure you want to delete \"\(activityToDelete?.title ?? "this activity")\"?")
+        }
+        .alert("Leave Trip", isPresented: $showingLeaveTravelAlert) {
+            Button("Cancel", role: .cancel) {}
+            Button("Leave", role: .destructive) {
+                Task {
+                    await viewModel.leaveTravel()
+                    dismiss()
+                }
+            }
+        } message: {
+            Text("Are you sure you want to leave \"\(viewModel.travel?.title ?? "this trip")\"? You will no longer have access to this trip.")
         }
     }
 
@@ -541,12 +562,16 @@ struct AvatarStackView: View {
     var body: some View {
         HStack(spacing: -overlap) {
             ForEach(Array(members.prefix(maxVisible).enumerated()), id: \.element.id) { index, member in
-                AvatarView(name: member.user.name, size: avatarSize)
-                    .overlay {
-                        Circle()
-                            .stroke(Color(.systemBackground), lineWidth: 2)
-                    }
-                    .zIndex(Double(maxVisible - index))
+                NetworkAvatarView(
+                    name: member.user.name,
+                    imageUrl: member.user.profilePhotoUrl,
+                    size: avatarSize
+                )
+                .overlay {
+                    Circle()
+                        .stroke(Color(.systemBackground), lineWidth: 2)
+                }
+                .zIndex(Double(maxVisible - index))
             }
 
             if members.count > maxVisible {
