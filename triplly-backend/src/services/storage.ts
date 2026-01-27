@@ -34,3 +34,27 @@ export async function uploadImage(file: Blob, path: string): Promise<string | nu
 
     return data.publicUrl;
 }
+
+export async function uploadProfilePhoto(file: Blob, path: string): Promise<string | null> {
+    if (!supabase) {
+        throw new Error('Supabase not configured');
+    }
+
+    const { error } = await supabase.storage
+        .from('profile-photos')
+        .upload(path, file, {
+            contentType: file.type || 'image/jpeg',
+            upsert: true
+        });
+
+    if (error) {
+        console.error('Supabase profile photo upload error:', error);
+        throw error;
+    }
+
+    const { data } = supabase.storage
+        .from('profile-photos')
+        .getPublicUrl(path);
+
+    return data.publicUrl;
+}
