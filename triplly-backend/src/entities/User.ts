@@ -16,8 +16,11 @@ export class User {
     @Column('varchar', { unique: true })
     email: string;
 
-    @Column('varchar')
-    passwordHash: string;
+    @Column('varchar', { nullable: true })
+    passwordHash: string | null;
+
+    @Column('varchar', { unique: true, nullable: true })
+    appleId: string | null;
 
     @Column('varchar')
     name: string;

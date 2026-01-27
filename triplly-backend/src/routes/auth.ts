@@ -3,10 +3,14 @@ import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { sign } from 'hono/jwt';
 import bcrypt from 'bcryptjs';
+import * as jose from 'jose';
 import { AppDataSource } from '../data-source.js';
 import { User } from '../entities/index.js';
 import { authMiddleware, getAuth } from '../middleware/index.js';
 import { uploadProfilePhoto } from '../services/storage.js';
+
+// Apple's public key endpoint
+const APPLE_KEYS_URL = 'https://appleid.apple.com/auth/keys';
 
 const auth = new Hono();
 
@@ -23,6 +27,11 @@ const loginSchema = z.object({
 
 const updateProfileSchema = z.object({
     name: z.string().min(1).optional(),
+});
+
+const appleSignInSchema = z.object({
+    identityToken: z.string(),
+    name: z.string().optional(),
 });
 
 // POST /auth/register
@@ -63,6 +72,10 @@ auth.post('/login', zValidator('json', loginSchema), async (c) => {
         return c.json({ error: 'Invalid credentials' }, 401);
     }
 
+    if (!user.passwordHash) {
+        return c.json({ error: 'Please sign in with Apple' }, 401);
+    }
+
     const valid = await bcrypt.compare(password, user.passwordHash);
     if (!valid) {
         return c.json({ error: 'Invalid credentials' }, 401);
@@ -77,6 +90,69 @@ auth.post('/login', zValidator('json', loginSchema), async (c) => {
         user: { id: user.id, email: user.email, name: user.name },
         token,
     });
+});
+
+// POST /auth/apple - Sign in with Apple
+auth.post('/apple', zValidator('json', appleSignInSchema), async (c) => {
+    const { identityToken, name } = c.req.valid('json');
+    const userRepo = AppDataSource.getRepository(User);
+
+    try {
+        // Fetch Apple's public keys
+        const JWKS = jose.createRemoteJWKSet(new URL(APPLE_KEYS_URL));
+
+        // Verify the identity token
+        const { payload } = await jose.jwtVerify(identityToken, JWKS, {
+            issuer: 'https://appleid.apple.com',
+            audience: process.env.APPLE_CLIENT_ID || 'wescld.com.Triplly',
+        });
+
+        const appleId = payload.sub;
+        const email = payload.email as string | undefined;
+
+        if (!appleId) {
+            return c.json({ error: 'Invalid Apple identity token' }, 401);
+        }
+
+        // Find existing user by appleId
+        let user = await userRepo.findOne({ where: { appleId } });
+
+        if (!user && email) {
+            // Check if user exists with this email (link accounts)
+            user = await userRepo.findOne({ where: { email } });
+            if (user) {
+                // Link Apple ID to existing account
+                user.appleId = appleId;
+                await userRepo.save(user);
+            }
+        }
+
+        if (!user) {
+            // Create new user
+            const userName = name || email?.split('@')[0] || 'User';
+            user = userRepo.create({
+                email: email || `${appleId}@privaterelay.appleid.com`,
+                appleId,
+                name: userName,
+                passwordHash: null,
+            });
+            await userRepo.save(user);
+        }
+
+        // Generate JWT token
+        const token = await sign(
+            { sub: user.id, email: user.email },
+            process.env.JWT_SECRET!
+        );
+
+        return c.json({
+            user: { id: user.id, email: user.email, name: user.name },
+            token,
+        });
+    } catch (error) {
+        console.error('Apple sign in error:', error);
+        return c.json({ error: 'Failed to verify Apple identity' }, 401);
+    }
 });
 
 // GET /auth/me
