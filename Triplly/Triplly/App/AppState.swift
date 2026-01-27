@@ -18,6 +18,13 @@ final class AppState: ObservableObject {
     @Published var hasCompletedOnboarding = false
     @Published var showOnboarding = false
 
+    // MARK: - Global Map Sheet
+    @Published var showMapSheet = false
+    @Published var mapSheetActivities: [Activity] = []
+    @Published var mapSheetTitle: String?
+    @Published var mapSheetDetent: PresentationDetent = .height(140)
+    @Published var mapSheetOffset: CGFloat = 0
+
     // MARK: - Constants
     private let freeTravelLimit = 1
     private let onboardingKey = "hasCompletedOnboarding"
@@ -101,6 +108,16 @@ final class AppState: ObservableObject {
         isAuthenticated = true
     }
 
+    func appleSignIn(identityToken: String, name: String?) async throws {
+        let response = try await apiClient.appleSignIn(identityToken: identityToken, name: name)
+
+        keychainManager.saveToken(response.token)
+        await apiClient.setToken(response.token)
+
+        currentUser = response.user
+        isAuthenticated = true
+    }
+
     func logout() {
         keychainManager.deleteToken()
         Task {
@@ -151,6 +168,28 @@ final class AppState: ObservableObject {
         hasCompletedOnboarding = true
         keychainManager.save("true", forKey: onboardingKey)
         showOnboarding = false
+    }
+
+    // MARK: - Map Sheet Methods
+    func showMap(activities: [Activity], title: String?) {
+        mapSheetActivities = activities
+        mapSheetTitle = title
+        mapSheetDetent = .height(140)
+        mapSheetOffset = 0
+        withAnimation(.easeOut(duration: 0.3)) {
+            showMapSheet = true
+        }
+    }
+
+    func updateMapActivities(_ activities: [Activity], title: String?) {
+        mapSheetActivities = activities
+        mapSheetTitle = title
+    }
+
+    func hideMapSheet() {
+        showMapSheet = false
+        mapSheetOffset = 0
+        mapSheetDetent = .height(140)
     }
 }
 

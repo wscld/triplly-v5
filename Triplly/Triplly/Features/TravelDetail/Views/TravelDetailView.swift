@@ -9,7 +9,6 @@ struct TravelDetailView: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var selectedActivity: Activity?
-    @State private var showMapSheet: Bool = true
     @State private var itineraryToEdit: Itinerary?
 
     // Delete/Leave confirmation state
@@ -21,6 +20,14 @@ struct TravelDetailView: View {
     init(travelId: String) {
         self.travelId = travelId
         _viewModel = StateObject(wrappedValue: TravelDetailViewModel(travelId: travelId))
+    }
+
+    private var isOwner: Bool {
+        guard let travel = viewModel.travel,
+              let currentUserId = appState.currentUser?.id else {
+            return true // Default to owner behavior if we can't determine
+        }
+        return travel.owner.id == currentUserId
     }
 
     var body: some View {
@@ -51,6 +58,7 @@ struct TravelDetailView: View {
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
                 Button {
+                    // hideMapSheet is called in willDisappear
                     dismiss()
                 } label: {
                     Image(systemName: "chevron.left")
@@ -90,7 +98,7 @@ struct TravelDetailView: View {
 
                         Divider()
 
-                        if viewModel.isCurrentUserOwner(currentUserId: appState.currentUser?.id) {
+                        if isOwner {
                             Button(role: .destructive) {
                                 showingDeleteTravelAlert = true
                             } label: {
@@ -114,71 +122,38 @@ struct TravelDetailView: View {
                 }
             }
         }
-        .sheet(isPresented: $viewModel.showingEditSheet, onDismiss: { showMapSheet = true }) {
-            EditTravelSheet(viewModel: viewModel)
-        }
-        .sheet(isPresented: $viewModel.showingMembersSheet, onDismiss: { showMapSheet = true }) {
-            MembersSheet(viewModel: viewModel)
-        }
-        .sheet(isPresented: $viewModel.showingTodosSheet, onDismiss: { showMapSheet = true }) {
-            TodosSheet(viewModel: viewModel)
-        }
-        .sheet(isPresented: $viewModel.showingWishlistSheet, onDismiss: { showMapSheet = true }) {
-            WishlistSheet(viewModel: viewModel)
-        }
-        .sheet(isPresented: $viewModel.showingAddDaySheet, onDismiss: { showMapSheet = true }) {
-            AddDaySheet(viewModel: viewModel)
-        }
-        .sheet(isPresented: $viewModel.showingAddActivitySheet, onDismiss: { showMapSheet = true }) {
-            AddActivitySheet(viewModel: viewModel)
-        }
-        .sheet(item: $selectedActivity, onDismiss: { showMapSheet = true }) { activity in
-            ActivityDetailSheet(activity: activity, viewModel: viewModel)
-        }
-        .sheet(item: $itineraryToEdit, onDismiss: { showMapSheet = true }) { itinerary in
-            EditItinerarySheet(itinerary: itinerary, viewModel: viewModel)
-        }
+        .modifier(TravelDetailSheetsModifier(
+            viewModel: viewModel,
+            appState: appState,
+            selectedActivity: $selectedActivity,
+            itineraryToEdit: $itineraryToEdit
+        ))
+        .modifier(TravelDetailAlertsModifier(
+            viewModel: viewModel,
+            dismiss: dismiss,
+            showingDeleteTravelAlert: $showingDeleteTravelAlert,
+            showingDeleteActivityAlert: $showingDeleteActivityAlert,
+            showingLeaveTravelAlert: $showingLeaveTravelAlert,
+            activityToDelete: $activityToDelete
+        ))
         .task {
             await viewModel.loadTravel()
         }
+        .onViewLifecycle(didAppear: {
+            appState.showMap(
+                activities: viewModel.selectedActivities,
+                title: viewModel.selectedItinerary?.title
+            )
+        }, willDisappear: {
+            appState.hideMapSheet()
+        })
+        .onChange(of: viewModel.selectedActivities) { _, activities in
+            appState.updateMapActivities(activities, title: viewModel.selectedItinerary?.title)
+        }
+        .onChange(of: viewModel.selectedItineraryIndex) { _, _ in
+            appState.updateMapActivities(viewModel.selectedActivities, title: viewModel.selectedItinerary?.title)
+        }
         .enableInteractivePopGesture()
-        .alert("Delete Trip", isPresented: $showingDeleteTravelAlert) {
-            Button("Cancel", role: .cancel) {}
-            Button("Delete", role: .destructive) {
-                Task {
-                    await viewModel.deleteTravel()
-                    dismiss()
-                }
-            }
-        } message: {
-            Text("Are you sure you want to delete \"\(viewModel.travel?.title ?? "this trip")\"? This action cannot be undone.")
-        }
-        .alert("Delete Activity", isPresented: $showingDeleteActivityAlert) {
-            Button("Cancel", role: .cancel) {
-                activityToDelete = nil
-            }
-            Button("Delete", role: .destructive) {
-                if let activity = activityToDelete {
-                    Task {
-                        await viewModel.deleteActivity(activity)
-                    }
-                }
-                activityToDelete = nil
-            }
-        } message: {
-            Text("Are you sure you want to delete \"\(activityToDelete?.title ?? "this activity")\"?")
-        }
-        .alert("Leave Trip", isPresented: $showingLeaveTravelAlert) {
-            Button("Cancel", role: .cancel) {}
-            Button("Leave", role: .destructive) {
-                Task {
-                    await viewModel.leaveTravel()
-                    dismiss()
-                }
-            }
-        } message: {
-            Text("Are you sure you want to leave \"\(viewModel.travel?.title ?? "this trip")\"? You will no longer have access to this trip.")
-        }
     }
 
     @ViewBuilder
@@ -234,37 +209,6 @@ struct TravelDetailView: View {
             }
         }
         .ignoresSafeArea(edges: .top)
-        .sheet(isPresented: $showMapSheet) {
-            MapSheetView(viewModel: viewModel)
-                .presentationDetents([.height(140), .medium, .large])
-                .presentationDragIndicator(.visible)
-                .presentationBackgroundInteraction(.enabled(upThrough: .height(140)))
-                .interactiveDismissDisabled()
-        }
-        .onChange(of: viewModel.showingEditSheet) { _, isShowing in
-            if isShowing { showMapSheet = false }
-        }
-        .onChange(of: viewModel.showingMembersSheet) { _, isShowing in
-            if isShowing { showMapSheet = false }
-        }
-        .onChange(of: viewModel.showingTodosSheet) { _, isShowing in
-            if isShowing { showMapSheet = false }
-        }
-        .onChange(of: viewModel.showingWishlistSheet) { _, isShowing in
-            if isShowing { showMapSheet = false }
-        }
-        .onChange(of: viewModel.showingAddDaySheet) { _, isShowing in
-            if isShowing { showMapSheet = false }
-        }
-        .onChange(of: viewModel.showingAddActivitySheet) { _, isShowing in
-            if isShowing { showMapSheet = false }
-        }
-        .onChange(of: selectedActivity) { _, activity in
-            if activity != nil { showMapSheet = false }
-        }
-        .onChange(of: itineraryToEdit) { _, itinerary in
-            if itinerary != nil { showMapSheet = false }
-        }
     }
 
     // MARK: - Header Overlay
@@ -852,55 +796,6 @@ struct TimelineItemView: View {
     }
 }
 
-// MARK: - Map Sheet View
-struct MapSheetView: View {
-    @ObservedObject var viewModel: TravelDetailViewModel
-    @State private var mapRegion: MKCoordinateRegion?
-
-    var body: some View {
-        VStack(spacing: 0) {
-            // Header
-            HStack {
-                HStack(spacing: 8) {
-                    Image(systemName: "map.fill")
-                        .foregroundStyle(Color.appPrimary)
-                    Text("\(viewModel.selectedActivities.count) places")
-                        .font(.subheadline.weight(.semibold))
-                }
-
-                Spacer()
-
-                if let itinerary = viewModel.selectedItinerary {
-                    Text(itinerary.title)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-            .padding(.horizontal, 20)
-            .padding(.top, 12)
-            .padding(.bottom, 16)
-
-            // Map
-            Map(
-                coordinateRegion: Binding(
-                    get: { mapRegion ?? viewModel.mapRegion },
-                    set: { mapRegion = $0 }
-                ),
-                annotationItems: viewModel.selectedActivities
-            ) { activity in
-                MapAnnotation(coordinate: activity.coordinate) {
-                    MapPinView(
-                        number: (viewModel.selectedActivities.firstIndex(where: { $0.id == activity.id }) ?? 0) + 1
-                    )
-                }
-            }
-        }
-        .onChange(of: viewModel.selectedItineraryIndex) { _, _ in
-            mapRegion = nil
-        }
-    }
-}
-
 // MARK: - Map Pin View
 struct MapPinView: View {
     let number: Int
@@ -1294,6 +1189,117 @@ struct EmptyDaysCard: View {
         .padding(.vertical, 40)
         .background(Color(.secondarySystemBackground))
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+}
+
+// MARK: - Sheets Modifier
+struct TravelDetailSheetsModifier: ViewModifier {
+    @ObservedObject var viewModel: TravelDetailViewModel
+    @ObservedObject var appState: AppState
+    @Binding var selectedActivity: Activity?
+    @Binding var itineraryToEdit: Itinerary?
+
+    func body(content: Content) -> some View {
+        content
+            .sheet(isPresented: $viewModel.showingEditSheet, onDismiss: { appState.showMapSheet = true }) {
+                EditTravelSheet(viewModel: viewModel)
+            }
+            .sheet(isPresented: $viewModel.showingMembersSheet, onDismiss: { appState.showMapSheet = true }) {
+                MembersSheet(viewModel: viewModel)
+            }
+            .sheet(isPresented: $viewModel.showingTodosSheet, onDismiss: { appState.showMapSheet = true }) {
+                TodosSheet(viewModel: viewModel)
+            }
+            .sheet(isPresented: $viewModel.showingWishlistSheet, onDismiss: { appState.showMapSheet = true }) {
+                WishlistSheet(viewModel: viewModel)
+            }
+            .sheet(isPresented: $viewModel.showingAddDaySheet, onDismiss: { appState.showMapSheet = true }) {
+                AddDaySheet(viewModel: viewModel)
+            }
+            .sheet(isPresented: $viewModel.showingAddActivitySheet, onDismiss: { appState.showMapSheet = true }) {
+                AddActivitySheet(viewModel: viewModel)
+            }
+            .sheet(item: $selectedActivity, onDismiss: { appState.showMapSheet = true }) { activity in
+                ActivityDetailSheet(activity: activity, viewModel: viewModel)
+            }
+            .sheet(item: $itineraryToEdit, onDismiss: { appState.showMapSheet = true }) { itinerary in
+                EditItinerarySheet(itinerary: itinerary, viewModel: viewModel)
+            }
+            .onChange(of: viewModel.showingEditSheet) { _, isShowing in
+                if isShowing { appState.showMapSheet = false }
+            }
+            .onChange(of: viewModel.showingMembersSheet) { _, isShowing in
+                if isShowing { appState.showMapSheet = false }
+            }
+            .onChange(of: viewModel.showingTodosSheet) { _, isShowing in
+                if isShowing { appState.showMapSheet = false }
+            }
+            .onChange(of: viewModel.showingWishlistSheet) { _, isShowing in
+                if isShowing { appState.showMapSheet = false }
+            }
+            .onChange(of: viewModel.showingAddDaySheet) { _, isShowing in
+                if isShowing { appState.showMapSheet = false }
+            }
+            .onChange(of: viewModel.showingAddActivitySheet) { _, isShowing in
+                if isShowing { appState.showMapSheet = false }
+            }
+            .onChange(of: selectedActivity) { _, activity in
+                if activity != nil { appState.showMapSheet = false }
+            }
+            .onChange(of: itineraryToEdit) { _, itinerary in
+                if itinerary != nil { appState.showMapSheet = false }
+            }
+    }
+}
+
+// MARK: - Alerts Modifier
+struct TravelDetailAlertsModifier: ViewModifier {
+    @ObservedObject var viewModel: TravelDetailViewModel
+    let dismiss: DismissAction
+    @Binding var showingDeleteTravelAlert: Bool
+    @Binding var showingDeleteActivityAlert: Bool
+    @Binding var showingLeaveTravelAlert: Bool
+    @Binding var activityToDelete: Activity?
+
+    func body(content: Content) -> some View {
+        content
+            .alert("Delete Trip", isPresented: $showingDeleteTravelAlert) {
+                Button("Cancel", role: .cancel) {}
+                Button("Delete", role: .destructive) {
+                    Task {
+                        await viewModel.deleteTravel()
+                        dismiss()
+                    }
+                }
+            } message: {
+                Text("Are you sure you want to delete \"\(viewModel.travel?.title ?? "this trip")\"? This action cannot be undone.")
+            }
+            .alert("Delete Activity", isPresented: $showingDeleteActivityAlert) {
+                Button("Cancel", role: .cancel) {
+                    activityToDelete = nil
+                }
+                Button("Delete", role: .destructive) {
+                    if let activity = activityToDelete {
+                        Task {
+                            await viewModel.deleteActivity(activity)
+                        }
+                    }
+                    activityToDelete = nil
+                }
+            } message: {
+                Text("Are you sure you want to delete \"\(activityToDelete?.title ?? "this activity")\"?")
+            }
+            .alert("Leave Trip", isPresented: $showingLeaveTravelAlert) {
+                Button("Cancel", role: .cancel) {}
+                Button("Leave", role: .destructive) {
+                    Task {
+                        await viewModel.leaveTravel()
+                        dismiss()
+                    }
+                }
+            } message: {
+                Text("Are you sure you want to leave \"\(viewModel.travel?.title ?? "this trip")\"? You will no longer have access to this trip.")
+            }
     }
 }
 

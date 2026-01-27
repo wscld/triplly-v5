@@ -155,3 +155,102 @@ private class InteractivePopGestureController: UIViewController {
         }
     }
 }
+
+// MARK: - View Lifecycle Callbacks
+extension View {
+    func onWillAppear(_ perform: @escaping () -> Void) -> some View {
+        background(ViewLifecycleHandler(onDidAppear: nil, onWillAppear: perform, onWillDisappear: nil, animateAlongsideDisappear: nil))
+    }
+
+    func onWillDisappear(_ perform: @escaping () -> Void) -> some View {
+        background(ViewLifecycleHandler(onDidAppear: nil, onWillAppear: nil, onWillDisappear: perform, animateAlongsideDisappear: nil))
+    }
+
+    func onViewLifecycle(willAppear: @escaping () -> Void, willDisappear: @escaping () -> Void) -> some View {
+        background(ViewLifecycleHandler(onDidAppear: nil, onWillAppear: willAppear, onWillDisappear: willDisappear, animateAlongsideDisappear: nil))
+    }
+
+    func onViewLifecycle(didAppear: @escaping () -> Void, willDisappear: @escaping () -> Void) -> some View {
+        background(ViewLifecycleHandler(onDidAppear: didAppear, onWillAppear: nil, onWillDisappear: willDisappear, animateAlongsideDisappear: nil))
+    }
+
+    /// Lifecycle callback with coordinated animation during navigation transition
+    func onViewLifecycle(didAppear: @escaping () -> Void, animateAlongsideDisappear: @escaping () -> Void) -> some View {
+        background(ViewLifecycleHandler(onDidAppear: didAppear, onWillAppear: nil, onWillDisappear: nil, animateAlongsideDisappear: animateAlongsideDisappear))
+    }
+}
+
+struct ViewLifecycleHandler: UIViewControllerRepresentable {
+    let onDidAppear: (() -> Void)?
+    let onWillAppear: (() -> Void)?
+    let onWillDisappear: (() -> Void)?
+    let animateAlongsideDisappear: (() -> Void)?
+
+    func makeUIViewController(context: Context) -> UIViewController {
+        ViewLifecycleController(
+            onDidAppear: onDidAppear,
+            onWillAppear: onWillAppear,
+            onWillDisappear: onWillDisappear,
+            animateAlongsideDisappear: animateAlongsideDisappear
+        )
+    }
+
+    func updateUIViewController(_ uiViewController: UIViewController, context: Context) {
+        if let controller = uiViewController as? ViewLifecycleController {
+            controller.onDidAppear = onDidAppear
+            controller.onWillAppear = onWillAppear
+            controller.onWillDisappear = onWillDisappear
+            controller.animateAlongsideDisappear = animateAlongsideDisappear
+        }
+    }
+}
+
+private class ViewLifecycleController: UIViewController {
+    var onDidAppear: (() -> Void)?
+    var onWillAppear: (() -> Void)?
+    var onWillDisappear: (() -> Void)?
+    var animateAlongsideDisappear: (() -> Void)?
+
+    init(onDidAppear: (() -> Void)?, onWillAppear: (() -> Void)?, onWillDisappear: (() -> Void)?, animateAlongsideDisappear: (() -> Void)?) {
+        self.onDidAppear = onDidAppear
+        self.onWillAppear = onWillAppear
+        self.onWillDisappear = onWillDisappear
+        self.animateAlongsideDisappear = animateAlongsideDisappear
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        onWillAppear?()
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        onDidAppear?()
+    }
+
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+
+        guard isMovingFromParent || isBeingDismissed else { return }
+
+        // Regular callback
+        onWillDisappear?()
+
+        // Coordinated animation with navigation transition
+        if let animateBlock = animateAlongsideDisappear {
+            if let coordinator = transitionCoordinator {
+                coordinator.animate(alongsideTransition: { _ in
+                    animateBlock()
+                }, completion: nil)
+            } else {
+                // Fallback if no coordinator
+                animateBlock()
+            }
+        }
+    }
+}

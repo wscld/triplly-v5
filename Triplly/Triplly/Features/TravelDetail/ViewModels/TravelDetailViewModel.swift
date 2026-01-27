@@ -99,11 +99,6 @@ final class TravelDetailViewModel: ObservableObject {
         return Double(completed) / Double(todos.count)
     }
 
-    func isCurrentUserOwner(currentUserId: String?) -> Bool {
-        guard let userId = currentUserId, let travel = travel else { return false }
-        return travel.owner.id == userId
-    }
-
     // MARK: - Load Data
     func loadTravel() async {
         isLoading = true

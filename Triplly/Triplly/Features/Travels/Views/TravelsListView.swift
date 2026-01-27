@@ -57,6 +57,14 @@ struct TravelsListView: View {
             viewModel.appState = appState
             await viewModel.loadTravels()
         }
+        .onAppear {
+            // Hide map sheet when returning to this screen (with delay for smooth transition)
+            if appState.showMapSheet {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                    appState.hideMapSheet()
+                }
+            }
+        }
     }
 
     private var loadingContent: some View {

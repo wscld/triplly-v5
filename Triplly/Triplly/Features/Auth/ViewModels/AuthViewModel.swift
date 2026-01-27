@@ -1,5 +1,6 @@
 import SwiftUI
 import Combine
+import AuthenticationServices
 
 @MainActor
 final class AuthViewModel: ObservableObject {
@@ -113,5 +114,40 @@ final class AuthViewModel: ObservableObject {
         passwordError = nil
         nameError = nil
         errorMessage = nil
+    }
+
+    // MARK: - Apple Sign In
+    func handleAppleSignIn(result: Result<ASAuthorization, Error>, using appState: AppState) async {
+        isLoading = true
+        errorMessage = nil
+
+        do {
+            guard case .success(let auth) = result,
+                  let credential = auth.credential as? ASAuthorizationAppleIDCredential,
+                  let identityToken = credential.identityToken,
+                  let tokenString = String(data: identityToken, encoding: .utf8)
+            else {
+                if case .failure(let error) = result {
+                    // User cancelled is not an error
+                    if (error as? ASAuthorizationError)?.code == .canceled {
+                        isLoading = false
+                        return
+                    }
+                    throw error
+                }
+                throw NSError(domain: "AppleSignIn", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to get Apple credentials"])
+            }
+
+            // Get name on first sign in (Apple only provides once)
+            let name = [credential.fullName?.givenName, credential.fullName?.familyName]
+                .compactMap { $0 }
+                .joined(separator: " ")
+
+            try await appState.appleSignIn(identityToken: tokenString, name: name.isEmpty ? nil : name)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+
+        isLoading = false
     }
 }

@@ -5,10 +5,6 @@ struct AddActivitySheet: View {
     @ObservedObject var viewModel: TravelDetailViewModel
     @Environment(\.dismiss) private var dismiss
 
-    @State private var title = ""
-    @State private var description = ""
-    @State private var startTime: Date?
-    @State private var showTimePicker = false
     @State private var selectedPlace: PlaceResult?
     @State private var showingPlaceSearch = false
     @State private var isCreating = false
@@ -18,17 +14,9 @@ struct AddActivitySheet: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 24) {
-                    // Title
-                    AppTextField(
-                        title: "Activity Name",
-                        placeholder: "e.g., Visit Tokyo Tower",
-                        text: $title,
-                        icon: "mappin"
-                    )
-
                     // Location
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Location")
+                        Text("Where?")
                             .font(.subheadline)
                             .fontWeight(.medium)
 
@@ -36,15 +24,15 @@ struct AddActivitySheet: View {
                             showingPlaceSearch = true
                         } label: {
                             HStack(spacing: 12) {
-                                Image(systemName: "location.circle")
-                                    .font(.system(size: 16, weight: .medium))
-                                    .foregroundStyle(.secondary)
-                                    .frame(width: 20)
+                                Image(systemName: "mappin.circle.fill")
+                                    .font(.system(size: 20))
+                                    .foregroundStyle(selectedPlace != nil ? Color.appPrimary : .secondary)
+                                    .frame(width: 24)
 
                                 if let place = selectedPlace {
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text(place.name)
-                                            .font(.body)
+                                            .font(.body.weight(.medium))
                                             .foregroundStyle(.primary)
                                             .lineLimit(1)
                                         Text(place.address)
@@ -53,7 +41,7 @@ struct AddActivitySheet: View {
                                             .lineLimit(1)
                                     }
                                 } else {
-                                    Text("Search for a location")
+                                    Text("Search for a place")
                                         .font(.body)
                                         .foregroundStyle(Color(.placeholderText))
                                 }
@@ -79,80 +67,11 @@ struct AddActivitySheet: View {
                             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                             .overlay {
                                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                    .stroke(Color(.systemGray4), lineWidth: 1)
+                                    .stroke(selectedPlace != nil ? Color.appPrimary.opacity(0.3) : Color(.systemGray4), lineWidth: 1)
                             }
                         }
                         .buttonStyle(.plain)
                     }
-
-                    // Time (optional)
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Start Time (optional)")
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-
-                        Button {
-                            if startTime == nil {
-                                startTime = Date()
-                            }
-                            showTimePicker.toggle()
-                        } label: {
-                            HStack {
-                                Image(systemName: "clock")
-                                    .foregroundStyle(.secondary)
-
-                                if let time = startTime {
-                                    Text(time, style: .time)
-                                        .foregroundStyle(.primary)
-                                } else {
-                                    Text("Add start time")
-                                        .foregroundStyle(Color(.placeholderText))
-                                }
-
-                                Spacer()
-
-                                if startTime != nil {
-                                    Button {
-                                        startTime = nil
-                                        showTimePicker = false
-                                    } label: {
-                                        Image(systemName: "xmark.circle.fill")
-                                            .foregroundStyle(.secondary)
-                                    }
-                                }
-                            }
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 14)
-                            .background(Color(.systemBackground))
-                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                            .overlay {
-                                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                    .stroke(Color(.systemGray4), lineWidth: 1)
-                            }
-                        }
-                        .buttonStyle(.plain)
-
-                        if showTimePicker, startTime != nil {
-                            DatePicker(
-                                "",
-                                selection: Binding(
-                                    get: { startTime ?? Date() },
-                                    set: { startTime = $0 }
-                                ),
-                                displayedComponents: .hourAndMinute
-                            )
-                            .datePickerStyle(.wheel)
-                            .labelsHidden()
-                        }
-                    }
-
-                    // Description (optional)
-                    AppTextEditor(
-                        title: "Notes (optional)",
-                        placeholder: "Add any notes about this activity...",
-                        text: $description,
-                        minHeight: 80
-                    )
 
                     // Error
                     if let error = errorMessage {
@@ -173,7 +92,7 @@ struct AddActivitySheet: View {
                         title: "Add Activity",
                         icon: "plus",
                         isLoading: isCreating,
-                        isDisabled: title.isEmpty || selectedPlace == nil
+                        isDisabled: selectedPlace == nil
                     ) {
                         Task {
                             await createActivity()
@@ -199,7 +118,7 @@ struct AddActivitySheet: View {
                 PlaceSearchView(selectedPlace: $selectedPlace)
             }
         }
-        .presentationDetents([.large])
+        .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
     }
 
@@ -217,19 +136,17 @@ struct AddActivitySheet: View {
         isCreating = true
         errorMessage = nil
 
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm"
-
+        // Use place name as the activity title
         let request = CreateActivityRequest(
             travelId: viewModel.travelId,
             itineraryId: itinerary.id,
-            title: title,
-            description: description.isEmpty ? nil : description,
+            title: place.name,
+            description: nil,
             latitude: place.latitude,
             longitude: place.longitude,
             googlePlaceId: nil,
             address: place.address,
-            startTime: startTime.map { formatter.string(from: $0) }
+            startTime: nil
         )
 
         do {

@@ -89,8 +89,8 @@ final class TravelsViewModel: ObservableObject {
     }
 
     func createTravel() async {
-        guard !newTravelTitle.isEmpty else {
-            createError = "Please enter a title"
+        guard let location = selectedLocation else {
+            createError = "Please select a destination"
             return
         }
 
@@ -106,13 +106,16 @@ final class TravelsViewModel: ObservableObject {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
 
+        // Use location name as the title
+        let title = newTravelTitle.isEmpty ? location.name : newTravelTitle
+
         let request = CreateTravelRequest(
-            title: newTravelTitle,
+            title: title,
             description: newTravelDescription.isEmpty ? nil : newTravelDescription,
             startDate: newTravelStartDate.map { formatter.string(from: $0) },
             endDate: newTravelEndDate.map { formatter.string(from: $0) },
-            latitude: selectedLocation?.latitude,
-            longitude: selectedLocation?.longitude
+            latitude: location.latitude,
+            longitude: location.longitude
         )
 
         do {

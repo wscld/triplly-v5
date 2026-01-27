@@ -8,17 +8,9 @@ struct CreateTravelSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 24) {
-                    // Title
-                    AppTextField(
-                        title: "Trip Name",
-                        placeholder: "e.g., Tokyo Adventure",
-                        text: $viewModel.newTravelTitle,
-                        icon: "airplane"
-                    )
-
-                    // Location
+                    // Destination
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Destination (optional)")
+                        Text("Where to?")
                             .font(.subheadline)
                             .fontWeight(.medium)
 
@@ -26,15 +18,15 @@ struct CreateTravelSheet: View {
                             viewModel.showingLocationSearch = true
                         } label: {
                             HStack(spacing: 12) {
-                                Image(systemName: "mappin.circle")
-                                    .font(.system(size: 16, weight: .medium))
-                                    .foregroundStyle(.secondary)
-                                    .frame(width: 20)
+                                Image(systemName: "mappin.circle.fill")
+                                    .font(.system(size: 20))
+                                    .foregroundStyle(viewModel.selectedLocation != nil ? Color.appPrimary : .secondary)
+                                    .frame(width: 24)
 
                                 if let location = viewModel.selectedLocation {
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text(location.name)
-                                            .font(.body)
+                                            .font(.body.weight(.medium))
                                             .foregroundStyle(.primary)
                                             .lineLimit(1)
                                         Text(location.address)
@@ -69,23 +61,15 @@ struct CreateTravelSheet: View {
                             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                             .overlay {
                                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                    .stroke(Color(.systemGray4), lineWidth: 1)
+                                    .stroke(viewModel.selectedLocation != nil ? Color.appPrimary.opacity(0.3) : Color(.systemGray4), lineWidth: 1)
                             }
                         }
                         .buttonStyle(.plain)
                     }
 
-                    // Description
-                    AppTextEditor(
-                        title: "Description (optional)",
-                        placeholder: "Add a description for your trip...",
-                        text: $viewModel.newTravelDescription,
-                        minHeight: 80
-                    )
-
                     // Dates
                     AppDateRangePicker(
-                        title: "Travel Dates (optional)",
+                        title: "When?",
                         startDate: $viewModel.newTravelStartDate,
                         endDate: $viewModel.newTravelEndDate
                     )
@@ -109,7 +93,7 @@ struct CreateTravelSheet: View {
                         title: "Create Trip",
                         icon: "plus",
                         isLoading: viewModel.isCreating,
-                        isDisabled: viewModel.newTravelTitle.isEmpty
+                        isDisabled: viewModel.selectedLocation == nil
                     ) {
                         Task {
                             await viewModel.createTravel()
@@ -139,7 +123,7 @@ struct CreateTravelSheet: View {
                 PlaceSearchView(selectedPlace: $viewModel.selectedLocation)
             }
         }
-        .presentationDetents([.large])
+        .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
     }
 }

@@ -7,6 +7,7 @@ struct WishlistSheet: View {
     @State private var showMap = true
     @State private var activityToDelete: Activity?
     @State private var showingDeleteAlert = false
+    @State private var showingAddSheet = false
 
     private var mapRegion: MKCoordinateRegion {
         guard let first = viewModel.wishlistActivities.first else {
@@ -108,9 +109,14 @@ struct WishlistSheet: View {
                                         Task {
                                             await viewModel.assignActivityToDay(activity, itineraryId: itineraryId)
                                         }
-                                    } onDelete: {
-                                        activityToDelete = activity
-                                        showingDeleteAlert = true
+                                    }
+                                    .contextMenu {
+                                        Button(role: .destructive) {
+                                            activityToDelete = activity
+                                            showingDeleteAlert = true
+                                        } label: {
+                                            Label("Delete", systemImage: "trash")
+                                        }
                                     }
                                 }
                             }
@@ -124,12 +130,22 @@ struct WishlistSheet: View {
             .navigationTitle("Wishlist")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button {
+                        showingAddSheet = true
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Done") {
                         dismiss()
                     }
                     .fontWeight(.semibold)
                 }
+            }
+            .sheet(isPresented: $showingAddSheet) {
+                AddWishlistItemSheet(viewModel: viewModel)
             }
             .alert("Delete Activity", isPresented: $showingDeleteAlert) {
                 Button("Cancel", role: .cancel) {
@@ -160,11 +176,23 @@ struct WishlistSheet: View {
             Text("No wishlist items")
                 .font(.headline)
 
-            Text("Activities you haven't assigned to a day will appear here")
+            Text("Save places you want to visit and assign them to days later")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 40)
+
+            Button {
+                showingAddSheet = true
+            } label: {
+                Text("Add First Item")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 10)
+                    .background(Color.appPrimary)
+                    .clipShape(Capsule())
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -175,9 +203,6 @@ struct WishlistActivityRow: View {
     let activity: Activity
     let itineraries: [Itinerary]
     let onAssign: (String) -> Void
-    let onDelete: () -> Void
-
-    @State private var showingAssignMenu = false
 
     var body: some View {
         HStack(spacing: 12) {
@@ -220,13 +245,6 @@ struct WishlistActivityRow: View {
                         .foregroundStyle(Color.appPrimary)
                 }
             }
-
-            // Delete button
-            Button(action: onDelete) {
-                Image(systemName: "trash")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
         }
         .padding(12)
         .background(Color(.systemBackground))
@@ -247,6 +265,163 @@ struct WishlistMapPinView: View {
                 .font(.system(size: 12, weight: .bold))
                 .foregroundStyle(.white)
         }
+    }
+}
+
+// MARK: - Add Wishlist Item Sheet
+struct AddWishlistItemSheet: View {
+    @ObservedObject var viewModel: TravelDetailViewModel
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var title = ""
+    @State private var description = ""
+    @State private var selectedPlace: PlaceResult?
+    @State private var showingPlaceSearch = false
+    @State private var isCreating = false
+    @State private var errorMessage: String?
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 24) {
+                    // Location
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Location")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+
+                        Button {
+                            showingPlaceSearch = true
+                        } label: {
+                            HStack(spacing: 12) {
+                                Image(systemName: "location.circle")
+                                    .font(.system(size: 16, weight: .medium))
+                                    .foregroundStyle(.secondary)
+                                    .frame(width: 20)
+
+                                if let place = selectedPlace {
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(place.name)
+                                            .font(.body)
+                                            .foregroundStyle(.primary)
+                                            .lineLimit(1)
+                                        Text(place.address)
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                            .lineLimit(1)
+                                    }
+                                } else {
+                                    Text("Search for a location")
+                                        .font(.body)
+                                        .foregroundStyle(Color(.placeholderText))
+                                }
+
+                                Spacer()
+
+                                if selectedPlace != nil {
+                                    Button {
+                                        selectedPlace = nil
+                                    } label: {
+                                        Image(systemName: "xmark.circle.fill")
+                                            .foregroundStyle(.secondary)
+                                    }
+                                } else {
+                                    Image(systemName: "chevron.right")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 14)
+                            .background(Color(.systemBackground))
+                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                            .overlay {
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .stroke(Color(.systemGray4), lineWidth: 1)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+
+                    // Error
+                    if let error = errorMessage {
+                        HStack(spacing: 8) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                            Text(error)
+                        }
+                        .font(.subheadline)
+                        .foregroundStyle(.red)
+                        .padding()
+                        .frame(maxWidth: .infinity)
+                        .background(Color.red.opacity(0.1))
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+
+                    // Create Button
+                    AppButton(
+                        title: "Add to Wishlist",
+                        icon: "star",
+                        isLoading: isCreating,
+                        isDisabled: title.isEmpty || selectedPlace == nil
+                    ) {
+                        Task {
+                            await createWishlistItem()
+                        }
+                    }
+                    .padding(.top, 8)
+                }
+                .padding(24)
+            }
+            .scrollBounceBehavior(.basedOnSize)
+            .background(Color(.systemGroupedBackground))
+            .navigationTitle("Add to Wishlist")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                    .foregroundStyle(.secondary)
+                }
+            }
+            .sheet(isPresented: $showingPlaceSearch) {
+                PlaceSearchView(selectedPlace: $selectedPlace)
+            }
+        }
+        .presentationDetents([.large])
+        .presentationDragIndicator(.visible)
+    }
+
+    private func createWishlistItem() async {
+        guard let place = selectedPlace else {
+            errorMessage = "Please select a location"
+            return
+        }
+
+        isCreating = true
+        errorMessage = nil
+
+        let request = CreateActivityRequest(
+            travelId: viewModel.travelId,
+            itineraryId: nil, // nil = wishlist item
+            title: title,
+            description: description.isEmpty ? nil : description,
+            latitude: place.latitude,
+            longitude: place.longitude,
+            googlePlaceId: nil,
+            address: place.address,
+            startTime: nil
+        )
+
+        do {
+            let newActivity = try await APIClient.shared.createActivity(request)
+            viewModel.wishlistActivities.append(newActivity)
+            dismiss()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+
+        isCreating = false
     }
 }
 

@@ -149,6 +149,14 @@ actor APIClient {
         try await request(path: "/auth/me")
     }
 
+    func appleSignIn(identityToken: String, name: String?) async throws -> AuthResponse {
+        try await request(
+            path: "/auth/apple",
+            method: .post,
+            body: AppleSignInRequest(identityToken: identityToken, name: name)
+        )
+    }
+
     func updateProfile(name: String) async throws -> User {
         try await request(
             path: "/auth/me",
@@ -418,4 +426,9 @@ private struct ErrorResponse: Codable {
 
 private struct UpdateProfileRequest: Codable {
     let name: String
+}
+
+private struct AppleSignInRequest: Codable {
+    let identityToken: String
+    let name: String?
 }
