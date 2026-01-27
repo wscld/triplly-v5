@@ -25,6 +25,12 @@ final class AppState: ObservableObject {
     @Published var mapSheetDetent: PresentationDetent = .height(140)
     @Published var mapSheetOffset: CGFloat = 0
 
+    // MARK: - Nested Sheet (shown on top of map sheet)
+    @Published var mapNestedSheet: MapNestedSheet?
+
+    // Store reference to current travel detail view model for nested sheets
+    weak var currentTravelDetailViewModel: TravelDetailViewModel?
+
     // MARK: - Constants
     private let freeTravelLimit = 1
     private let onboardingKey = "hasCompletedOnboarding"
@@ -190,6 +196,17 @@ final class AppState: ObservableObject {
         showMapSheet = false
         mapSheetOffset = 0
         mapSheetDetent = .height(140)
+        mapNestedSheet = nil
+        currentTravelDetailViewModel = nil
+    }
+
+    // MARK: - Nested Sheet Methods
+    func showNestedSheet(_ sheet: MapNestedSheet) {
+        mapNestedSheet = sheet
+    }
+
+    func dismissNestedSheet() {
+        mapNestedSheet = nil
     }
 }
 
@@ -209,5 +226,34 @@ enum AppError: LocalizedError, Identifiable {
         case .validation(let message): return message
         case .unknown(let message): return message
         }
+    }
+}
+
+// MARK: - Map Nested Sheet
+enum MapNestedSheet: Identifiable, Equatable {
+    case editTravel
+    case members
+    case todos
+    case wishlist
+    case addDay
+    case addActivity
+    case activityDetail(Activity)
+    case editItinerary(Itinerary)
+
+    var id: String {
+        switch self {
+        case .editTravel: return "editTravel"
+        case .members: return "members"
+        case .todos: return "todos"
+        case .wishlist: return "wishlist"
+        case .addDay: return "addDay"
+        case .addActivity: return "addActivity"
+        case .activityDetail(let activity): return "activityDetail-\(activity.id)"
+        case .editItinerary(let itinerary): return "editItinerary-\(itinerary.id)"
+        }
+    }
+
+    static func == (lhs: MapNestedSheet, rhs: MapNestedSheet) -> Bool {
+        lhs.id == rhs.id
     }
 }

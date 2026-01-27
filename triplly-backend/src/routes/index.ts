@@ -5,3 +5,4 @@ export { default as itineraryRoutes } from './itineraries.js';
 export { default as activityRoutes } from './activities.js';
 export { default as commentRoutes } from './comments.js';
 export { default as todoRoutes } from './todos.js';
+export { default as companionRoutes } from './companion.js';

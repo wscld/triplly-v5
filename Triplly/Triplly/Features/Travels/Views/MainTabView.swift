@@ -8,42 +8,48 @@ struct MainTabView: View {
     @State private var profileImage: UIImage?
 
     var body: some View {
-        TabView(selection: $selectedTab) {
-            NavigationStack {
-                TravelsListView()
-            }
-            .tabItem {
-                Label("Trips", systemImage: "airplane")
-            }
-            .tag(0)
-
-            NavigationStack {
-                InvitesView()
-            }
-            .tabItem {
-                Label("Invites", systemImage: "envelope")
-            }
-            .tag(1)
-            .badge(invitesViewModel.invites.count > 0 ? invitesViewModel.invites.count : 0)
-
-            NavigationStack {
-                ProfileView()
-            }
-            .tabItem {
-                if let image = profileImage {
-                    Label {
-                        Text("Profile")
-                    } icon: {
-                        Image(uiImage: image)
-                            .renderingMode(.original)
-                    }
-                } else {
-                    Label("Profile", systemImage: "person.circle.fill")
+        ZStack(alignment: .bottomTrailing) {
+            TabView(selection: $selectedTab) {
+                NavigationStack {
+                    TravelsListView()
                 }
+                .tabItem {
+                    Label("Trips", systemImage: "airplane")
+                }
+                .tag(0)
+
+                NavigationStack {
+                    InvitesView()
+                }
+                .tabItem {
+                    Label("Invites", systemImage: "envelope")
+                }
+                .tag(1)
+                .badge(invitesViewModel.invites.count > 0 ? invitesViewModel.invites.count : 0)
+
+                NavigationStack {
+                    ProfileView()
+                }
+                .tabItem {
+                    if let image = profileImage {
+                        Label {
+                            Text("Profile")
+                        } icon: {
+                            Image(uiImage: image)
+                                .renderingMode(.original)
+                        }
+                    } else {
+                        Label("Profile", systemImage: "person.circle.fill")
+                    }
+                }
+                .tag(2)
             }
-            .tag(2)
+            .tint(Color.appPrimary)
+
+            CompanionFloatingButton()
+                .padding(.trailing, 16)
+                .padding(.bottom, 90)
         }
-        .tint(Color.appPrimary)
         .task {
             await invitesViewModel.loadInvites()
             await loadProfileImage()
@@ -191,6 +197,33 @@ struct GlobalMapSheetView: View {
         }
         .onChange(of: activities) { _, _ in
             mapRegion = nil
+        }
+        .sheet(item: $appState.mapNestedSheet) { sheet in
+            if let viewModel = appState.currentTravelDetailViewModel {
+                nestedSheetContent(for: sheet, viewModel: viewModel)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func nestedSheetContent(for sheet: MapNestedSheet, viewModel: TravelDetailViewModel) -> some View {
+        switch sheet {
+        case .editTravel:
+            EditTravelSheet(viewModel: viewModel)
+        case .members:
+            MembersSheet(viewModel: viewModel)
+        case .todos:
+            TodosSheet(viewModel: viewModel)
+        case .wishlist:
+            WishlistSheet(viewModel: viewModel)
+        case .addDay:
+            AddDaySheet(viewModel: viewModel)
+        case .addActivity:
+            AddActivitySheet(viewModel: viewModel)
+        case .activityDetail(let activity):
+            ActivityDetailSheet(activity: activity, viewModel: viewModel)
+        case .editItinerary(let itinerary):
+            EditItinerarySheet(itinerary: itinerary, viewModel: viewModel)
         }
     }
 }

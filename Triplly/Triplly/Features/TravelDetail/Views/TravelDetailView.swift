@@ -8,9 +8,6 @@ struct TravelDetailView: View {
     @EnvironmentObject private var appState: AppState
     @Environment(\.dismiss) private var dismiss
 
-    @State private var selectedActivity: Activity?
-    @State private var itineraryToEdit: Itinerary?
-
     // Delete/Leave confirmation state
     @State private var showingDeleteTravelAlert = false
     @State private var showingLeaveTravelAlert = false
@@ -73,7 +70,7 @@ struct TravelDetailView: View {
             ToolbarItem(placement: .navigationBarTrailing) {
                 HStack(spacing: 8) {
                     Button {
-                        viewModel.showingEditSheet = true
+                        appState.showNestedSheet(.editTravel)
                     } label: {
                         Image(systemName: "pencil")
                             .font(.system(size: 14, weight: .semibold))
@@ -85,13 +82,13 @@ struct TravelDetailView: View {
 
                     Menu {
                         Button {
-                            viewModel.showingMembersSheet = true
+                            appState.showNestedSheet(.members)
                         } label: {
                             Label("Members", systemImage: "person.2")
                         }
 
                         Button {
-                            viewModel.showingTodosSheet = true
+                            appState.showNestedSheet(.todos)
                         } label: {
                             Label("Checklist", systemImage: "checklist")
                         }
@@ -122,12 +119,6 @@ struct TravelDetailView: View {
                 }
             }
         }
-        .modifier(TravelDetailSheetsModifier(
-            viewModel: viewModel,
-            appState: appState,
-            selectedActivity: $selectedActivity,
-            itineraryToEdit: $itineraryToEdit
-        ))
         .modifier(TravelDetailAlertsModifier(
             viewModel: viewModel,
             dismiss: dismiss,
@@ -140,6 +131,7 @@ struct TravelDetailView: View {
             await viewModel.loadTravel()
         }
         .onViewLifecycle(didAppear: {
+            appState.currentTravelDetailViewModel = viewModel
             appState.showMap(
                 activities: viewModel.selectedActivities,
                 title: viewModel.selectedItinerary?.title
@@ -266,7 +258,7 @@ struct TravelDetailView: View {
                 label: "Wishlist",
                 count: viewModel.wishlistActivities.count
             ) {
-                viewModel.showingWishlistSheet = true
+                appState.showNestedSheet(.wishlist)
             }
 
             QuickActionButton(
@@ -274,14 +266,14 @@ struct TravelDetailView: View {
                 label: "Todos",
                 progress: viewModel.todoProgress
             ) {
-                viewModel.showingTodosSheet = true
+                appState.showNestedSheet(.todos)
             }
 
             Spacer()
 
             // Avatar Stack for Team
             Button {
-                viewModel.showingMembersSheet = true
+                appState.showNestedSheet(.members)
             } label: {
                 AvatarStackView(members: viewModel.members)
             }
@@ -304,7 +296,7 @@ struct TravelDetailView: View {
                     }
                     .contextMenu {
                         Button {
-                            itineraryToEdit = itinerary
+                            appState.showNestedSheet(.editItinerary(itinerary))
                         } label: {
                             Label("Edit", systemImage: "pencil")
                         }
@@ -321,7 +313,7 @@ struct TravelDetailView: View {
 
                 // Add Day Button
                 Button {
-                    viewModel.showingAddDaySheet = true
+                    appState.showNestedSheet(.addDay)
                 } label: {
                     VStack(spacing: 2) {
                         Image(systemName: "plus")
@@ -364,14 +356,14 @@ struct TravelDetailView: View {
 
                 if viewModel.selectedActivities.isEmpty {
                     EmptyActivitiesCard {
-                        viewModel.showingAddActivitySheet = true
+                        appState.showNestedSheet(.addActivity)
                     }
                 } else {
                     // Activities Timeline
                     TimelineView(
                         activities: viewModel.selectedActivitiesBinding,
                         onTap: { activity in
-                            selectedActivity = activity
+                            appState.showNestedSheet(.activityDetail(activity))
                         },
                         onReorderComplete: { movedActivity, newIndex in
                             Task {
@@ -391,7 +383,7 @@ struct TravelDetailView: View {
 
                     // Add Activity Button (only when there are activities)
                     Button {
-                        viewModel.showingAddActivitySheet = true
+                        appState.showNestedSheet(.addActivity)
                     } label: {
                         HStack(spacing: 10) {
                             Image(systemName: "plus")
@@ -420,7 +412,7 @@ struct TravelDetailView: View {
 
             } else if viewModel.itineraries.isEmpty {
                 EmptyDaysCard {
-                    viewModel.showingAddDaySheet = true
+                    appState.showNestedSheet(.addDay)
                 }
             }
         }
@@ -1189,66 +1181,6 @@ struct EmptyDaysCard: View {
         .padding(.vertical, 40)
         .background(Color(.secondarySystemBackground))
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-    }
-}
-
-// MARK: - Sheets Modifier
-struct TravelDetailSheetsModifier: ViewModifier {
-    @ObservedObject var viewModel: TravelDetailViewModel
-    @ObservedObject var appState: AppState
-    @Binding var selectedActivity: Activity?
-    @Binding var itineraryToEdit: Itinerary?
-
-    func body(content: Content) -> some View {
-        content
-            .sheet(isPresented: $viewModel.showingEditSheet, onDismiss: { appState.showMapSheet = true }) {
-                EditTravelSheet(viewModel: viewModel)
-            }
-            .sheet(isPresented: $viewModel.showingMembersSheet, onDismiss: { appState.showMapSheet = true }) {
-                MembersSheet(viewModel: viewModel)
-            }
-            .sheet(isPresented: $viewModel.showingTodosSheet, onDismiss: { appState.showMapSheet = true }) {
-                TodosSheet(viewModel: viewModel)
-            }
-            .sheet(isPresented: $viewModel.showingWishlistSheet, onDismiss: { appState.showMapSheet = true }) {
-                WishlistSheet(viewModel: viewModel)
-            }
-            .sheet(isPresented: $viewModel.showingAddDaySheet, onDismiss: { appState.showMapSheet = true }) {
-                AddDaySheet(viewModel: viewModel)
-            }
-            .sheet(isPresented: $viewModel.showingAddActivitySheet, onDismiss: { appState.showMapSheet = true }) {
-                AddActivitySheet(viewModel: viewModel)
-            }
-            .sheet(item: $selectedActivity, onDismiss: { appState.showMapSheet = true }) { activity in
-                ActivityDetailSheet(activity: activity, viewModel: viewModel)
-            }
-            .sheet(item: $itineraryToEdit, onDismiss: { appState.showMapSheet = true }) { itinerary in
-                EditItinerarySheet(itinerary: itinerary, viewModel: viewModel)
-            }
-            .onChange(of: viewModel.showingEditSheet) { _, isShowing in
-                if isShowing { appState.showMapSheet = false }
-            }
-            .onChange(of: viewModel.showingMembersSheet) { _, isShowing in
-                if isShowing { appState.showMapSheet = false }
-            }
-            .onChange(of: viewModel.showingTodosSheet) { _, isShowing in
-                if isShowing { appState.showMapSheet = false }
-            }
-            .onChange(of: viewModel.showingWishlistSheet) { _, isShowing in
-                if isShowing { appState.showMapSheet = false }
-            }
-            .onChange(of: viewModel.showingAddDaySheet) { _, isShowing in
-                if isShowing { appState.showMapSheet = false }
-            }
-            .onChange(of: viewModel.showingAddActivitySheet) { _, isShowing in
-                if isShowing { appState.showMapSheet = false }
-            }
-            .onChange(of: selectedActivity) { _, activity in
-                if activity != nil { appState.showMapSheet = false }
-            }
-            .onChange(of: itineraryToEdit) { _, itinerary in
-                if itinerary != nil { appState.showMapSheet = false }
-            }
     }
 }
 

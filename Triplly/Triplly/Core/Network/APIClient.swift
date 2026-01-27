@@ -398,6 +398,15 @@ actor APIClient {
     func deleteTodo(id: String) async throws {
         try await requestVoid(path: "/todos/\(id)", method: .delete)
     }
+
+    // MARK: - Companion Endpoints
+    func sendCompanionMessage(message: String, history: [[String: String]]?) async throws -> CompanionResponse {
+        try await request(
+            path: "/companion/chat",
+            method: .post,
+            body: CompanionRequest(message: message, conversationHistory: history)
+        )
+    }
 }
 
 // MARK: - HTTP Method

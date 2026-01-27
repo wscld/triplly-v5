@@ -6,7 +6,7 @@ import { logger } from 'hono/logger';
 import { config } from 'dotenv';
 
 import { AppDataSource } from './data-source.js';
-import { authRoutes, travelRoutes, inviteRoutes, itineraryRoutes, activityRoutes, commentRoutes, todoRoutes } from './routes/index.js';
+import { authRoutes, travelRoutes, inviteRoutes, itineraryRoutes, activityRoutes, commentRoutes, todoRoutes, companionRoutes } from './routes/index.js';
 
 config();
 
@@ -31,6 +31,7 @@ app.route('/api/itineraries', itineraryRoutes);
 app.route('/api/activities', activityRoutes);
 app.route('/api/comments', commentRoutes);
 app.route('/api/todos', todoRoutes);
+app.route('/api/companion', companionRoutes);
 
 // Error handler
 app.onError((err, c) => {
