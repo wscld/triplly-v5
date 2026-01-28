@@ -43,6 +43,16 @@ struct MainTabView: View {
         .onChange(of: appState.currentUser?.profilePhotoUrl) { _, _ in
             Task { await loadProfileImage() }
         }
+        .sheet(isPresented: Binding(
+            get: { appState.deepLinkUsername != nil },
+            set: { if !$0 { appState.deepLinkUsername = nil } }
+        )) {
+            if let username = appState.deepLinkUsername {
+                NavigationStack {
+                    PublicProfileView(username: username)
+                }
+            }
+        }
         .sheet(isPresented: $appState.showMapSheet) {
             GlobalMapSheetView()
                 .environmentObject(appState)

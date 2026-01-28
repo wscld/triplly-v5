@@ -9,7 +9,34 @@ struct TripllyApp: App {
             RootView()
                 .environmentObject(appState)
                 .preferredColorScheme(.light)
+                .onOpenURL { url in
+                    handleCustomScheme(url)
+                }
+                .onContinueUserActivity(NSUserActivityTypeBrowsingWeb) { activity in
+                    handleUniversalLink(activity)
+                }
         }
+    }
+
+    private func handleCustomScheme(_ url: URL) {
+        // triplly://profile/{username}
+        guard url.scheme == "triplly",
+              url.host == "profile",
+              let username = url.pathComponents.dropFirst().first else {
+            return
+        }
+        appState.navigateToPublicProfile(username: username)
+    }
+
+    private func handleUniversalLink(_ activity: NSUserActivity) {
+        guard let url = activity.webpageURL,
+              url.host == "triplly.com",
+              url.pathComponents.count >= 3,
+              url.pathComponents[1] == "u" else {
+            return
+        }
+        let username = url.pathComponents[2]
+        appState.navigateToPublicProfile(username: username)
     }
 }
 

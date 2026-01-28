@@ -25,6 +25,9 @@ final class AppState: ObservableObject {
     @Published var mapSheetDetent: PresentationDetent = .height(140)
     @Published var mapSheetOffset: CGFloat = 0
 
+    // MARK: - Deep Link
+    @Published var deepLinkUsername: String?
+
     // MARK: - Nested Sheet (shown on top of map sheet)
     @Published var mapNestedSheet: MapNestedSheet?
 
@@ -207,6 +210,11 @@ final class AppState: ObservableObject {
 
     func dismissNestedSheet() {
         mapNestedSheet = nil
+    }
+
+    // MARK: - Deep Link Methods
+    func navigateToPublicProfile(username: String) {
+        deepLinkUsername = username
     }
 }
 

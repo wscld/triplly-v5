@@ -29,7 +29,7 @@ struct ProfileView: View {
                 if appState.currentUser?.username != nil {
                     Button {
                         if let username = appState.currentUser?.username {
-                            let url = "https://app.triplly.com/u/\(username)"
+                            let url = "https://triplly.com/u/\(username)"
                             UIPasteboard.general.string = url
                         }
                     } label: {

@@ -134,6 +134,7 @@ final class TravelsViewModel: ObservableObject {
                 ownerId: newTravel.ownerId,
                 owner: newTravel.owner,
                 createdAt: newTravel.createdAt,
+                isPublic: newTravel.isPublic ?? false,
                 role: .owner,
                 itineraries: newTravel.itineraries
             )

@@ -2,9 +2,16 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>com.apple.developer.associated-domains</key>
+	<key>CFBundleURLTypes</key>
 	<array>
-		<string>applinks:triplly.com</string>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.wescld.triplly</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>triplly</string>
+			</array>
+		</dict>
 	</array>
 </dict>
 </plist>
