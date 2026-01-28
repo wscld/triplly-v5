@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		C93DCBC32F2A525200B6F02A /* FlowStack in Frameworks */ = {isa = PBXBuildFile; productRef = C93DCBC22F2A525200B6F02A /* FlowStack */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		C92DBBED2F28137A006345CD /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -52,6 +56,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C93DCBC32F2A525200B6F02A /* FlowStack in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -112,6 +117,7 @@
 			);
 			name = Triplly;
 			packageProductDependencies = (
+				C93DCBC22F2A525200B6F02A /* FlowStack */,
 			);
 			productName = Triplly;
 			productReference = C92DBBDF2F281378006345CD /* Triplly.app */;
@@ -195,6 +201,9 @@
 			);
 			mainGroup = C92DBBD62F281378006345CD;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				C93DCBC12F2A50AD00B6F02A /* XCRemoteSwiftPackageReference "FlowStack" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = C92DBBE02F281378006345CD /* Products */;
 			projectDirPath = "";
@@ -404,7 +413,7 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -438,7 +447,7 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -576,6 +585,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		C93DCBC12F2A50AD00B6F02A /* XCRemoteSwiftPackageReference "FlowStack" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/velos/FlowStack.git";
+			requirement = {
+				branch = develop;
+				kind = branch;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		C93DCBC22F2A525200B6F02A /* FlowStack */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C93DCBC12F2A50AD00B6F02A /* XCRemoteSwiftPackageReference "FlowStack" */;
+			productName = FlowStack;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = C92DBBD72F281378006345CD /* Project object */;
 }

@@ -3,53 +3,39 @@ import MapKit
 
 struct MainTabView: View {
     @EnvironmentObject private var appState: AppState
-    @State private var selectedTab = 0
     @StateObject private var invitesViewModel = InvitesViewModel()
     @State private var profileImage: UIImage?
+    @State private var companionSearch = ""
 
     var body: some View {
-        ZStack(alignment: .bottomTrailing) {
-            TabView(selection: $selectedTab) {
+        TabView {
+            Tab("Trips", systemImage: "airplane") {
                 NavigationStack {
                     TravelsListView()
                 }
-                .tabItem {
-                    Label("Trips", systemImage: "airplane")
-                }
-                .tag(0)
+            }
 
+            Tab("Invites", systemImage: "envelope") {
                 NavigationStack {
                     InvitesView()
                 }
-                .tabItem {
-                    Label("Invites", systemImage: "envelope")
-                }
-                .tag(1)
-                .badge(invitesViewModel.invites.count > 0 ? invitesViewModel.invites.count : 0)
+            }
+            .badge(invitesViewModel.invites.count > 0 ? invitesViewModel.invites.count : 0)
 
+            Tab("Profile", systemImage: "person.circle.fill") {
                 NavigationStack {
                     ProfileView()
                 }
-                .tabItem {
-                    if let image = profileImage {
-                        Label {
-                            Text("Profile")
-                        } icon: {
-                            Image(uiImage: image)
-                                .renderingMode(.original)
-                        }
-                    } else {
-                        Label("Profile", systemImage: "person.circle.fill")
-                    }
-                }
-                .tag(2)
             }
-            .tint(Color.appPrimary)
 
-            CompanionFloatingButton()
-                .padding(.trailing, 16)
-                .padding(.bottom, 90)
+            // Companion tab with .search role creates the separate floating button
+            Tab("Companion", systemImage: "face.smiling.inverse", role: .search) {
+                NavigationStack {
+                    CompanionView()
+                }
+            }
         }
+        .tint(Color.appPrimary)
         .task {
             await invitesViewModel.loadInvites()
             await loadProfileImage()

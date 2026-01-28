@@ -1,6 +1,6 @@
 import Foundation
 
-struct Itinerary: Codable, Identifiable, Equatable, Sendable {
+struct Itinerary: Codable, Identifiable, Equatable, Hashable, Sendable {
     let id: String
     let travelId: String
     let title: String

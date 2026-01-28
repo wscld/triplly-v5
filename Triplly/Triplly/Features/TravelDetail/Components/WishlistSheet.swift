@@ -362,7 +362,7 @@ struct AddWishlistItemSheet: View {
                         title: "Add to Wishlist",
                         icon: "star",
                         isLoading: isCreating,
-                        isDisabled: title.isEmpty || selectedPlace == nil
+                        isDisabled: selectedPlace == nil
                     ) {
                         Task {
                             await createWishlistItem()

@@ -14,6 +14,22 @@ struct TravelDetailView: View {
     @State private var activityToDelete: Activity?
     @State private var showingDeleteActivityAlert = false
 
+    // Sheet presentation state
+    @State private var showingEditTravel = false
+    @State private var showingMembers = false
+    @State private var showingTodos = false
+    @State private var showingWishlist = false
+    @State private var showingAddDay = false
+    @State private var showingAddActivity = false
+    @State private var selectedActivityForDetail: Activity?
+    @State private var selectedItineraryForEdit: Itinerary?
+
+    // Day reordering state
+    @State private var draggedItinerary: Itinerary?
+    @State private var targetItineraryId: String?
+    @State private var itineraryToDelete: Itinerary?
+    @State private var showingDeleteItineraryAlert = false
+
     init(travelId: String) {
         self.travelId = travelId
         _viewModel = StateObject(wrappedValue: TravelDetailViewModel(travelId: travelId))
@@ -32,21 +48,12 @@ struct TravelDetailView: View {
             Color(.systemGroupedBackground)
                 .ignoresSafeArea()
 
-            if viewModel.isLoading && viewModel.travel == nil {
-                LoadingView(message: "Loading trip...")
-            } else if let error = viewModel.error, viewModel.travel == nil {
+            if let error = viewModel.error, viewModel.travel == nil {
                 ErrorView(error: error) {
                     Task { await viewModel.loadTravel() }
                 }
             } else if let travel = viewModel.travel {
                 travelContent(travel)
-            } else {
-                VStack(spacing: 16) {
-                    ProgressView()
-                    Text("Loading...")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
             }
         }
         .navigationBarTitleDisplayMode(.inline)
@@ -55,40 +62,60 @@ struct TravelDetailView: View {
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
                 Button {
-                    // hideMapSheet is called in willDisappear
                     dismiss()
                 } label: {
                     Image(systemName: "chevron.left")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(.white)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(.black)
                         .frame(width: 36, height: 36)
-                        .background(.black.opacity(0.3))
+                        .background(.white.opacity(0.9))
                         .clipShape(Circle())
+                        .shadow(color: .black.opacity(0.15), radius: 8, y: 2)
                 }
             }
 
             ToolbarItem(placement: .navigationBarTrailing) {
                 HStack(spacing: 8) {
                     Button {
-                        appState.showNestedSheet(.editTravel)
+                        if appState.showMapSheet {
+                            appState.hideMapSheet()
+                        } else {
+                            appState.showMap(
+                                activities: viewModel.selectedActivities,
+                                title: viewModel.selectedItinerary?.title
+                            )
+                        }
+                    } label: {
+                        Image(systemName: appState.showMapSheet ? "map.fill" : "map")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(.black)
+                            .frame(width: 36, height: 36)
+                            .background(.white.opacity(0.9))
+                            .clipShape(Circle())
+                            .shadow(color: .black.opacity(0.15), radius: 8, y: 2)
+                    }
+
+                    Button {
+                        showingEditTravel = true
                     } label: {
                         Image(systemName: "pencil")
                             .font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(.black)
                             .frame(width: 36, height: 36)
-                            .background(.black.opacity(0.3))
+                            .background(.white.opacity(0.9))
                             .clipShape(Circle())
+                            .shadow(color: .black.opacity(0.15), radius: 8, y: 2)
                     }
 
                     Menu {
                         Button {
-                            appState.showNestedSheet(.members)
+                            showingMembers = true
                         } label: {
                             Label("Members", systemImage: "person.2")
                         }
 
                         Button {
-                            appState.showNestedSheet(.todos)
+                            showingTodos = true
                         } label: {
                             Label("Checklist", systemImage: "checklist")
                         }
@@ -111,10 +138,11 @@ struct TravelDetailView: View {
                     } label: {
                         Image(systemName: "ellipsis")
                             .font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(.black)
                             .frame(width: 36, height: 36)
-                            .background(.black.opacity(0.3))
+                            .background(.white.opacity(0.9))
                             .clipShape(Circle())
+                            .shadow(color: .black.opacity(0.15), radius: 8, y: 2)
                     }
                 }
             }
@@ -146,46 +174,87 @@ struct TravelDetailView: View {
             appState.updateMapActivities(viewModel.selectedActivities, title: viewModel.selectedItinerary?.title)
         }
         .enableInteractivePopGesture()
+        // Sheet presentations
+        .sheet(isPresented: $showingEditTravel) {
+            EditTravelSheet(viewModel: viewModel)
+        }
+        .sheet(isPresented: $showingMembers) {
+            MembersSheet(viewModel: viewModel)
+        }
+        .sheet(isPresented: $showingTodos) {
+            TodosSheet(viewModel: viewModel)
+        }
+        .sheet(isPresented: $showingWishlist) {
+            WishlistSheet(viewModel: viewModel)
+        }
+        .sheet(isPresented: $showingAddDay) {
+            AddDaySheet(viewModel: viewModel)
+        }
+        .sheet(isPresented: $showingAddActivity) {
+            AddActivitySheet(viewModel: viewModel)
+        }
+        .sheet(item: $selectedActivityForDetail) { activity in
+            ActivityDetailSheet(activity: activity, viewModel: viewModel)
+        }
+        .sheet(item: $selectedItineraryForEdit) { itinerary in
+            EditItinerarySheet(itinerary: itinerary, viewModel: viewModel)
+        }
+        .alert("Delete Day", isPresented: $showingDeleteItineraryAlert) {
+            Button("Cancel", role: .cancel) {
+                itineraryToDelete = nil
+            }
+            Button("Delete", role: .destructive) {
+                if let itinerary = itineraryToDelete {
+                    Task {
+                        await viewModel.deleteItinerary(itinerary)
+                    }
+                }
+                itineraryToDelete = nil
+            }
+        } message: {
+            Text("Are you sure you want to delete \"\(itineraryToDelete?.title ?? "this day")\"? All activities in this day will be moved to your wishlist.")
+        }
     }
 
     @ViewBuilder
     private func travelContent(_ travel: Travel) -> some View {
         ScrollView {
             VStack(spacing: 0) {
-                // Header with parallax cover image
-                GeometryReader { geometry in
-                    let minY = geometry.frame(in: .global).minY
-                    let isScrollingUp = minY > 0
-                    let headerHeight: CGFloat = 300
-
+                // Hero image - Airbnb style (with margins and rounded corners)
+                GeometryReader { geo in
                     ZStack(alignment: .bottom) {
-                        TravelCoverImage(
-                            coverUrl: travel.coverImageUrl,
-                            height: isScrollingUp ? headerHeight + minY : headerHeight,
-                            cornerRadius: 0
+                        // Cover image
+                        TravelCoverImage(coverUrl: travel.coverImageUrl, height: 420, cornerRadius: 0)
+                            .frame(width: geo.size.width, height: 420)
+
+                        // Dark gradient for buttons at top
+                        LinearGradient(
+                            stops: [
+                                .init(color: .black.opacity(0.4), location: 0),
+                                .init(color: .clear, location: 0.5)
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
                         )
-                        .overlay {
-                            LinearGradient(
-                                stops: [
-                                    .init(color: .black.opacity(0.4), location: 0),
-                                    .init(color: .clear, location: 0.4),
-                                    .init(color: .black.opacity(0.8), location: 1)
-                                ],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                        }
-
-                        headerOverlay(travel)
+                        .frame(height: 120)
+                        .frame(maxHeight: .infinity, alignment: .top)
                     }
-                    .offset(y: isScrollingUp ? -minY : 0)
+                    .frame(width: geo.size.width, height: 420)
+                    .clipShape(RoundedRectangle(cornerRadius: 44, style: .continuous))
                 }
-                .frame(height: 300)
+                .frame(height: 420)
+                .padding(EdgeInsets(top: 8, leading: 8, bottom: 0, trailing: 8))
 
-                VStack(spacing: 24) {
-                    // Quick Actions
-                    quickActionsSection
-                        .padding(.top, 20)
+                // Content
+                VStack(spacing: 20) {
+                    // Info chips row
+                    infoChipsSection(travel)
+
+                    // Title and description
+                    titleSection(travel)
+
+                    // Clickable stats
+                    clickableStatsSection
 
                     // Day Selector & Activities
                     VStack(alignment: .leading, spacing: 16) {
@@ -196,88 +265,116 @@ struct TravelDetailView: View {
                         activitiesSection
                     }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.top, 20)
                 .padding(.horizontal, 16)
                 .padding(.bottom, 180)
             }
         }
         .ignoresSafeArea(edges: .top)
+        .background(Color(.systemGroupedBackground))
     }
 
-    // MARK: - Header Overlay
-    private func headerOverlay(_ travel: Travel) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Spacer()
-
-            // Title
-            Text(travel.title)
-                .font(.system(size: 32, weight: .bold, design: .rounded))
-                .foregroundStyle(.white)
-                .shadow(color: .black.opacity(0.3), radius: 2, y: 1)
-
-            // Date and stats row
-            HStack(spacing: 10) {
+    // MARK: - Info Chips Section (Airbnb style)
+    private func infoChipsSection(_ travel: Travel) -> some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
                 if let dateRange = travel.formattedDateRange {
-                    HStack(spacing: 6) {
-                        Image(systemName: "calendar")
-                            .font(.caption)
-                        Text(dateRange)
-                            .font(.subheadline.weight(.medium))
-                    }
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(.ultraThinMaterial.opacity(0.6))
-                    .clipShape(Capsule())
+                    InfoChip(icon: "calendar", text: dateRange)
                 }
 
                 if !viewModel.itineraries.isEmpty {
-                    HStack(spacing: 6) {
-                        Image(systemName: "flag.fill")
-                            .font(.caption)
-                        Text("\(viewModel.itineraries.count) days")
-                            .font(.subheadline.weight(.medium))
-                    }
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(.ultraThinMaterial.opacity(0.6))
-                    .clipShape(Capsule())
+                    InfoChip(icon: "flag", text: "\(viewModel.itineraries.count) days")
+                }
+
+                if !viewModel.members.isEmpty {
+                    InfoChip(icon: "person.2", text: "\(viewModel.members.count) travelers")
+                }
+
+                let activityCount = viewModel.itineraries.reduce(0) { $0 + ($1.activities?.count ?? 0) }
+                if activityCount > 0 {
+                    InfoChip(icon: "mappin", text: "\(activityCount) places")
                 }
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(20)
-        .padding(.bottom, 8)
     }
 
-    // MARK: - Quick Actions
-    private var quickActionsSection: some View {
-        HStack(spacing: 12) {
-            QuickActionButton(
-                icon: "star.fill",
-                label: "Wishlist",
-                count: viewModel.wishlistActivities.count
-            ) {
-                appState.showNestedSheet(.wishlist)
-            }
+    // MARK: - Title Section
+    private func titleSection(_ travel: Travel) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(travel.title)
+                .font(.system(size: 26, weight: .bold, design: .rounded))
+                .foregroundStyle(.primary)
 
-            QuickActionButton(
-                icon: "checklist",
-                label: "Todos",
-                progress: viewModel.todoProgress
-            ) {
-                appState.showNestedSheet(.todos)
-            }
-
-            Spacer()
-
-            // Avatar Stack for Team
-            Button {
-                appState.showNestedSheet(.members)
-            } label: {
-                AvatarStackView(members: viewModel.members)
+            if let description = travel.description, !description.isEmpty {
+                Text(description)
+                    .font(.system(.subheadline, design: .rounded))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(3)
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    // MARK: - Clickable Stats Section
+    private var clickableStatsSection: some View {
+        HStack(spacing: 0) {
+            // Wishlist stat
+            Button {
+                showingWishlist = true
+            } label: {
+                StatItemView(
+                    icon: "star.fill",
+                    iconColor: .orange,
+                    value: "\(viewModel.wishlistActivities.count)",
+                    label: "Wishlist"
+                )
+            }
+            .buttonStyle(StatButtonStyle())
+
+            Divider()
+                .frame(height: 40)
+
+            // Todos stat
+            Button {
+                showingTodos = true
+            } label: {
+                let completedTodos = viewModel.todos.filter { $0.isCompleted }.count
+                StatItemView(
+                    icon: "checkmark.circle.fill",
+                    iconColor: .green,
+                    value: "\(completedTodos)/\(viewModel.todos.count)",
+                    label: "Checklist"
+                )
+            }
+            .buttonStyle(StatButtonStyle())
+
+            Divider()
+                .frame(height: 40)
+
+            // Members stat with avatars
+            Button {
+                showingMembers = true
+            } label: {
+                VStack(spacing: 4) {
+                    if viewModel.members.isEmpty {
+                        Image(systemName: "person.badge.plus")
+                            .font(.system(size: 20, weight: .medium, design: .rounded))
+                            .foregroundStyle(.blue)
+                    } else {
+                        MiniAvatarStack(members: viewModel.members)
+                    }
+                    Text("Travelers")
+                        .font(.system(.caption, design: .rounded))
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(StatButtonStyle())
+        }
+        .padding(.vertical, 14)
+        .background(Color(.systemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
     // MARK: - Day Selector
@@ -288,15 +385,27 @@ struct TravelDetailView: View {
                     DayChip(
                         itinerary: itinerary,
                         dayNumber: index + 1,
-                        isSelected: index == viewModel.selectedItineraryIndex
+                        isSelected: index == viewModel.selectedItineraryIndex,
+                        isDropTarget: targetItineraryId == itinerary.id && draggedItinerary != nil
                     ) {
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                             viewModel.selectedItineraryIndex = index
                         }
                     }
+                    .opacity(draggedItinerary?.id == itinerary.id ? 0.5 : 1)
+                    .onDrag {
+                        draggedItinerary = itinerary
+                        return NSItemProvider(object: itinerary.id as NSString)
+                    }
+                    .onDrop(of: [.text], delegate: ItineraryDropDelegate(
+                        itinerary: itinerary,
+                        viewModel: viewModel,
+                        draggedItinerary: $draggedItinerary,
+                        targetItineraryId: $targetItineraryId
+                    ))
                     .contextMenu {
                         Button {
-                            appState.showNestedSheet(.editItinerary(itinerary))
+                            selectedItineraryForEdit = itinerary
                         } label: {
                             Label("Edit", systemImage: "pencil")
                         }
@@ -304,7 +413,8 @@ struct TravelDetailView: View {
                         Divider()
 
                         Button(role: .destructive) {
-                            Task { await viewModel.deleteItinerary(itinerary) }
+                            itineraryToDelete = itinerary
+                            showingDeleteItineraryAlert = true
                         } label: {
                             Label("Delete Day", systemImage: "trash")
                         }
@@ -313,23 +423,22 @@ struct TravelDetailView: View {
 
                 // Add Day Button
                 Button {
-                    appState.showNestedSheet(.addDay)
+                    showingAddDay = true
                 } label: {
-                    VStack(spacing: 2) {
+                    VStack(spacing: 4) {
                         Image(systemName: "plus")
-                            .font(.system(size: 18, weight: .semibold))
+                            .font(.system(size: 18, weight: .medium, design: .rounded))
                         Text("Add")
-                            .font(.system(size: 10, weight: .medium))
+                            .font(.system(size: 10, weight: .semibold, design: .rounded))
                     }
-                    .foregroundStyle(Color.appPrimary)
-                    .frame(width: 52, height: 52)
-                    .background(Color.appPrimary.opacity(0.12))
-                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .stroke(Color.appPrimary.opacity(0.3), style: StrokeStyle(lineWidth: 1.5, dash: [4]))
-                    }
+                    .foregroundStyle(.primary)
+                    .frame(width: 56, height: 72)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .stroke(Color(.systemGray4), style: StrokeStyle(lineWidth: 1.5, dash: [6, 4]))
+                    )
                 }
+                .buttonStyle(ScaleButtonStyle())
             }
         }
     }
@@ -342,28 +451,40 @@ struct TravelDetailView: View {
                 HStack(alignment: .center) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Day \(viewModel.selectedItineraryIndex + 1)")
-                            .font(.headline)
+                            .font(.system(.title3, design: .rounded).weight(.bold))
                         if let formattedDate = itinerary.formattedDate {
                             Text(formattedDate)
-                                .font(.subheadline)
+                                .font(.system(.subheadline, design: .rounded))
                                 .foregroundStyle(.secondary)
                         }
                     }
                     Spacer()
+
+                    if !viewModel.selectedActivities.isEmpty {
+                        Button {
+                            showingAddActivity = true
+                        } label: {
+                            Image(systemName: "plus")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundStyle(.primary)
+                                .frame(width: 32, height: 32)
+                                .background(Color(.secondarySystemBackground))
+                                .clipShape(Circle())
+                        }
+                    }
                 }
-                .padding(.horizontal, 4)
                 .padding(.top, 8)
 
                 if viewModel.selectedActivities.isEmpty {
                     EmptyActivitiesCard {
-                        appState.showNestedSheet(.addActivity)
+                        showingAddActivity = true
                     }
                 } else {
                     // Activities Timeline
                     TimelineView(
                         activities: viewModel.selectedActivitiesBinding,
                         onTap: { activity in
-                            appState.showNestedSheet(.activityDetail(activity))
+                            selectedActivityForDetail = activity
                         },
                         onReorderComplete: { movedActivity, newIndex in
                             Task {
@@ -380,111 +501,168 @@ struct TravelDetailView: View {
                             showingDeleteActivityAlert = true
                         }
                     )
-
-                    // Add Activity Button (only when there are activities)
-                    Button {
-                        appState.showNestedSheet(.addActivity)
-                    } label: {
-                        HStack(spacing: 10) {
-                            Image(systemName: "plus")
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundStyle(.white)
-                                .frame(width: 28, height: 28)
-                                .background(Color.appPrimary)
-                                .clipShape(Circle())
-
-                            Text("Add another activity")
-                                .font(.subheadline.weight(.medium))
-                                .foregroundStyle(.foreground)
-
-                            Spacer()
-
-                            Image(systemName: "chevron.right")
-                                .font(.caption)
-                                .foregroundStyle(.tertiary)
-                        }
-                        .padding(12)
-                        .background(Color(.systemBackground))
-                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                        .shadow(color: Color.black.opacity(0.06), radius: 6, y: 2)
-                    }
                 }
 
             } else if viewModel.itineraries.isEmpty {
                 EmptyDaysCard {
-                    appState.showNestedSheet(.addDay)
+                    showingAddDay = true
                 }
             }
         }
     }
 }
 
-// MARK: - Quick Action Button
-struct QuickActionButton: View {
-    let icon: String
-    let label: String
-    var count: Int?
-    var progress: Double?
-    let action: () -> Void
 
-    init(icon: String, label: String, count: Int? = nil, progress: Double? = nil, action: @escaping () -> Void) {
-        self.icon = icon
-        self.label = label
-        self.count = count
-        self.progress = progress
-        self.action = action
+// MARK: - Scale Button Style
+struct ScaleButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
+            .animation(.easeInOut(duration: 0.1), value: configuration.isPressed)
+    }
+}
+
+// MARK: - Info Chip (Airbnb style)
+struct InfoChip: View {
+    let icon: String
+    let text: String
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.system(size: 12, weight: .medium, design: .rounded))
+            Text(text)
+                .font(.system(.subheadline, design: .rounded))
+        }
+        .foregroundStyle(.primary)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(Color(.systemBackground))
+        .clipShape(Capsule())
+    }
+}
+
+// MARK: - Stat Item View
+struct StatItemView: View {
+    let icon: String
+    let iconColor: Color
+    let value: String
+    let label: String
+
+    var body: some View {
+        VStack(spacing: 4) {
+            HStack(spacing: 4) {
+                Image(systemName: icon)
+                    .font(.system(size: 14, weight: .medium, design: .rounded))
+                    .foregroundStyle(iconColor)
+                Text(value)
+                    .font(.system(size: 16, weight: .bold, design: .rounded))
+                    .foregroundStyle(.primary)
+            }
+            Text(label)
+                .font(.system(.caption, design: .rounded))
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+    }
+}
+
+// MARK: - Stat Button Style
+struct StatButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .opacity(configuration.isPressed ? 0.6 : 1.0)
+            .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
+            .animation(.easeInOut(duration: 0.15), value: configuration.isPressed)
+    }
+}
+
+// MARK: - Mini Avatar Stack (for stats section)
+struct MiniAvatarStack: View {
+    let members: [TravelMember]
+    private let maxVisible = 3
+    private let avatarSize: CGFloat = 24
+    private let overlap: CGFloat = 8
+
+    var body: some View {
+        HStack(spacing: -overlap) {
+            ForEach(Array(members.prefix(maxVisible).enumerated()), id: \.element.id) { index, member in
+                MiniAvatar(name: member.user.name, imageUrl: member.user.profilePhotoUrl, size: avatarSize)
+                    .overlay {
+                        Circle()
+                            .stroke(Color(.secondarySystemBackground), lineWidth: 2)
+                    }
+                    .zIndex(Double(maxVisible - index))
+            }
+
+            if members.count > maxVisible {
+                ZStack {
+                    Circle()
+                        .fill(Color(.systemGray4))
+                        .frame(width: avatarSize, height: avatarSize)
+
+                    Text("+\(members.count - maxVisible)")
+                        .font(.system(size: 10, weight: .bold, design: .rounded))
+                        .foregroundStyle(.primary)
+                }
+                .overlay {
+                    Circle()
+                        .stroke(Color(.secondarySystemBackground), lineWidth: 2)
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Mini Avatar
+struct MiniAvatar: View {
+    let name: String
+    let imageUrl: String?
+    let size: CGFloat
+
+    private var initials: String {
+        let parts = name.split(separator: " ")
+        if parts.count >= 2 {
+            return String(parts[0].prefix(1) + parts[1].prefix(1)).uppercased()
+        }
+        return String(name.prefix(1)).uppercased()
+    }
+
+    private var backgroundColor: Color {
+        let colors: [Color] = [.blue, .green, .orange, .purple, .pink, .teal, .indigo]
+        let hash = abs(name.hashValue)
+        return colors[hash % colors.count]
     }
 
     var body: some View {
-        Button(action: action) {
-            HStack(spacing: 10) {
-                ZStack {
-                    if let progress = progress {
-                        Circle()
-                            .stroke(Color(.systemGray4), lineWidth: 2.5)
-                            .frame(width: 32, height: 32)
-
-                        Circle()
-                            .trim(from: 0, to: progress)
-                            .stroke(Color.appPrimary, style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
-                            .frame(width: 32, height: 32)
-                            .rotationEffect(.degrees(-90))
-
-                        Image(systemName: icon)
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(Color.appPrimary)
-                    } else {
-                        Circle()
-                            .fill(Color.appPrimary)
-                            .frame(width: 32, height: 32)
-
-                        Image(systemName: icon)
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(.white)
+        Group {
+            if let urlString = imageUrl, let url = URL(string: urlString) {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                    default:
+                        initialsView
                     }
                 }
-
-                Text(label)
-                    .font(.subheadline.weight(.medium))
-                    .foregroundColor(Color(.label))
-
-                if let count = count, count > 0 {
-                    Text("\(count)")
-                        .font(.caption2.weight(.bold))
-                        .foregroundStyle(.white)
-                        .frame(minWidth: 18, minHeight: 18)
-                        .background(Color.appPrimary)
-                        .clipShape(Circle())
-                }
+            } else {
+                initialsView
             }
-            .padding(.leading, 6)
-            .padding(.trailing, 14)
-            .padding(.vertical, 8)
-            .background(Color(.systemBackground))
-            .clipShape(Capsule())
-            .shadow(color: Color.black.opacity(0.08), radius: 8, y: 2)
         }
-        .buttonStyle(.plain)
+        .frame(width: size, height: size)
+        .clipShape(Circle())
+    }
+
+    private var initialsView: some View {
+        ZStack {
+            Circle()
+                .fill(backgroundColor.gradient)
+            Text(initials)
+                .font(.system(size: size * 0.4, weight: .semibold, design: .rounded))
+                .foregroundStyle(.white)
+        }
     }
 }
 
@@ -527,16 +705,16 @@ struct AvatarStackView: View {
             }
 
             if members.isEmpty {
-                HStack(spacing: 6) {
+                HStack(spacing: 5) {
                     Image(systemName: "person.badge.plus")
-                        .font(.system(size: 14, weight: .medium))
+                        .font(.system(size: 13, weight: .medium))
                     Text("Invite")
-                        .font(.subheadline.weight(.semibold))
+                        .font(.subheadline)
                 }
-                .foregroundStyle(.white)
-                .padding(.horizontal, 14)
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 12)
                 .padding(.vertical, 8)
-                .background(Color.appPrimary)
+                .background(Color(.secondarySystemBackground))
                 .clipShape(Capsule())
             }
         }
@@ -582,28 +760,32 @@ struct DayChip: View {
     let itinerary: Itinerary
     let dayNumber: Int
     let isSelected: Bool
+    var isDropTarget: Bool = false
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 2) {
+            VStack(spacing: 4) {
                 Text(itinerary.dayOfWeek?.uppercased() ?? "DAY")
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(isSelected ? .white.opacity(0.8) : .secondary)
+                    .font(.system(size: 10, weight: .semibold, design: .rounded))
+                    .foregroundStyle(isSelected ? .white : .secondary)
                 Text(itinerary.shortDate ?? "\(dayNumber)")
-                    .font(.system(size: 20, weight: .bold))
+                    .font(.system(size: 18, weight: .bold, design: .rounded))
                     .foregroundStyle(isSelected ? .white : .primary)
             }
-            .frame(width: 52, height: 52)
-            .background(isSelected ? Color.appPrimary : Color(.secondarySystemBackground))
-            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .frame(width: 56, height: 72)
+            .background(isSelected ? Color.appPrimary : Color(.systemBackground))
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             .overlay {
-                if !isSelected {
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .stroke(Color(.separator), lineWidth: 0.5)
+                if isDropTarget {
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .stroke(Color.black, lineWidth: 2)
                 }
             }
+            .scaleEffect(isDropTarget ? 1.05 : 1.0)
+            .animation(.spring(response: 0.2, dampingFraction: 0.7), value: isDropTarget)
         }
+        .buttonStyle(ScaleButtonStyle())
     }
 }
 
@@ -627,7 +809,6 @@ struct TimelineView: View {
                     isLast: index == activities.count - 1
                 )
                 .contentShape(Rectangle())
-                .opacity(1)
                 .onTapGesture {
                     onTap(activity)
                 }
@@ -641,25 +822,32 @@ struct TimelineView: View {
                     draggedActivity: $draggedActivity,
                     onReorderComplete: onReorderComplete
                 ))
-                .contextMenu {
-                    Button {
-                        onMoveToWishlist(activity)
-                    } label: {
-                        Label("Move to Wishlist", systemImage: "star")
-                    }
-
-                    Divider()
-
+                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                     Button(role: .destructive) {
                         onDelete(activity)
                     } label: {
                         Label("Delete", systemImage: "trash")
                     }
                 }
+                .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                    Button {
+                        onMoveToWishlist(activity)
+                    } label: {
+                        Label("Wishlist", systemImage: "star")
+                    }
+                    .tint(.orange)
+                }
+
+                if index < activities.count - 1 {
+                    Divider()
+                        .padding(.leading, 50)
+                }
             }
         }
-        .background(Color(.secondarySystemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .padding(.vertical, 12)
+        .padding(.horizontal, 12)
+        .background(Color(.systemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
     }
 }
 
@@ -703,6 +891,41 @@ struct TimelineDropDelegate: DropDelegate {
     }
 }
 
+// MARK: - Itinerary Drop Delegate
+struct ItineraryDropDelegate: DropDelegate {
+    let itinerary: Itinerary
+    let viewModel: TravelDetailViewModel
+    @Binding var draggedItinerary: Itinerary?
+    @Binding var targetItineraryId: String?
+
+    func performDrop(info: DropInfo) -> Bool {
+        guard let dragged = draggedItinerary,
+              let targetId = targetItineraryId,
+              let toIndex = viewModel.itineraries.firstIndex(where: { $0.id == targetId }) else {
+            draggedItinerary = nil
+            targetItineraryId = nil
+            return false
+        }
+
+        viewModel.reorderItinerary(dragged, to: toIndex)
+        draggedItinerary = nil
+        targetItineraryId = nil
+        return true
+    }
+
+    func dropEntered(info: DropInfo) {
+        guard let dragged = draggedItinerary,
+              dragged.id != itinerary.id else {
+            return
+        }
+        targetItineraryId = itinerary.id
+    }
+
+    func dropUpdated(info: DropInfo) -> DropProposal? {
+        DropProposal(operation: .move)
+    }
+}
+
 // MARK: - Timeline Item View
 struct TimelineItemView: View {
     let activity: Activity
@@ -710,24 +933,28 @@ struct TimelineItemView: View {
     let isFirst: Bool
     let isLast: Bool
 
-    private let circleSize: CGFloat = 32
-    private let lineWidth: CGFloat = 2.5
+    private let circleSize: CGFloat = 28
+    private let lineWidth: CGFloat = 2
 
     var body: some View {
-        HStack(alignment: .top, spacing: 0) {
-            // Drag handle
-            Image(systemName: "line.3.horizontal")
-                .font(.system(size: 12, weight: .bold))
-                .foregroundStyle(.quaternary)
-                .frame(width: 28)
-                .padding(.top, 28)
-
+        HStack(alignment: .top, spacing: 14) {
             // Timeline indicator column
-            VStack(spacing: 0) {
-                // Top line
-                Rectangle()
-                    .fill(isFirst ? Color.clear : Color.appPrimary.opacity(0.3))
-                    .frame(width: lineWidth, height: 16)
+            ZStack(alignment: .top) {
+                // Line - only show if not the only item
+                if !(isFirst && isLast) {
+                    VStack(spacing: 0) {
+                        // Top portion of line
+                        Rectangle()
+                            .fill(isFirst ? Color.clear : Color.appPrimary)
+                            .frame(width: lineWidth, height: 20)
+
+                        // Bottom portion of line
+                        Rectangle()
+                            .fill(isLast ? Color.clear : Color.appPrimary)
+                            .frame(width: lineWidth)
+                            .frame(maxHeight: .infinity)
+                    }
+                }
 
                 // Circle with number
                 ZStack {
@@ -736,28 +963,23 @@ struct TimelineItemView: View {
                         .frame(width: circleSize, height: circleSize)
 
                     Text("\(number)")
-                        .font(.system(size: 14, weight: .bold))
+                        .font(.system(size: 12, weight: .bold))
                         .foregroundStyle(.white)
                 }
-
-                // Bottom line
-                Rectangle()
-                    .fill(isLast ? Color.clear : Color.appPrimary.opacity(0.3))
-                    .frame(width: lineWidth)
-                    .frame(maxHeight: .infinity)
+                .padding(.top, 6)
             }
-            .frame(width: 48)
+            .frame(width: 36)
 
             // Content
             VStack(alignment: .leading, spacing: 4) {
                 Text(activity.title)
-                    .font(.body.weight(.semibold))
+                    .font(.system(.subheadline, design: .rounded).weight(.semibold))
                     .foregroundStyle(.primary)
                     .lineLimit(1)
 
                 if let address = activity.address {
                     Text(address)
-                        .font(.subheadline)
+                        .font(.system(.caption, design: .rounded))
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
@@ -765,26 +987,24 @@ struct TimelineItemView: View {
                 if let time = activity.formattedTime {
                     HStack(spacing: 4) {
                         Image(systemName: "clock")
-                            .font(.caption2)
+                            .font(.system(size: 10, design: .rounded))
                         Text(time)
-                            .font(.caption)
                     }
-                    .foregroundStyle(Color.appPrimary)
-                    .padding(.top, 2)
+                    .font(.system(.caption, design: .rounded))
+                    .foregroundStyle(.secondary)
                 }
             }
-            .padding(.top, 16)
-            .padding(.bottom, 16)
+            .padding(.vertical, 12)
 
-            Spacer()
+            Spacer(minLength: 0)
 
             Image(systemName: "chevron.right")
                 .font(.caption)
-                .foregroundStyle(.quaternary)
-                .padding(.trailing, 12)
-                .padding(.top, 24)
+                .foregroundStyle(.tertiary)
+                .padding(.top, 16)
+                .padding(.trailing, 4)
         }
-        .frame(minHeight: 80)
+        .frame(minHeight: 60)
     }
 }
 
@@ -796,8 +1016,7 @@ struct MapPinView: View {
         ZStack {
             Circle()
                 .fill(Color.appPrimary)
-                .frame(width: 32, height: 32)
-                .shadow(color: Color.appPrimary.opacity(0.4), radius: 4, y: 2)
+                .frame(width: 28, height: 28)
 
             Text("\(number)")
                 .font(.caption.bold())
@@ -1122,31 +1341,29 @@ struct EmptyActivitiesCard: View {
     var body: some View {
         VStack(spacing: 16) {
             Image(systemName: "mappin.and.ellipse")
-                .font(.system(size: 40))
-                .foregroundStyle(Color.appPrimary.opacity(0.6))
+                .font(.system(size: 32, weight: .medium, design: .rounded))
+                .foregroundStyle(.secondary)
 
-            VStack(spacing: 4) {
-                Text("No activities yet")
-                    .font(.headline)
-                Text("Add places you want to visit")
-                    .font(.subheadline)
+            VStack(spacing: 6) {
+                Text("No places added")
+                    .font(.system(.headline, design: .rounded))
+                Text("Start adding places you want to visit")
+                    .font(.system(.subheadline, design: .rounded))
                     .foregroundStyle(.secondary)
             }
 
             Button(action: action) {
-                Text("Add First Activity")
-                    .font(.subheadline.weight(.semibold))
+                Text("Add Place")
+                    .font(.system(.subheadline, design: .rounded).weight(.semibold))
                     .foregroundStyle(.white)
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 10)
-                    .background(Color.appPrimary)
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 12)
+                    .background(Color.black)
                     .clipShape(Capsule())
             }
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 40)
-        .background(Color(.secondarySystemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 }
 
@@ -1156,31 +1373,29 @@ struct EmptyDaysCard: View {
     var body: some View {
         VStack(spacing: 16) {
             Image(systemName: "calendar.badge.plus")
-                .font(.system(size: 40))
-                .foregroundStyle(Color.appPrimary.opacity(0.6))
+                .font(.system(size: 32, weight: .medium, design: .rounded))
+                .foregroundStyle(.secondary)
 
-            VStack(spacing: 4) {
+            VStack(spacing: 6) {
                 Text("No days planned")
-                    .font(.headline)
-                Text("Start by adding days to your trip")
-                    .font(.subheadline)
+                    .font(.system(.headline, design: .rounded))
+                Text("Create your first day to start planning")
+                    .font(.system(.subheadline, design: .rounded))
                     .foregroundStyle(.secondary)
             }
 
             Button(action: action) {
-                Text("Add First Day")
-                    .font(.subheadline.weight(.semibold))
+                Text("Add Day")
+                    .font(.system(.subheadline, design: .rounded).weight(.semibold))
                     .foregroundStyle(.white)
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 10)
-                    .background(Color.appPrimary)
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 12)
+                    .background(Color.black)
                     .clipShape(Capsule())
             }
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 40)
-        .background(Color(.secondarySystemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 }
 

@@ -23,13 +23,13 @@ struct Travel: Codable, Identifiable, Equatable, Sendable {
     }
 }
 
-struct TravelOwner: Codable, Equatable, Sendable {
+struct TravelOwner: Codable, Equatable, Hashable, Sendable {
     let id: String
     let name: String
     let email: String?
 }
 
-struct TravelListItem: Codable, Identifiable, Equatable, Sendable {
+struct TravelListItem: Codable, Identifiable, Equatable, Hashable, Sendable {
     let id: String
     let title: String
     let description: String?

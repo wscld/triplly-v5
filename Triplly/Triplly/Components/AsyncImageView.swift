@@ -1,5 +1,93 @@
 import SwiftUI
 
+// MARK: - Image Cache
+final class ImageCache {
+    static let shared = ImageCache()
+    private let cache = NSCache<NSURL, UIImage>()
+
+    private init() {
+        cache.countLimit = 100
+    }
+
+    func image(for url: URL) -> UIImage? {
+        cache.object(forKey: url as NSURL)
+    }
+
+    func store(_ image: UIImage, for url: URL) {
+        cache.setObject(image, forKey: url as NSURL)
+    }
+}
+
+// MARK: - Cached Async Image
+struct CachedAsyncImage: View {
+    let url: URL?
+    var contentMode: ContentMode = .fill
+
+    @State private var uiImage: UIImage?
+    @State private var isLoading: Bool
+
+    init(url: URL?, contentMode: ContentMode = .fill) {
+        self.url = url
+        self.contentMode = contentMode
+        // Synchronous cache lookup — instant render for cached images
+        if let url, let cached = ImageCache.shared.image(for: url) {
+            _uiImage = State(initialValue: cached)
+            _isLoading = State(initialValue: false)
+        } else {
+            _uiImage = State(initialValue: nil)
+            _isLoading = State(initialValue: url != nil)
+        }
+    }
+
+    var body: some View {
+        Group {
+            if let uiImage {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .aspectRatio(contentMode: contentMode)
+            } else if isLoading {
+                SkeletonView()
+            } else {
+                placeholderView
+            }
+        }
+        .task(id: url) {
+            await loadImage()
+        }
+    }
+
+    private func loadImage() async {
+        guard let url else {
+            isLoading = false
+            return
+        }
+
+        // Already loaded from cache in init
+        if uiImage != nil { return }
+
+        // Download
+        do {
+            let (data, _) = try await URLSession.shared.data(from: url)
+            if let downloaded = UIImage(data: data) {
+                ImageCache.shared.store(downloaded, for: url)
+                uiImage = downloaded
+            }
+        } catch {
+            // Failed to load
+        }
+        isLoading = false
+    }
+
+    private var placeholderView: some View {
+        ZStack {
+            Color.gray.opacity(0.2)
+            Image(systemName: "photo")
+                .font(.largeTitle)
+                .foregroundStyle(.secondary)
+        }
+    }
+}
+
 // MARK: - Async Image View with Caching
 struct AsyncImageView: View {
     let url: URL?
@@ -7,20 +95,7 @@ struct AsyncImageView: View {
     var contentMode: ContentMode = .fill
 
     var body: some View {
-        AsyncImage(url: url) { phase in
-            switch phase {
-            case .empty:
-                SkeletonView()
-            case .success(let image):
-                image
-                    .resizable()
-                    .aspectRatio(contentMode: contentMode)
-            case .failure:
-                placeholderView
-            @unknown default:
-                placeholderView
-            }
-        }
+        CachedAsyncImage(url: url, contentMode: contentMode)
     }
 
     @ViewBuilder
@@ -103,6 +178,7 @@ struct TravelCoverImage: View {
             }
         }
         .frame(height: height)
+        .clipped()
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
     }
 }

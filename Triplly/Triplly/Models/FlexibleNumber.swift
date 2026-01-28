@@ -1,7 +1,7 @@
 import Foundation
 
 /// A type that can decode from either a JSON number or a JSON string
-struct FlexibleDouble: Codable, Equatable, Sendable {
+struct FlexibleDouble: Codable, Equatable, Hashable, Sendable {
     let value: Double
 
     init(_ value: Double) {

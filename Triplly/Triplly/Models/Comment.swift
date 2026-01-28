@@ -1,6 +1,6 @@
 import Foundation
 
-struct ActivityComment: Codable, Identifiable, Equatable, Sendable {
+struct ActivityComment: Codable, Identifiable, Equatable, Hashable, Sendable {
     let id: String
     let activityId: String
     let userId: String
@@ -10,7 +10,7 @@ struct ActivityComment: Codable, Identifiable, Equatable, Sendable {
 
 }
 
-struct CommentUser: Codable, Equatable, Sendable {
+struct CommentUser: Codable, Equatable, Hashable, Sendable {
     let id: String
     let name: String
     let email: String

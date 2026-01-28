@@ -1,7 +1,7 @@
 import Foundation
 import CoreLocation
 
-struct Activity: Codable, Identifiable, Equatable, Sendable {
+struct Activity: Codable, Identifiable, Equatable, Hashable, Sendable {
     let id: String
     let travelId: String
     let itineraryId: String?
@@ -27,7 +27,7 @@ struct Activity: Codable, Identifiable, Equatable, Sendable {
     }
 }
 
-struct ActivityCreator: Codable, Equatable, Sendable {
+struct ActivityCreator: Codable, Equatable, Hashable, Sendable {
     let id: String
     let name: String
     let email: String

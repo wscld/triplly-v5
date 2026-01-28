@@ -28,6 +28,10 @@ struct CompanionView: View {
                         }
                         .padding()
                     }
+                    .scrollDismissesKeyboard(.interactively)
+                    .onTapGesture {
+                        isInputFocused = false
+                    }
                     .onChange(of: viewModel.messages.count) { _, _ in
                         withAnimation {
                             if let lastMessage = viewModel.messages.last {
@@ -51,6 +55,7 @@ struct CompanionView: View {
                     isLoading: viewModel.isLoading,
                     isFocused: $isInputFocused,
                     onSend: {
+                        isInputFocused = false
                         Task {
                             await viewModel.sendMessage()
                         }

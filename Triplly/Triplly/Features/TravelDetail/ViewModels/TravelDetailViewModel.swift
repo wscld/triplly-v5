@@ -47,7 +47,12 @@ final class TravelDetailViewModel: ObservableObject {
 
     // MARK: - Computed Properties
     var itineraries: [Itinerary] {
-        travel?.itineraries ?? []
+        (travel?.itineraries ?? []).sorted { lhs, rhs in
+            guard let lhsDate = lhs.date, let rhsDate = rhs.date else {
+                return lhs.date != nil
+            }
+            return lhsDate < rhsDate
+        }
     }
 
     var selectedItinerary: Itinerary? {
@@ -73,6 +78,59 @@ final class TravelDetailViewModel: ObservableObject {
                 print("DEBUG: Updated activities order locally: \(newActivities.map { $0.title })")
             }
         )
+    }
+
+    var itinerariesBinding: Binding<[Itinerary]> {
+        Binding(
+            get: { self.itineraries },
+            set: { newItineraries in
+                guard var updatedTravel = self.travel else { return }
+                updatedTravel.itineraries = newItineraries
+                self.travel = updatedTravel
+            }
+        )
+    }
+
+    func reorderItinerary(_ itinerary: Itinerary, to newIndex: Int) {
+        let sortedItineraries = self.itineraries
+        guard let currentIndex = sortedItineraries.firstIndex(where: { $0.id == itinerary.id }),
+              currentIndex != newIndex,
+              newIndex >= 0,
+              newIndex < sortedItineraries.count else { return }
+
+        // Get the dates to swap
+        let movingItinerary = sortedItineraries[currentIndex]
+        let targetItinerary = sortedItineraries[newIndex]
+
+        let movingDate = movingItinerary.date
+        let targetDate = targetItinerary.date
+
+        // Update dates in the API
+        Task {
+            do {
+                // Swap the dates
+                if let targetDate = targetDate {
+                    try await apiClient.updateItinerary(id: movingItinerary.id, UpdateItineraryRequest(title: nil, date: targetDate))
+                }
+                if let movingDate = movingDate {
+                    try await apiClient.updateItinerary(id: targetItinerary.id, UpdateItineraryRequest(title: nil, date: movingDate))
+                }
+
+                // Refresh to get updated data
+                await refreshTravel()
+
+                // Update selected index to follow the moved item
+                if selectedItineraryIndex == currentIndex {
+                    selectedItineraryIndex = newIndex
+                } else if currentIndex < selectedItineraryIndex && newIndex >= selectedItineraryIndex {
+                    selectedItineraryIndex -= 1
+                } else if currentIndex > selectedItineraryIndex && newIndex <= selectedItineraryIndex {
+                    selectedItineraryIndex += 1
+                }
+            } catch {
+                print("DEBUG: Failed to reorder itinerary: \(error)")
+            }
+        }
     }
 
     var mapRegion: MKCoordinateRegion {

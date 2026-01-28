@@ -2,8 +2,8 @@ import SwiftUI
 
 // MARK: - App Colors
 extension Color {
-    // Primary brand color - Lime Green
-    static let appPrimary = Color(red: 0.012, green: 0.859, blue: 0.424)
+    // Primary brand color - Airbnb Rausch (Coral)
+    static let appPrimary = Color(red: 1.0, green: 0.353, blue: 0.373)
 
     // Background - Warm Beige
     static let appBackground = Color(red: 0.949, green: 0.941, blue: 0.914)
