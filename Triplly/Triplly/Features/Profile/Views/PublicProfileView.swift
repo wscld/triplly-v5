@@ -65,6 +65,11 @@ struct PublicProfileView: View {
                 }
                 .padding(.top, 20)
 
+                // Awards
+                if let awards = profile.awards, !awards.isEmpty {
+                    AwardsSection(awards: awards)
+                }
+
                 // Public Travels
                 if profile.travels.isEmpty {
                     VStack(spacing: 12) {

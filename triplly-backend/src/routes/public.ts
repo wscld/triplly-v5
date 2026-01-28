@@ -3,6 +3,7 @@ import { AppDataSource } from '../data-source.js';
 import { User } from '../entities/User.js';
 import { Travel } from '../entities/Travel.js';
 import { TravelMember } from '../entities/TravelMember.js';
+import { computeUserAwards } from '../services/awards.js';
 
 const publicRoutes = new Hono();
 
@@ -36,12 +37,15 @@ publicRoutes.get('/users/:username', async (c) => {
             longitude: m.travel.longitude,
         }));
 
+    const awards = await computeUserAwards(user.id);
+
     return c.json({
         id: user.id,
         name: user.name,
         username: user.username,
         profilePhotoUrl: user.profilePhotoUrl,
         travels: publicTravels,
+        awards,
     });
 });
 

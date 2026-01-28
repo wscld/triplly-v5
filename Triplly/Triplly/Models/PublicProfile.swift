@@ -6,6 +6,7 @@ struct PublicProfile: Codable, Identifiable, Equatable, Sendable {
     let username: String?
     let profilePhotoUrl: String?
     let travels: [PublicTravel]
+    let awards: [Award]?
 }
 
 struct PublicTravel: Codable, Identifiable, Equatable, Sendable {

@@ -8,6 +8,7 @@ import { AppDataSource } from '../data-source.js';
 import { User } from '../entities/index.js';
 import { authMiddleware, getAuth } from '../middleware/index.js';
 import { uploadProfilePhoto } from '../services/storage.js';
+import { computeUserAwards } from '../services/awards.js';
 
 // Apple's public key endpoint
 const APPLE_KEYS_URL = 'https://appleid.apple.com/auth/keys';
@@ -166,6 +167,8 @@ auth.get('/me', authMiddleware, async (c) => {
         return c.json({ error: 'User not found' }, 404);
     }
 
+    const awards = await computeUserAwards(userId);
+
     return c.json({
         id: user.id,
         email: user.email,
@@ -173,6 +176,7 @@ auth.get('/me', authMiddleware, async (c) => {
         username: user.username,
         profilePhotoUrl: user.profilePhotoUrl,
         createdAt: user.createdAt,
+        awards,
     });
 });
 
@@ -202,6 +206,8 @@ auth.patch('/me', authMiddleware, zValidator('json', updateProfileSchema), async
 
     await userRepo.save(user);
 
+    const awards = await computeUserAwards(userId);
+
     return c.json({
         id: user.id,
         email: user.email,
@@ -209,6 +215,7 @@ auth.patch('/me', authMiddleware, zValidator('json', updateProfileSchema), async
         username: user.username,
         profilePhotoUrl: user.profilePhotoUrl,
         createdAt: user.createdAt,
+        awards,
     });
 });
 
@@ -252,6 +259,8 @@ auth.post('/me/photo', authMiddleware, async (c) => {
         user.profilePhotoUrl = publicUrl;
         await userRepo.save(user);
 
+        const awards = await computeUserAwards(userId);
+
         return c.json({
             id: user.id,
             email: user.email,
@@ -259,6 +268,7 @@ auth.post('/me/photo', authMiddleware, async (c) => {
             username: user.username,
             profilePhotoUrl: user.profilePhotoUrl,
             createdAt: user.createdAt,
+            awards,
         });
     } catch (error) {
         console.error('Failed to upload profile photo:', error);

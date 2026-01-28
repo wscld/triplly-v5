@@ -14,6 +14,16 @@ struct ProfileView: View {
             .listRowInsets(EdgeInsets())
             .listRowBackground(Color.clear)
 
+            // Awards
+            if let awards = appState.currentUser?.awards, !awards.isEmpty {
+                Section {
+                    AwardsSection(awards: awards)
+                        .padding(.vertical, 4)
+                }
+                .listRowInsets(EdgeInsets())
+                .listRowBackground(Color.clear)
+            }
+
             // Settings
             Section("Settings") {
                 if appState.currentUser?.username != nil {
