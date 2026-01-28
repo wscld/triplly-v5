@@ -4,6 +4,7 @@ struct User: Codable, Identifiable, Equatable, Sendable {
     let id: String
     let email: String
     let name: String
+    let username: String?
     let profilePhotoUrl: String?
     let createdAt: String?
 }
@@ -20,6 +21,7 @@ extension User {
         id: "1",
         email: "john@example.com",
         name: "John Doe",
+        username: "johndoe",
         profilePhotoUrl: nil,
         createdAt: ISO8601DateFormatter().string(from: Date())
     )

@@ -6,3 +6,4 @@ export { default as activityRoutes } from './activities.js';
 export { default as commentRoutes } from './comments.js';
 export { default as todoRoutes } from './todos.js';
 export { default as companionRoutes } from './companion.js';
+export { default as publicRoutes } from './public.js';

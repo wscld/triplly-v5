@@ -118,10 +118,11 @@ struct SuggestionChip: View {
 
     var body: some View {
         Text(text)
-            .font(.caption)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(Color(.systemGray6))
+            .font(.caption.weight(.medium))
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(Color.appPrimary.opacity(0.12))
+            .foregroundStyle(Color.appPrimary)
             .clipShape(Capsule())
     }
 }
@@ -138,11 +139,11 @@ struct MessageBubble: View {
 
             VStack(alignment: message.role == .user ? .trailing : .leading, spacing: 4) {
                 Text(message.content)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 10)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
                     .background(message.role == .user ? Color.appPrimary : Color(.systemGray5))
                     .foregroundStyle(message.role == .user ? .white : .primary)
-                    .clipShape(RoundedRectangle(cornerRadius: 18))
+                    .clipShape(RoundedRectangle(cornerRadius: 20))
 
                 Text(message.timestamp, style: .time)
                     .font(.caption2)
@@ -177,10 +178,10 @@ struct TypingIndicator: View {
                         )
                 }
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 12)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
             .background(Color(.systemGray5))
-            .clipShape(RoundedRectangle(cornerRadius: 18))
+            .clipShape(RoundedRectangle(cornerRadius: 20))
 
             Spacer()
         }
@@ -202,15 +203,15 @@ struct InputBar: View {
             TextField("Ask me anything...", text: $text, axis: .vertical)
                 .textFieldStyle(.plain)
                 .lineLimit(1...5)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
                 .background(Color(.systemGray6))
-                .clipShape(RoundedRectangle(cornerRadius: 20))
+                .clipShape(RoundedRectangle(cornerRadius: 22))
                 .focused(isFocused)
 
             Button(action: onSend) {
                 Image(systemName: "arrow.up.circle.fill")
-                    .font(.system(size: 32))
+                    .font(.system(size: 36))
                     .foregroundStyle(canSend ? Color.appPrimary : Color(.systemGray4))
             }
             .disabled(!canSend)

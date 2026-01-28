@@ -89,6 +89,39 @@ struct EditTravelSheet: View {
                         endDate: $viewModel.editEndDate
                     )
 
+                    // Visibility Toggle
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Visibility")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+
+                        HStack(spacing: 12) {
+                            Image(systemName: viewModel.editIsPublic ? "globe" : "lock.fill")
+                                .font(.title3)
+                                .foregroundStyle(viewModel.editIsPublic ? Color.appPrimary : .secondary)
+                                .frame(width: 24)
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(viewModel.editIsPublic ? "Public" : "Private")
+                                    .font(.subheadline.weight(.medium))
+                                Text(viewModel.editIsPublic
+                                     ? "Anyone with the link can view this trip"
+                                     : "Only members can view this trip")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+
+                            Spacer()
+
+                            Toggle("", isOn: $viewModel.editIsPublic)
+                                .labelsHidden()
+                                .tint(Color.appPrimary)
+                        }
+                        .padding(12)
+                        .background(Color(.secondarySystemBackground))
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+
                     // Save Button
                     AppButton(
                         title: "Save Changes",

@@ -39,7 +39,7 @@ struct TravelsListView: View {
                 filterChips
                     .padding(.top, 16)
                     .padding(.bottom, 8)
-                    .background(Color(.systemGroupedBackground))
+                    .background(Color.appBackground)
                     .contentShape(Rectangle())
 
                 // Content
@@ -58,7 +58,7 @@ struct TravelsListView: View {
                 }
             }
         }
-        .background(Color(.systemGroupedBackground))
+        .background(Color.appBackground)
         .ignoresSafeArea(edges: .top)
         .refreshable {
             await viewModel.refreshTravels()
@@ -108,9 +108,9 @@ struct TravelsListView: View {
             // Gradient background
             LinearGradient(
                 colors: [
-                    Color.appPrimary.opacity(0.6),
-                    Color.appPrimary.opacity(0.3),
-                    Color(.systemGroupedBackground)
+                    Color.appPrimary.opacity(0.7),
+                    Color.appPrimary.opacity(0.4),
+                    Color.appBackground
                 ],
                 startPoint: .top,
                 endPoint: .bottom
@@ -120,7 +120,7 @@ struct TravelsListView: View {
                 // Top bar with avatar and actions
                 HStack {
                     // User avatar and name
-                    HStack(spacing: 10) {
+                    HStack(spacing: 12) {
                         AsyncImage(url: URL(string: appState.currentUser?.profilePhotoUrl ?? "")) { image in
                             image
                                 .resizable()
@@ -130,15 +130,15 @@ struct TravelsListView: View {
                                 .fill(Color.white.opacity(0.3))
                                 .overlay {
                                     Text(String(userName.prefix(1)).uppercased())
-                                        .font(.system(size: 14, weight: .semibold))
+                                        .font(.system(size: 16, weight: .semibold))
                                         .foregroundStyle(.white)
                                 }
                         }
-                        .frame(width: 36, height: 36)
+                        .frame(width: 40, height: 40)
                         .clipShape(Circle())
 
                         Text(userName)
-                            .font(.subheadline.weight(.medium))
+                            .font(.subheadline.weight(.semibold))
                             .foregroundStyle(.white)
                     }
 
@@ -151,8 +151,8 @@ struct TravelsListView: View {
                         Image(systemName: "magnifyingglass")
                             .font(.system(size: 18, weight: .medium))
                             .foregroundStyle(.white)
-                            .frame(width: 40, height: 40)
-                            .background(Color.white.opacity(0.2))
+                            .frame(width: 44, height: 44)
+                            .background(Color.white.opacity(0.25))
                             .clipShape(Circle())
                     }
                     .buttonStyle(FilterChipButtonStyle())
@@ -170,24 +170,6 @@ struct TravelsListView: View {
                         Text(userName)
                             .font(.system(size: 42, weight: .bold))
                             .foregroundStyle(.white)
-
-                        // AI Travel chip - opens companion
-                        Button {
-                            showCompanion = true
-                        } label: {
-                            HStack(spacing: 4) {
-                                Image(systemName: "sparkles")
-                                    .font(.caption2)
-                                Text("AI")
-                                    .font(.caption.weight(.medium))
-                            }
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 6)
-                            .background(Color.white.opacity(0.25))
-                            .clipShape(Capsule())
-                        }
-                        .buttonStyle(FilterChipButtonStyle())
                     }
                 }
                 .padding(.horizontal, 20)
@@ -216,20 +198,21 @@ struct TravelsListView: View {
                 Button {
                     viewModel.showingCreateSheet = true
                 } label: {
-                    HStack(spacing: 4) {
+                    HStack(spacing: 6) {
                         Image(systemName: "plus")
                         Text("New Trip")
                     }
-                    .font(.subheadline.weight(.medium))
+                    .font(.subheadline.weight(.semibold))
                     .foregroundStyle(Color.appPrimary)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
-                    .background(Color.appPrimary.opacity(0.1))
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 12)
+                    .background(Color.appPrimary.opacity(0.15))
                     .clipShape(Capsule())
                 }
                 .buttonStyle(FilterChipButtonStyle())
             }
             .padding(.horizontal, 20)
+            .padding(.vertical, 12)
         }
     }
 
@@ -253,41 +236,53 @@ struct TravelsListView: View {
     }
 
     private func errorContent(_ error: Error) -> some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 20) {
             Image(systemName: "exclamationmark.triangle")
-                .font(.system(size: 48))
-                .foregroundStyle(.red)
+                .font(.system(size: 56))
+                .foregroundStyle(.red.opacity(0.7))
             Text("Something went wrong")
-                .font(.headline)
+                .font(.title3.weight(.semibold))
             Text(error.localizedDescription)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
-            Button("Try Again") {
+            Button {
                 Task { await viewModel.loadTravels() }
+            } label: {
+                Text("Try Again")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 28)
+                    .padding(.vertical, 14)
+                    .background(Color.appPrimary)
+                    .clipShape(Capsule())
             }
-            .buttonStyle(.borderedProminent)
-            .tint(Color.appPrimary)
         }
         .padding()
     }
 
     private var emptyContent: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 20) {
             Image(systemName: "airplane")
-                .font(.system(size: 48))
-                .foregroundStyle(.secondary)
+                .font(.system(size: 56))
+                .foregroundStyle(Color.appPrimary.opacity(0.6))
             Text("No trips yet")
-                .font(.headline)
+                .font(.title3.weight(.semibold))
             Text("Start planning your next adventure")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
-            Button("Create Trip") {
+            Button {
                 viewModel.showingCreateSheet = true
+            } label: {
+                Text("Create Trip")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 28)
+                    .padding(.vertical, 14)
+                    .background(Color.appPrimary)
+                    .clipShape(Capsule())
             }
-            .buttonStyle(.borderedProminent)
-            .tint(Color.appPrimary)
         }
         .padding()
     }
@@ -346,13 +341,13 @@ struct FilterChip: View {
             action()
         } label: {
             Text(title)
-                .font(.subheadline.weight(.medium))
+                .font(.subheadline.weight(.semibold))
                 .foregroundStyle(isSelected ? .white : .primary)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 10)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 12)
                 .background(isSelected ? Color.appPrimary : Color(.systemBackground))
                 .clipShape(Capsule())
-                .shadow(color: Color.black.opacity(isSelected ? 0 : 0.05), radius: 4, y: 2)
+                .shadow(color: Color.black.opacity(isSelected ? 0 : 0.06), radius: 6, y: 3)
         }
         .buttonStyle(FilterChipButtonStyle())
     }
@@ -398,28 +393,28 @@ struct TravelCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            TravelCoverImage(coverUrl: travel.coverImageUrl, height: 140, cornerRadius: 0)
-                .clipShape(UnevenRoundedRectangle(topLeadingRadius: 12, bottomLeadingRadius: 0, bottomTrailingRadius: 0, topTrailingRadius: 12))
+            TravelCoverImage(coverUrl: travel.coverImageUrl, height: 160, cornerRadius: 0)
+                .clipShape(UnevenRoundedRectangle(topLeadingRadius: 20, bottomLeadingRadius: 0, bottomTrailingRadius: 0, topTrailingRadius: 20))
 
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 10) {
                 HStack {
                     Text(travel.title)
-                        .font(.headline)
+                        .font(.system(size: 18, weight: .semibold))
                         .lineLimit(1)
                     Spacer()
                     if travel.role != .owner {
                         Text(travel.role.rawValue.capitalized)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(Color(.systemGray5))
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(Color.appPrimary)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(Color.appPrimary.opacity(0.12))
                             .clipShape(Capsule())
                     }
                 }
 
                 if let dateRange = travel.formattedDateRange {
-                    HStack(spacing: 4) {
+                    HStack(spacing: 6) {
                         Image(systemName: "calendar")
                             .font(.caption)
                         Text(dateRange)
@@ -435,11 +430,11 @@ struct TravelCard: View {
                         .lineLimit(2)
                 }
             }
-            .padding(16)
+            .padding(18)
         }
         .background(Color(.systemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-        .shadow(color: Color.black.opacity(0.05), radius: 8, y: 2)
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .shadow(color: Color.black.opacity(0.08), radius: 12, y: 4)
     }
 }
 

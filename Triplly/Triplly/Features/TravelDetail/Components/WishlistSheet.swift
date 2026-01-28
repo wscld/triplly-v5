@@ -90,13 +90,14 @@ struct WishlistSheet: View {
                                         }
                                     }
                                     .frame(height: 200)
-                                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                                    .clipShape(RoundedRectangle(cornerRadius: 16))
                                     .padding(.horizontal, 12)
                                     .padding(.bottom, 12)
                                 }
                             }
                             .background(Color(.systemBackground))
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .clipShape(RoundedRectangle(cornerRadius: 18))
+                            .shadow(color: Color.black.opacity(0.06), radius: 10, y: 4)
                             .padding(.horizontal, 16)
 
                             // Activities List
@@ -126,7 +127,7 @@ struct WishlistSheet: View {
                     }
                 }
             }
-            .background(Color(.systemGroupedBackground))
+            .background(Color.appBackground)
             .navigationTitle("Wishlist")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -168,13 +169,13 @@ struct WishlistSheet: View {
     }
 
     private var emptyState: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 20) {
             Image(systemName: "star")
-                .font(.system(size: 48))
-                .foregroundStyle(.secondary)
+                .font(.system(size: 56))
+                .foregroundStyle(Color.appPrimary.opacity(0.6))
 
             Text("No wishlist items")
-                .font(.headline)
+                .font(.title3.weight(.semibold))
 
             Text("Save places you want to visit and assign them to days later")
                 .font(.subheadline)
@@ -188,8 +189,8 @@ struct WishlistSheet: View {
                 Text("Add First Item")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.white)
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 10)
+                    .padding(.horizontal, 28)
+                    .padding(.vertical, 14)
                     .background(Color.appPrimary)
                     .clipShape(Capsule())
             }
@@ -203,6 +204,9 @@ struct WishlistActivityRow: View {
     let activity: Activity
     let itineraries: [Itinerary]
     let onAssign: (String) -> Void
+
+    @State private var selectedItinerary: (id: String, title: String)?
+    @State private var showingAssignConfirmation = false
 
     var body: some View {
         HStack(spacing: 12) {
@@ -231,7 +235,9 @@ struct WishlistActivityRow: View {
                 Menu {
                     ForEach(Array(itineraries.enumerated()), id: \.element.id) { index, itinerary in
                         Button {
-                            onAssign(itinerary.id)
+                            let displayTitle = itinerary.title.isEmpty ? "Day \(index + 1)" : itinerary.title
+                            selectedItinerary = (id: itinerary.id, title: displayTitle)
+                            showingAssignConfirmation = true
                         } label: {
                             Label(
                                 itinerary.title.isEmpty ? "Day \(index + 1)" : itinerary.title,
@@ -248,7 +254,23 @@ struct WishlistActivityRow: View {
         }
         .padding(12)
         .background(Color(.systemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .shadow(color: Color.black.opacity(0.06), radius: 8, y: 3)
+        .alert("Add to Itinerary", isPresented: $showingAssignConfirmation) {
+            Button("Cancel", role: .cancel) {
+                selectedItinerary = nil
+            }
+            Button("Add") {
+                if let itinerary = selectedItinerary {
+                    onAssign(itinerary.id)
+                }
+                selectedItinerary = nil
+            }
+        } message: {
+            if let itinerary = selectedItinerary {
+                Text("Add \"\(activity.title)\" to \(itinerary.title)?")
+            }
+        }
     }
 }
 
@@ -257,12 +279,12 @@ struct WishlistMapPinView: View {
     var body: some View {
         ZStack {
             Circle()
-                .fill(Color.yellow)
-                .frame(width: 28, height: 28)
-                .shadow(color: Color.yellow.opacity(0.4), radius: 4, y: 2)
+                .fill(Color.orange)
+                .frame(width: 32, height: 32)
+                .shadow(color: Color.orange.opacity(0.4), radius: 6, y: 3)
 
             Image(systemName: "star.fill")
-                .font(.system(size: 12, weight: .bold))
+                .font(.system(size: 14, weight: .bold))
                 .foregroundStyle(.white)
         }
     }
@@ -331,12 +353,12 @@ struct AddWishlistItemSheet: View {
                                         .foregroundStyle(.secondary)
                                 }
                             }
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 14)
+                            .padding(.horizontal, 18)
+                            .padding(.vertical, 16)
                             .background(Color(.systemBackground))
-                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                             .overlay {
-                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                RoundedRectangle(cornerRadius: 16, style: .continuous)
                                     .stroke(Color(.systemGray4), lineWidth: 1)
                             }
                         }

@@ -157,7 +157,7 @@ struct NetworkAvatarView: View {
 struct TravelCoverImage: View {
     let coverUrl: String?
     var height: CGFloat = 200
-    var cornerRadius: CGFloat = LiquidGlass.cornerRadius
+    var cornerRadius: CGFloat = 20
 
     var body: some View {
         Group {
@@ -166,14 +166,14 @@ struct TravelCoverImage: View {
             } else {
                 ZStack {
                     LinearGradient(
-                        colors: [Color.appPrimary.opacity(0.3), Color.appPrimary.opacity(0.1)],
+                        colors: [Color.appPrimary.opacity(0.35), Color.appPrimary.opacity(0.15)],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
 
                     Image(systemName: "airplane.departure")
-                        .font(.system(size: 40))
-                        .foregroundStyle(Color.appPrimary.opacity(0.5))
+                        .font(.system(size: 44))
+                        .foregroundStyle(Color.appPrimary.opacity(0.6))
                 }
             }
         }

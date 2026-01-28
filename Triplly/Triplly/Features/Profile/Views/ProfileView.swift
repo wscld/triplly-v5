@@ -16,6 +16,22 @@ struct ProfileView: View {
 
             // Settings
             Section("Settings") {
+                if appState.currentUser?.username != nil {
+                    Button {
+                        if let username = appState.currentUser?.username {
+                            let url = "https://app.triplly.com/u/\(username)"
+                            UIPasteboard.general.string = url
+                        }
+                    } label: {
+                        SettingsRow(
+                            icon: "square.and.arrow.up",
+                            iconColor: Color.appPrimary,
+                            title: "Share Profile"
+                        )
+                    }
+                    .tint(.primary)
+                }
+
                 SettingsRow(
                     icon: "bell",
                     iconColor: Color.appPrimary,
@@ -77,6 +93,12 @@ struct ProfileView: View {
             VStack(spacing: 4) {
                 Text(appState.currentUser?.name ?? "User")
                     .font(.title2.bold())
+
+                if let username = appState.currentUser?.username {
+                    Text("@\(username)")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(Color.appPrimary)
+                }
 
                 Text(appState.currentUser?.email ?? "")
                     .font(.subheadline)
@@ -161,10 +183,16 @@ struct EditProfileSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var name: String = ""
+    @State private var username: String = ""
     @State private var selectedPhoto: PhotosPickerItem?
     @State private var selectedPhotoData: Data?
     @State private var isLoading = false
     @State private var errorMessage: String?
+
+    // Username availability
+    @State private var usernameAvailable: Bool?
+    @State private var isCheckingUsername = false
+    @State private var usernameCheckTask: Task<Void, Never>?
 
     var body: some View {
         NavigationStack {
@@ -206,6 +234,45 @@ struct EditProfileSheet: View {
                     TextField("Your name", text: $name)
                         .textContentType(.name)
                         .autocorrectionDisabled()
+                }
+
+                // Username Section
+                Section {
+                    HStack {
+                        Text("@")
+                            .foregroundStyle(.secondary)
+                        TextField("username", text: $username)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                            .onChange(of: username) { _, newValue in
+                                // Sanitize: lowercase, only alphanumeric + underscores
+                                let sanitized = String(newValue.lowercased().filter { $0.isLetter || $0.isNumber || $0 == "_" })
+                                if sanitized != newValue {
+                                    username = sanitized
+                                }
+                                checkUsernameAvailability()
+                            }
+
+                        if isCheckingUsername {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                        } else if username.count >= 3 {
+                            if let available = usernameAvailable {
+                                Image(systemName: available ? "checkmark.circle.fill" : "xmark.circle.fill")
+                                    .foregroundStyle(available ? .green : .red)
+                            }
+                        }
+                    }
+                } header: {
+                    Text("Username")
+                } footer: {
+                    if !username.isEmpty && username.count < 3 {
+                        Text("Username must be at least 3 characters")
+                            .foregroundStyle(.orange)
+                    } else if let available = usernameAvailable, !available, username.count >= 3 {
+                        Text("This username is already taken")
+                            .foregroundStyle(.red)
+                    }
                 }
 
                 // Error Message
@@ -252,10 +319,41 @@ struct EditProfileSheet: View {
             }
             .onAppear {
                 name = appState.currentUser?.name ?? ""
+                username = appState.currentUser?.username ?? ""
             }
         }
-        .presentationDetents([.medium])
+        .presentationDetents([.large])
         .presentationDragIndicator(.visible)
+    }
+
+    private func checkUsernameAvailability() {
+        usernameCheckTask?.cancel()
+        usernameAvailable = nil
+
+        guard username.count >= 3 else { return }
+
+        // If unchanged from current, it's available
+        if username == appState.currentUser?.username {
+            usernameAvailable = true
+            return
+        }
+
+        usernameCheckTask = Task {
+            // Debounce 500ms
+            try? await Task.sleep(nanoseconds: 500_000_000)
+            guard !Task.isCancelled else { return }
+
+            isCheckingUsername = true
+            do {
+                let result = try await APIClient.shared.checkUsernameAvailability(username)
+                if !Task.isCancelled {
+                    usernameAvailable = result.available
+                }
+            } catch {
+                // Silent fail
+            }
+            isCheckingUsername = false
+        }
     }
 
     private func saveProfile() async {
@@ -277,10 +375,18 @@ struct EditProfileSheet: View {
                 appState.currentUser = updatedUser
             }
 
-            // Update name if changed
+            // Update name and/or username if changed
             let trimmedName = name.trimmingCharacters(in: .whitespaces)
-            if trimmedName != appState.currentUser?.name && !trimmedName.isEmpty {
-                let updatedUser = try await APIClient.shared.updateProfile(name: trimmedName)
+            let trimmedUsername = username.trimmingCharacters(in: .whitespaces)
+
+            let nameChanged = trimmedName != appState.currentUser?.name && !trimmedName.isEmpty
+            let usernameChanged = trimmedUsername != (appState.currentUser?.username ?? "") && trimmedUsername.count >= 3
+
+            if nameChanged || usernameChanged {
+                let updatedUser = try await APIClient.shared.updateProfile(
+                    name: nameChanged ? trimmedName : nil,
+                    username: usernameChanged ? trimmedUsername : nil
+                )
                 appState.currentUser = updatedUser
             }
 

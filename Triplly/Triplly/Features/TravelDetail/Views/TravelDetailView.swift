@@ -45,7 +45,7 @@ struct TravelDetailView: View {
 
     var body: some View {
         ZStack {
-            Color(.systemGroupedBackground)
+            Color.appBackground
                 .ignoresSafeArea()
 
             if let error = viewModel.error, viewModel.travel == nil {
@@ -65,17 +65,17 @@ struct TravelDetailView: View {
                     dismiss()
                 } label: {
                     Image(systemName: "chevron.left")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(.black)
-                        .frame(width: 36, height: 36)
-                        .background(.white.opacity(0.9))
+                        .frame(width: 32, height: 32)
+                        .background(.white.opacity(0.92))
                         .clipShape(Circle())
-                        .shadow(color: .black.opacity(0.15), radius: 8, y: 2)
+                        .shadow(color: .black.opacity(0.12), radius: 10, y: 3)
                 }
             }
 
             ToolbarItem(placement: .navigationBarTrailing) {
-                HStack(spacing: 8) {
+                HStack(spacing: 10) {
                     Button {
                         if appState.showMapSheet {
                             appState.hideMapSheet()
@@ -87,24 +87,24 @@ struct TravelDetailView: View {
                         }
                     } label: {
                         Image(systemName: appState.showMapSheet ? "map.fill" : "map")
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(.system(size: 12, weight: .semibold))
                             .foregroundStyle(.black)
-                            .frame(width: 36, height: 36)
-                            .background(.white.opacity(0.9))
+                            .frame(width: 32, height: 32)
+                            .background(.white.opacity(0.92))
                             .clipShape(Circle())
-                            .shadow(color: .black.opacity(0.15), radius: 8, y: 2)
+                            .shadow(color: .black.opacity(0.12), radius: 10, y: 3)
                     }
 
                     Button {
                         showingEditTravel = true
                     } label: {
                         Image(systemName: "pencil")
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(.system(size: 12, weight: .semibold))
                             .foregroundStyle(.black)
-                            .frame(width: 36, height: 36)
-                            .background(.white.opacity(0.9))
+                            .frame(width: 32, height: 32)
+                            .background(.white.opacity(0.92))
                             .clipShape(Circle())
-                            .shadow(color: .black.opacity(0.15), radius: 8, y: 2)
+                            .shadow(color: .black.opacity(0.12), radius: 10, y: 3)
                     }
 
                     Menu {
@@ -137,12 +137,12 @@ struct TravelDetailView: View {
                         }
                     } label: {
                         Image(systemName: "ellipsis")
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(.system(size: 12, weight: .semibold))
                             .foregroundStyle(.black)
-                            .frame(width: 36, height: 36)
-                            .background(.white.opacity(0.9))
+                            .frame(width: 32, height: 32)
+                            .background(.white.opacity(0.92))
                             .clipShape(Circle())
-                            .shadow(color: .black.opacity(0.15), radius: 8, y: 2)
+                            .shadow(color: .black.opacity(0.12), radius: 10, y: 3)
                     }
                 }
             }
@@ -272,7 +272,7 @@ struct TravelDetailView: View {
             }
         }
         .ignoresSafeArea(edges: .top)
-        .background(Color(.systemGroupedBackground))
+        .background(Color.appBackground)
     }
 
     // MARK: - Info Chips Section (Airbnb style)
@@ -296,6 +296,7 @@ struct TravelDetailView: View {
                     InfoChip(icon: "mappin", text: "\(activityCount) places")
                 }
             }
+            .padding(.vertical, 12)
         }
     }
 
@@ -372,9 +373,10 @@ struct TravelDetailView: View {
             }
             .buttonStyle(StatButtonStyle())
         }
-        .padding(.vertical, 14)
+        .padding(.vertical, 16)
         .background(Color(.systemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .shadow(color: Color.black.opacity(0.06), radius: 10, y: 4)
     }
 
     // MARK: - Day Selector
@@ -420,6 +422,7 @@ struct TravelDetailView: View {
                         }
                     }
                 }
+                .padding(.vertical, 12)
 
                 // Add Day Button
                 Button {
@@ -431,11 +434,11 @@ struct TravelDetailView: View {
                         Text("Add")
                             .font(.system(size: 10, weight: .semibold, design: .rounded))
                     }
-                    .foregroundStyle(.primary)
-                    .frame(width: 56, height: 72)
+                    .foregroundStyle(Color.appPrimary)
+                    .frame(width: 60, height: 76)
                     .background(
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .stroke(Color(.systemGray4), style: StrokeStyle(lineWidth: 1.5, dash: [6, 4]))
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .stroke(Color.appPrimary.opacity(0.4), style: StrokeStyle(lineWidth: 1.5, dash: [6, 4]))
                     )
                 }
                 .buttonStyle(ScaleButtonStyle())
@@ -470,6 +473,8 @@ struct TravelDetailView: View {
                                 .frame(width: 32, height: 32)
                                 .background(Color(.secondarySystemBackground))
                                 .clipShape(Circle())
+                            Text("Add activity")
+                                .font(.system(size: 10, weight: .semibold, design: .rounded))
                         }
                     }
                 }
@@ -528,17 +533,18 @@ struct InfoChip: View {
     let text: String
 
     var body: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: 7) {
             Image(systemName: icon)
                 .font(.system(size: 12, weight: .medium, design: .rounded))
             Text(text)
-                .font(.system(.subheadline, design: .rounded))
+                .font(.system(.subheadline, design: .rounded).weight(.medium))
         }
         .foregroundStyle(.primary)
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
         .background(Color(.systemBackground))
         .clipShape(Capsule())
+        .shadow(color: Color.black.opacity(0.05), radius: 6, y: 2)
     }
 }
 
@@ -773,13 +779,14 @@ struct DayChip: View {
                     .font(.system(size: 18, weight: .bold, design: .rounded))
                     .foregroundStyle(isSelected ? .white : .primary)
             }
-            .frame(width: 56, height: 72)
+            .frame(width: 60, height: 76)
             .background(isSelected ? Color.appPrimary : Color(.systemBackground))
-            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .shadow(color: Color.black.opacity(isSelected ? 0 : 0.06), radius: 8, y: 3)
             .overlay {
                 if isDropTarget {
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .stroke(Color.black, lineWidth: 2)
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .stroke(Color.appPrimary, lineWidth: 2)
                 }
             }
             .scaleEffect(isDropTarget ? 1.05 : 1.0)
@@ -1339,10 +1346,10 @@ struct EmptyActivitiesCard: View {
     let action: () -> Void
 
     var body: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 20) {
             Image(systemName: "mappin.and.ellipse")
-                .font(.system(size: 32, weight: .medium, design: .rounded))
-                .foregroundStyle(.secondary)
+                .font(.system(size: 40, weight: .medium, design: .rounded))
+                .foregroundStyle(Color.appPrimary.opacity(0.6))
 
             VStack(spacing: 6) {
                 Text("No places added")
@@ -1356,9 +1363,9 @@ struct EmptyActivitiesCard: View {
                 Text("Add Place")
                     .font(.system(.subheadline, design: .rounded).weight(.semibold))
                     .foregroundStyle(.white)
-                    .padding(.horizontal, 24)
-                    .padding(.vertical, 12)
-                    .background(Color.black)
+                    .padding(.horizontal, 28)
+                    .padding(.vertical, 14)
+                    .background(Color.appPrimary)
                     .clipShape(Capsule())
             }
         }
@@ -1371,10 +1378,10 @@ struct EmptyDaysCard: View {
     let action: () -> Void
 
     var body: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 20) {
             Image(systemName: "calendar.badge.plus")
-                .font(.system(size: 32, weight: .medium, design: .rounded))
-                .foregroundStyle(.secondary)
+                .font(.system(size: 40, weight: .medium, design: .rounded))
+                .foregroundStyle(Color.appPrimary.opacity(0.6))
 
             VStack(spacing: 6) {
                 Text("No days planned")
@@ -1388,9 +1395,9 @@ struct EmptyDaysCard: View {
                 Text("Add Day")
                     .font(.system(.subheadline, design: .rounded).weight(.semibold))
                     .foregroundStyle(.white)
-                    .padding(.horizontal, 24)
-                    .padding(.vertical, 12)
-                    .background(Color.black)
+                    .padding(.horizontal, 28)
+                    .padding(.vertical, 14)
+                    .background(Color.appPrimary)
                     .clipShape(Capsule())
             }
         }

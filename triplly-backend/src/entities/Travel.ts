@@ -40,6 +40,8 @@ export class Travel {
     @Column({ type: 'decimal', precision: 10, scale: 7, nullable: true })
     longitude: number | null;
 
+    @Column({ type: 'boolean', default: false })
+    isPublic: boolean;
 
     @CreateDateColumn()
     createdAt: Date;

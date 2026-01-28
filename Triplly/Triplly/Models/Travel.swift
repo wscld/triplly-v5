@@ -12,6 +12,7 @@ struct Travel: Codable, Identifiable, Equatable, Sendable {
     let ownerId: String?
     let owner: TravelOwner
     let createdAt: String?
+    let isPublic: Bool?
     var itineraries: [Itinerary]?
 
     var latitudeDouble: Double? {
@@ -41,6 +42,7 @@ struct TravelListItem: Codable, Identifiable, Equatable, Hashable, Sendable {
     let ownerId: String?
     let owner: TravelOwner
     let createdAt: String?
+    let isPublic: Bool?
     let role: TravelRole
     var itineraries: [Itinerary]?
 
@@ -92,6 +94,7 @@ struct UpdateTravelRequest: Codable, Sendable {
     let endDate: String?
     let latitude: Double?
     let longitude: Double?
+    let isPublic: Bool?
 }
 
 struct InviteMemberRequest: Codable, Sendable {
@@ -170,6 +173,7 @@ extension Travel {
         ownerId: "1",
         owner: TravelOwner(id: "1", name: "John Doe", email: "john@example.com"),
         createdAt: ISO8601DateFormatter().string(from: Date()),
+        isPublic: false,
         itineraries: []
     )
 }
@@ -187,6 +191,7 @@ extension TravelListItem {
         ownerId: "1",
         owner: TravelOwner(id: "1", name: "John Doe", email: "john@example.com"),
         createdAt: ISO8601DateFormatter().string(from: Date()),
+        isPublic: false,
         role: .owner,
         itineraries: []
     )

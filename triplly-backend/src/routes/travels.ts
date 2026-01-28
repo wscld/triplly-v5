@@ -20,6 +20,7 @@ const createTravelSchema = z.object({
     coverImageUrl: z.string().url().nullable().optional(),
     latitude: z.number().nullable().optional(),
     longitude: z.number().nullable().optional(),
+    isPublic: z.boolean().optional(),
 });
 
 const updateTravelSchema = createTravelSchema.partial();
@@ -44,6 +45,7 @@ travels.get('/', async (c) => {
         coverImageUrl: m.travel.coverImageUrl,
         latitude: m.travel.latitude,
         longitude: m.travel.longitude,
+        isPublic: m.travel.isPublic,
         role: m.role,
         owner: {
             id: m.travel.owner.id,
@@ -134,6 +136,15 @@ travels.patch('/:travelId', requireTravelAccess('editor'), zValidator('json', up
     if (data.coverImageUrl !== undefined) travel.coverImageUrl = data.coverImageUrl;
     if (data.latitude !== undefined) travel.latitude = data.latitude;
     if (data.longitude !== undefined) travel.longitude = data.longitude;
+
+    if (data.isPublic !== undefined) {
+        // Only the owner can toggle isPublic
+        const { userId } = getAuth(c);
+        if (travel.ownerId !== userId) {
+            return c.json({ error: 'Only the owner can change visibility' }, 403);
+        }
+        travel.isPublic = data.isPublic;
+    }
 
     await travelRepo.save(travel);
     return c.json(travel);

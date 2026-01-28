@@ -2,11 +2,11 @@ import SwiftUI
 
 // MARK: - App Colors
 extension Color {
-    // Primary brand color - Airbnb Rausch (Coral)
-    static let appPrimary = Color(red: 1.0, green: 0.353, blue: 0.373)
+    // Primary brand color - Olive/Lime Green
+    static let appPrimary = Color(red: 0.604, green: 0.722, blue: 0.345)
 
-    // Background - Warm Beige
-    static let appBackground = Color(red: 0.949, green: 0.941, blue: 0.914)
+    // Background - Warm Cream
+    static let appBackground = Color(red: 0.965, green: 0.957, blue: 0.937)
 
     // System colors
     static let appBlack = Color(red: 0.11, green: 0.11, blue: 0.118)
@@ -41,9 +41,9 @@ struct LiquidGlass {
     static let thickMaterial = Material.thickMaterial
 
     // Corner radius for glass cards
-    static let cornerRadius: CGFloat = 24
-    static let smallCornerRadius: CGFloat = 16
-    static let microCornerRadius: CGFloat = 12
+    static let cornerRadius: CGFloat = 28
+    static let smallCornerRadius: CGFloat = 20
+    static let microCornerRadius: CGFloat = 14
 
     // Shadows
     static let shadowRadius: CGFloat = 20

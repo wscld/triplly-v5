@@ -30,6 +30,7 @@ final class TravelDetailViewModel: ObservableObject {
     @Published var editDescription = ""
     @Published var editStartDate: Date?
     @Published var editEndDate: Date?
+    @Published var editIsPublic = false
 
     // MARK: - Add Day State
     @Published var isCreatingDay = false
@@ -170,6 +171,7 @@ final class TravelDetailViewModel: ObservableObject {
             // Initialize edit form
             editTitle = fetchedTravel.title
             editDescription = fetchedTravel.description ?? ""
+            editIsPublic = fetchedTravel.isPublic ?? false
 
             if let startStr = fetchedTravel.startDate {
                 let formatter = DateFormatter()
@@ -243,7 +245,8 @@ final class TravelDetailViewModel: ObservableObject {
             startDate: editStartDate.map { formatter.string(from: $0) },
             endDate: editEndDate.map { formatter.string(from: $0) },
             latitude: travel?.latitudeDouble,
-            longitude: travel?.longitudeDouble
+            longitude: travel?.longitudeDouble,
+            isPublic: editIsPublic
         )
 
         do {

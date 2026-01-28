@@ -157,11 +157,11 @@ actor APIClient {
         )
     }
 
-    func updateProfile(name: String) async throws -> User {
+    func updateProfile(name: String? = nil, username: String? = nil) async throws -> User {
         try await request(
             path: "/auth/me",
             method: .patch,
-            body: UpdateProfileRequest(name: name)
+            body: UpdateProfileRequest(name: name, username: username)
         )
     }
 
@@ -407,6 +407,15 @@ actor APIClient {
             body: CompanionRequest(message: message, conversationHistory: history)
         )
     }
+
+    // MARK: - Public Profile Endpoints
+    func getPublicProfile(username: String) async throws -> PublicProfile {
+        try await request(path: "/public/users/\(username)")
+    }
+
+    func checkUsernameAvailability(_ username: String) async throws -> UsernameAvailability {
+        try await request(path: "/public/users/\(username)/available")
+    }
 }
 
 // MARK: - HTTP Method
@@ -434,7 +443,8 @@ private struct ErrorResponse: Codable {
 }
 
 private struct UpdateProfileRequest: Codable {
-    let name: String
+    let name: String?
+    let username: String?
 }
 
 private struct AppleSignInRequest: Codable {

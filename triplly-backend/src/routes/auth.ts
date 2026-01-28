@@ -27,6 +27,7 @@ const loginSchema = z.object({
 
 const updateProfileSchema = z.object({
     name: z.string().min(1).optional(),
+    username: z.string().min(3).max(30).regex(/^[a-z0-9_]+$/).optional(),
 });
 
 const appleSignInSchema = z.object({
@@ -57,7 +58,7 @@ auth.post('/register', zValidator('json', registerSchema), async (c) => {
     );
 
     return c.json({
-        user: { id: user.id, email: user.email, name: user.name },
+        user: { id: user.id, email: user.email, name: user.name, username: user.username },
         token,
     }, 201);
 });
@@ -87,7 +88,7 @@ auth.post('/login', zValidator('json', loginSchema), async (c) => {
     );
 
     return c.json({
-        user: { id: user.id, email: user.email, name: user.name },
+        user: { id: user.id, email: user.email, name: user.name, username: user.username },
         token,
     });
 });
@@ -146,7 +147,7 @@ auth.post('/apple', zValidator('json', appleSignInSchema), async (c) => {
         );
 
         return c.json({
-            user: { id: user.id, email: user.email, name: user.name },
+            user: { id: user.id, email: user.email, name: user.name, username: user.username },
             token,
         });
     } catch (error) {
@@ -169,6 +170,7 @@ auth.get('/me', authMiddleware, async (c) => {
         id: user.id,
         email: user.email,
         name: user.name,
+        username: user.username,
         profilePhotoUrl: user.profilePhotoUrl,
         createdAt: user.createdAt,
     });
@@ -189,12 +191,22 @@ auth.patch('/me', authMiddleware, zValidator('json', updateProfileSchema), async
         user.name = data.name;
     }
 
+    if (data.username !== undefined) {
+        // Check uniqueness
+        const existing = await userRepo.findOne({ where: { username: data.username } });
+        if (existing && existing.id !== user.id) {
+            return c.json({ error: 'Username already taken' }, 400);
+        }
+        user.username = data.username;
+    }
+
     await userRepo.save(user);
 
     return c.json({
         id: user.id,
         email: user.email,
         name: user.name,
+        username: user.username,
         profilePhotoUrl: user.profilePhotoUrl,
         createdAt: user.createdAt,
     });
@@ -244,6 +256,7 @@ auth.post('/me/photo', authMiddleware, async (c) => {
             id: user.id,
             email: user.email,
             name: user.name,
+            username: user.username,
             profilePhotoUrl: user.profilePhotoUrl,
             createdAt: user.createdAt,
         });

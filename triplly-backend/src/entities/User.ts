@@ -22,6 +22,9 @@ export class User {
     @Column('varchar', { unique: true, nullable: true })
     appleId: string | null;
 
+    @Column('varchar', { unique: true, nullable: true })
+    username: string | null;
+
     @Column('varchar')
     name: string;
 
