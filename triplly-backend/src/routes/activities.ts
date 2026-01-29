@@ -269,6 +269,8 @@ activities.get('/:activityId', async (c) => {
                 id: true,
                 name: true,
                 email: true,
+                username: true,
+                profilePhotoUrl: true,
             },
         },
     });

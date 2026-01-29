@@ -6,10 +6,6 @@
 	objectVersion = 77;
 	objects = {
 
-/* Begin PBXBuildFile section */
-		C93DCBC32F2A525200B6F02A /* FlowStack in Frameworks */ = {isa = PBXBuildFile; productRef = C93DCBC22F2A525200B6F02A /* FlowStack */; };
-/* End PBXBuildFile section */
-
 /* Begin PBXContainerItemProxy section */
 		C92DBBED2F28137A006345CD /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -56,7 +52,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C93DCBC32F2A525200B6F02A /* FlowStack in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -117,7 +112,6 @@
 			);
 			name = Triplly;
 			packageProductDependencies = (
-				C93DCBC22F2A525200B6F02A /* FlowStack */,
 			);
 			productName = Triplly;
 			productReference = C92DBBDF2F281378006345CD /* Triplly.app */;
@@ -202,7 +196,6 @@
 			mainGroup = C92DBBD62F281378006345CD;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				C93DCBC12F2A50AD00B6F02A /* XCRemoteSwiftPackageReference "FlowStack" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = C92DBBE02F281378006345CD /* Products */;
@@ -408,7 +401,7 @@
 				DEVELOPMENT_TEAM = 3J6P649GKQ;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = Triplly/Info.plist;
+				INFOPLIST_FILE = Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -443,7 +436,7 @@
 				DEVELOPMENT_TEAM = 3J6P649GKQ;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = Triplly/Info.plist;
+				INFOPLIST_FILE = Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -587,25 +580,6 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
-
-/* Begin XCRemoteSwiftPackageReference section */
-		C93DCBC12F2A50AD00B6F02A /* XCRemoteSwiftPackageReference "FlowStack" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/velos/FlowStack.git";
-			requirement = {
-				branch = develop;
-				kind = branch;
-			};
-		};
-/* End XCRemoteSwiftPackageReference section */
-
-/* Begin XCSwiftPackageProductDependency section */
-		C93DCBC22F2A525200B6F02A /* FlowStack */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = C93DCBC12F2A50AD00B6F02A /* XCRemoteSwiftPackageReference "FlowStack" */;
-			productName = FlowStack;
-		};
-/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = C92DBBD72F281378006345CD /* Project object */;
 }

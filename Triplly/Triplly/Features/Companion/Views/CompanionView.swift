@@ -62,15 +62,20 @@ struct CompanionView: View {
                     }
                 )
             }
-            .navigationTitle("Triplly Companion")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("Close") {
-                        dismiss()
+                ToolbarItem(placement: .principal) {
+                    HStack(spacing: 8) {
+                        Image("Logo")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(height: 24)
+                        Text("Companion")
+                            .font(.headline)
                     }
                 }
-
+            }
+            .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     if !viewModel.messages.isEmpty {
                         Button {
@@ -90,9 +95,10 @@ struct CompanionView: View {
 struct WelcomeMessageView: View {
     var body: some View {
         VStack(spacing: 16) {
-            Image(systemName: "bubble.left.and.bubble.right.fill")
-                .font(.system(size: 48))
-                .foregroundStyle(Color.appPrimary)
+            Image("Logo")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 64, height: 64)
 
             Text("Hi! I'm your Triplly Companion")
                 .font(.title3.bold())

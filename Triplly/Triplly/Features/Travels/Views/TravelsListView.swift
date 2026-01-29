@@ -6,6 +6,7 @@ struct TravelsListView: View {
     @State private var selectedFilter: TravelFilter = .all
     @State private var showSearch = false
     @State private var showCompanion = false
+    @State private var showPublicProfile = false
 
     private var greeting: String {
         let hour = Calendar.current.component(.hour, from: Date())
@@ -73,6 +74,13 @@ struct TravelsListView: View {
         .sheet(isPresented: $showCompanion) {
             CompanionView()
         }
+        .sheet(isPresented: $showPublicProfile) {
+            if let username = appState.currentUser?.username {
+                NavigationStack {
+                    PublicProfileView(username: username)
+                }
+            }
+        }
         .alert("Delete Trip", isPresented: $viewModel.showingDeleteAlert) {
             Button("Cancel", role: .cancel) {
                 viewModel.travelToDelete = nil
@@ -120,26 +128,30 @@ struct TravelsListView: View {
                 // Top bar with avatar and actions
                 HStack {
                     // User avatar and name
-                    HStack(spacing: 12) {
-                        AsyncImage(url: URL(string: appState.currentUser?.profilePhotoUrl ?? "")) { image in
-                            image
-                                .resizable()
-                                .scaledToFill()
-                        } placeholder: {
-                            Circle()
-                                .fill(Color.white.opacity(0.3))
-                                .overlay {
-                                    Text(String(userName.prefix(1)).uppercased())
-                                        .font(.system(size: 16, weight: .semibold))
-                                        .foregroundStyle(.white)
-                                }
-                        }
-                        .frame(width: 40, height: 40)
-                        .clipShape(Circle())
+                    Button {
+                        showPublicProfile = true
+                    } label: {
+                        HStack(spacing: 12) {
+                            AsyncImage(url: URL(string: appState.currentUser?.profilePhotoUrl ?? "")) { image in
+                                image
+                                    .resizable()
+                                    .scaledToFill()
+                            } placeholder: {
+                                Circle()
+                                    .fill(Color.white.opacity(0.3))
+                                    .overlay {
+                                        Text(String(userName.prefix(1)).uppercased())
+                                            .font(.system(size: 16, weight: .semibold))
+                                            .foregroundStyle(.white)
+                                    }
+                            }
+                            .frame(width: 40, height: 40)
+                            .clipShape(Circle())
 
-                        Text(userName)
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.white)
+                            Text(userName)
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.white)
+                        }
                     }
 
                     Spacer()
@@ -429,6 +441,10 @@ struct TravelCard: View {
                         .foregroundStyle(.secondary)
                         .lineLimit(2)
                 }
+
+                if let members = travel.members, !members.isEmpty {
+                    CardAvatarStack(members: members)
+                }
             }
             .padding(18)
         }
@@ -509,6 +525,96 @@ struct SearchTravelsSheet: View {
                     TravelDetailView(travelId: travelId)
                 }
             }
+        }
+    }
+}
+
+// MARK: - Card Avatar Stack
+struct CardAvatarStack: View {
+    let members: [TravelMemberSummary]
+    private let maxVisible = 4
+    private let avatarSize: CGFloat = 26
+    private let overlap: CGFloat = 8
+
+    var body: some View {
+        HStack(spacing: -overlap) {
+            ForEach(Array(members.prefix(maxVisible).enumerated()), id: \.element.id) { item in
+                let index = item.offset
+                let member = item.element
+                MemberMiniAvatar(name: member.name, imageUrl: member.profilePhotoUrl, size: avatarSize)
+                    .overlay {
+                        Circle()
+                            .stroke(Color(.systemBackground), lineWidth: 2)
+                    }
+                    .zIndex(Double(maxVisible - index))
+            }
+
+            if members.count > maxVisible {
+                ZStack {
+                    Circle()
+                        .fill(Color(.systemGray4))
+                        .frame(width: avatarSize, height: avatarSize)
+
+                    Text("+\(members.count - maxVisible)")
+                        .font(.system(size: 10, weight: .bold, design: .rounded))
+                        .foregroundStyle(.primary)
+                }
+                .overlay {
+                    Circle()
+                        .stroke(Color(.systemBackground), lineWidth: 2)
+                }
+            }
+        }
+    }
+}
+
+struct MemberMiniAvatar: View {
+    let name: String
+    let imageUrl: String?
+    let size: CGFloat
+
+    private var initials: String {
+        let parts = name.split(separator: " ")
+        if parts.count >= 2 {
+            return String(parts[0].prefix(1) + parts[1].prefix(1)).uppercased()
+        }
+        return String(name.prefix(1)).uppercased()
+    }
+
+    private var backgroundColor: Color {
+        let colors: [Color] = [.blue, .green, .orange, .purple, .pink, .teal, .indigo]
+        let hash = abs(name.hashValue)
+        return colors[hash % colors.count]
+    }
+
+    var body: some View {
+        Group {
+            if let urlString = imageUrl, let url = URL(string: urlString) {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                    default:
+                        initialsView
+                    }
+                }
+            } else {
+                initialsView
+            }
+        }
+        .frame(width: size, height: size)
+        .clipShape(Circle())
+    }
+
+    private var initialsView: some View {
+        ZStack {
+            Circle()
+                .fill(backgroundColor.opacity(0.3))
+            Text(initials)
+                .font(.system(size: size * 0.4, weight: .semibold))
+                .foregroundStyle(backgroundColor)
         }
     }
 }

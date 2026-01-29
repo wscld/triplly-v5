@@ -4,7 +4,7 @@ import Combine
 @MainActor
 final class PublicProfileViewModel: ObservableObject {
     @Published var profile: PublicProfile?
-    @Published var isLoading = false
+    @Published var isLoading = true
     @Published var error: Error?
 
     private let apiClient: APIClient

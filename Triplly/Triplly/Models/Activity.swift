@@ -31,6 +31,8 @@ struct ActivityCreator: Codable, Equatable, Hashable, Sendable {
     let id: String
     let name: String
     let email: String
+    let username: String?
+    let profilePhotoUrl: String?
 }
 
 // MARK: - Create/Update DTOs
@@ -128,6 +130,6 @@ extension Activity {
         comments: [],
         address: "4-2-8 Shibakoen, Minato City, Tokyo",
         createdById: "1",
-        createdBy: ActivityCreator(id: "1", name: "John Doe", email: "john@example.com")
+        createdBy: ActivityCreator(id: "1", name: "John Doe", email: "john@example.com", username: "johndoe", profilePhotoUrl: nil)
     )
 }

@@ -12,9 +12,6 @@ struct TripllyApp: App {
                 .onOpenURL { url in
                     handleCustomScheme(url)
                 }
-                .onContinueUserActivity(NSUserActivityTypeBrowsingWeb) { activity in
-                    handleUniversalLink(activity)
-                }
         }
     }
 
@@ -25,17 +22,6 @@ struct TripllyApp: App {
               let username = url.pathComponents.dropFirst().first else {
             return
         }
-        appState.navigateToPublicProfile(username: username)
-    }
-
-    private func handleUniversalLink(_ activity: NSUserActivity) {
-        guard let url = activity.webpageURL,
-              url.host == "triplly.com",
-              url.pathComponents.count >= 3,
-              url.pathComponents[1] == "u" else {
-            return
-        }
-        let username = url.pathComponents[2]
         appState.navigateToPublicProfile(username: username)
     }
 }
@@ -73,10 +59,10 @@ struct SplashView: View {
                 .ignoresSafeArea()
 
             VStack(spacing: 16) {
-                Image(systemName: "airplane.departure")
-                    .font(.system(size: 64))
-                    .foregroundStyle(Color.appPrimary)
-                    .symbolEffect(.pulse)
+                Image("Logo")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 100, height: 100)
 
                 Text("Triplly")
                     .font(.largeTitle)

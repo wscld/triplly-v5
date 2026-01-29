@@ -45,6 +45,7 @@ struct TravelListItem: Codable, Identifiable, Equatable, Hashable, Sendable {
     let isPublic: Bool?
     let role: TravelRole
     var itineraries: [Itinerary]?
+    let members: [TravelMemberSummary]?
 
     var latitudeDouble: Double? {
         latitude?.value
@@ -53,6 +54,12 @@ struct TravelListItem: Codable, Identifiable, Equatable, Hashable, Sendable {
     var longitudeDouble: Double? {
         longitude?.value
     }
+}
+
+struct TravelMemberSummary: Codable, Identifiable, Equatable, Hashable, Sendable {
+    let id: String
+    let name: String
+    let profilePhotoUrl: String?
 }
 
 enum TravelRole: String, Codable, Sendable {
@@ -75,6 +82,7 @@ struct MemberUser: Codable, Equatable, Sendable {
     let name: String
     let email: String
     let profilePhotoUrl: String?
+    let username: String?
 }
 
 // MARK: - Create/Update DTOs
@@ -193,6 +201,7 @@ extension TravelListItem {
         createdAt: ISO8601DateFormatter().string(from: Date()),
         isPublic: false,
         role: .owner,
-        itineraries: []
+        itineraries: [],
+        members: [TravelMemberSummary(id: "1", name: "John Doe", profilePhotoUrl: nil)]
     )
 }

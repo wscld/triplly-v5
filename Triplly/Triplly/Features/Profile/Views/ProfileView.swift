@@ -26,13 +26,9 @@ struct ProfileView: View {
 
             // Settings
             Section("Settings") {
-                if appState.currentUser?.username != nil {
-                    Button {
-                        if let username = appState.currentUser?.username {
-                            let url = "https://triplly.com/u/\(username)"
-                            UIPasteboard.general.string = url
-                        }
-                    } label: {
+                if let username = appState.currentUser?.username,
+                   let url = URL(string: "https://triplly.com/u/\(username)") {
+                    ShareLink(item: url) {
                         SettingsRow(
                             icon: "square.and.arrow.up",
                             iconColor: Color.appPrimary,

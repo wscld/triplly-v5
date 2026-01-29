@@ -74,6 +74,11 @@ actor APIClient {
             throw error
         }
 
+        if data.isEmpty || httpResponse.statusCode == 204 {
+            print("DEBUG: [\(method.rawValue)] \(path) - Empty response body, expected \(T.self)")
+            throw NetworkError.emptyResponse
+        }
+
         do {
             return try decoder.decode(T.self, from: data)
         } catch let decodingError as DecodingError {

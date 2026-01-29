@@ -11,6 +11,7 @@ struct MembersSheet: View {
     @State private var inviteError: String?
     @State private var pendingInvites: [PendingInvite] = []
     @State private var isLoadingInvites = false
+    @State private var selectedUsername: String?
 
     var body: some View {
         NavigationStack {
@@ -48,7 +49,11 @@ struct MembersSheet: View {
                 // Members List
                 Section("Members (\(viewModel.members.count))") {
                     ForEach(viewModel.members) { member in
-                        MemberRow(member: member) {
+                        MemberRow(member: member, onTap: {
+                            if let username = member.user.username {
+                                selectedUsername = username
+                            }
+                        }) {
                             Task { await viewModel.removeMember(member) }
                         }
                     }
@@ -63,6 +68,16 @@ struct MembersSheet: View {
                         dismiss()
                     }
                     .fontWeight(.semibold)
+                }
+            }
+            .sheet(isPresented: Binding(
+                get: { selectedUsername != nil },
+                set: { if !$0 { selectedUsername = nil } }
+            )) {
+                if let username = selectedUsername {
+                    NavigationStack {
+                        PublicProfileView(username: username)
+                    }
                 }
             }
         }
@@ -225,24 +240,40 @@ struct PendingInviteRow: View {
 // MARK: - Member Row
 struct MemberRow: View {
     let member: TravelMember
+    var onTap: (() -> Void)? = nil
     let onRemove: () -> Void
 
     var body: some View {
         HStack(spacing: 12) {
-            NetworkAvatarView(
-                name: member.user.name,
-                imageUrl: member.user.profilePhotoUrl,
-                size: 40
-            )
+            Button {
+                onTap?()
+            } label: {
+                HStack(spacing: 12) {
+                    NetworkAvatarView(
+                        name: member.user.name,
+                        imageUrl: member.user.profilePhotoUrl,
+                        size: 40
+                    )
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text(member.user.name)
-                    .font(.subheadline.weight(.medium))
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack(spacing: 4) {
+                            Text(member.user.name)
+                                .font(.subheadline.weight(.medium))
+                            if member.user.username != nil {
+                                Image(systemName: "chevron.right")
+                                    .font(.caption2)
+                                    .foregroundStyle(.tertiary)
+                            }
+                        }
 
-                Text(member.user.email)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                        Text(member.user.email)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .foregroundStyle(.primary)
             }
+            .disabled(member.user.username == nil)
 
             Spacer()
 

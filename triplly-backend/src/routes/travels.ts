@@ -32,7 +32,7 @@ travels.get('/', async (c) => {
 
     const memberships = await memberRepo.find({
         where: { userId },
-        relations: ['travel', 'travel.owner'],
+        relations: ['travel', 'travel.owner', 'travel.members', 'travel.members.user'],
         order: { travel: { createdAt: 'DESC' } },
     });
 
@@ -52,6 +52,11 @@ travels.get('/', async (c) => {
             name: m.travel.owner.name,
         },
         createdAt: m.travel.createdAt,
+        members: (m.travel.members || []).map((member) => ({
+            id: member.user.id,
+            name: member.user.name,
+            profilePhotoUrl: member.user.profilePhotoUrl,
+        })),
     }));
 
     return c.json(travelList);
@@ -98,7 +103,7 @@ travels.get('/:travelId', requireTravelAccess('viewer'), async (c) => {
 
     const travel = await travelRepo.findOne({
         where: { id: travelId },
-        relations: ['owner', 'itineraries', 'itineraries.activities'],
+        relations: ['owner', 'itineraries', 'itineraries.activities', 'itineraries.activities.createdBy'],
     });
 
     if (!travel) {
@@ -114,6 +119,15 @@ travels.get('/:travelId', requireTravelAccess('viewer'), async (c) => {
     return c.json({
         ...travel,
         owner: { id: travel.owner.id, name: travel.owner.name, email: travel.owner.email },
+        itineraries: travel.itineraries.map((it) => ({
+            ...it,
+            activities: it.activities.map((act) => ({
+                ...act,
+                createdBy: act.createdBy
+                    ? { id: act.createdBy.id, name: act.createdBy.name, email: act.createdBy.email, username: act.createdBy.username, profilePhotoUrl: act.createdBy.profilePhotoUrl }
+                    : null,
+            })),
+        })),
     });
 });
 
@@ -231,6 +245,7 @@ travels.get('/:travelId/members', requireTravelAccess('viewer'), async (c) => {
                 name: m.user.name,
                 email: m.user.email,
                 profilePhotoUrl: m.user.profilePhotoUrl,
+                username: m.user.username,
             },
         }))
     );
@@ -282,7 +297,7 @@ travels.post('/:travelId/members', requireTravelAccess('owner'), zValidator('jso
         role: invite.role,
         status: invite.status,
         createdAt: invite.createdAt,
-        user: { id: user.id, name: user.name, email: user.email, profilePhotoUrl: user.profilePhotoUrl },
+        user: { id: user.id, name: user.name, email: user.email, profilePhotoUrl: user.profilePhotoUrl, username: user.username },
     }, 201);
 });
 
@@ -351,6 +366,7 @@ travels.get('/:travelId/invites', requireTravelAccess('owner'), async (c) => {
                 name: invite.invitedUser.name,
                 email: invite.invitedUser.email,
                 profilePhotoUrl: invite.invitedUser.profilePhotoUrl,
+                username: invite.invitedUser.username,
             },
         }))
     );

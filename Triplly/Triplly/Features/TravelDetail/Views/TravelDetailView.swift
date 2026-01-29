@@ -13,6 +13,8 @@ struct TravelDetailView: View {
     @State private var showingLeaveTravelAlert = false
     @State private var activityToDelete: Activity?
     @State private var showingDeleteActivityAlert = false
+    @State private var activityToWishlist: Activity?
+    @State private var showingWishlistAlert = false
 
     // Sheet presentation state
     @State private var showingEditTravel = false
@@ -497,9 +499,8 @@ struct TravelDetailView: View {
                             }
                         },
                         onMoveToWishlist: { activity in
-                            Task {
-                                await viewModel.moveActivityToWishlist(activity)
-                            }
+                            activityToWishlist = activity
+                            showingWishlistAlert = true
                         },
                         onDelete: { activity in
                             activityToDelete = activity
@@ -1005,11 +1006,15 @@ struct TimelineItemView: View {
 
             Spacer(minLength: 0)
 
-            Image(systemName: "chevron.right")
-                .font(.caption)
-                .foregroundStyle(.tertiary)
-                .padding(.top, 16)
+            if let creator = activity.createdBy {
+                NetworkAvatarView(
+                    name: creator.name,
+                    imageUrl: creator.profilePhotoUrl,
+                    size: 24
+                )
+                .padding(.top, 12)
                 .padding(.trailing, 4)
+            }
         }
         .frame(minHeight: 60)
     }
@@ -1043,6 +1048,8 @@ struct ActivityDetailSheet: View {
     @State private var isLoadingComments = false
     @State private var isSendingComment = false
     @State private var showingDeleteAlert = false
+    @State private var showingWishlistAlert = false
+    @State private var showCreatorProfile = false
     @FocusState private var isCommentFocused: Bool
 
     init(activity: Activity, viewModel: TravelDetailViewModel) {
@@ -1080,6 +1087,32 @@ struct ActivityDetailSheet: View {
 
                         if let description = activity.description, !description.isEmpty {
                             DetailRow(icon: "text.alignleft", title: "Notes", value: description)
+                        }
+
+                        if let creator = activity.createdBy {
+                            HStack(spacing: 10) {
+                                Image(systemName: "person.fill")
+                                    .foregroundStyle(Color.appPrimary)
+                                    .frame(width: 24)
+
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Added by")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                    if let username = creator.username {
+                                        Button {
+                                            showCreatorProfile = true
+                                        } label: {
+                                            Text(creator.name)
+                                                .font(.subheadline.weight(.medium))
+                                                .foregroundStyle(Color.appPrimary)
+                                        }
+                                    } else {
+                                        Text(creator.name)
+                                            .font(.subheadline)
+                                    }
+                                }
+                            }
                         }
                     }
                     .padding(.horizontal)
@@ -1175,10 +1208,7 @@ struct ActivityDetailSheet: View {
                     // Actions
                     VStack(spacing: 10) {
                         Button {
-                            Task {
-                                await viewModel.moveActivityToWishlist(activity)
-                                dismiss()
-                            }
+                            showingWishlistAlert = true
                         } label: {
                             HStack {
                                 Image(systemName: "star")
@@ -1234,6 +1264,24 @@ struct ActivityDetailSheet: View {
             } message: {
                 Text("Are you sure you want to delete \"\(activity.title)\"?")
             }
+            .alert("Move to Wishlist", isPresented: $showingWishlistAlert) {
+                Button("Cancel", role: .cancel) {}
+                Button("Move", role: .destructive) {
+                    Task {
+                        await viewModel.moveActivityToWishlist(activity)
+                        dismiss()
+                    }
+                }
+            } message: {
+                Text("Move \"\(activity.title)\" to the wishlist? It will be removed from the current day.")
+            }
+            .sheet(isPresented: $showCreatorProfile) {
+                if let username = activity.createdBy?.username {
+                    NavigationStack {
+                        PublicProfileView(username: username)
+                    }
+                }
+            }
         }
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
@@ -1285,7 +1333,7 @@ struct CommentRow: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
-            AvatarView(name: comment.user.name, size: 32)
+            NetworkAvatarView(name: comment.user.name, imageUrl: comment.user.profilePhotoUrl, size: 32)
 
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
@@ -1442,6 +1490,21 @@ struct TravelDetailAlertsModifier: ViewModifier {
                 }
             } message: {
                 Text("Are you sure you want to delete \"\(activityToDelete?.title ?? "this activity")\"?")
+            }
+            .alert("Move to Wishlist", isPresented: $showingWishlistAlert) {
+                Button("Cancel", role: .cancel) {
+                    activityToWishlist = nil
+                }
+                Button("Move", role: .destructive) {
+                    if let activity = activityToWishlist {
+                        Task {
+                            await viewModel.moveActivityToWishlist(activity)
+                        }
+                    }
+                    activityToWishlist = nil
+                }
+            } message: {
+                Text("Move \"\(activityToWishlist?.title ?? "this activity")\" to the wishlist? It will be removed from the current day.")
             }
             .alert("Leave Trip", isPresented: $showingLeaveTravelAlert) {
                 Button("Cancel", role: .cancel) {}

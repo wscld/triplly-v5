@@ -124,7 +124,8 @@ extension PendingInvite {
             id: "3",
             name: "Bob Smith",
             email: "bob@example.com",
-            profilePhotoUrl: nil
+            profilePhotoUrl: nil,
+            username: "bobsmith"
         )
     )
 }

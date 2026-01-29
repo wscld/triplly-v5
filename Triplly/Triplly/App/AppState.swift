@@ -26,7 +26,7 @@ final class AppState: ObservableObject {
     @Published var mapSheetOffset: CGFloat = 0
 
     // MARK: - Deep Link
-    @Published var deepLinkUsername: String?
+    @Published var deepLinkUsername: DeepLinkUsername?
 
     // MARK: - Nested Sheet (shown on top of map sheet)
     @Published var mapNestedSheet: MapNestedSheet?
@@ -214,7 +214,7 @@ final class AppState: ObservableObject {
 
     // MARK: - Deep Link Methods
     func navigateToPublicProfile(username: String) {
-        deepLinkUsername = username
+        deepLinkUsername = DeepLinkUsername(value: username)
     }
 }
 
@@ -264,4 +264,10 @@ enum MapNestedSheet: Identifiable, Equatable {
     static func == (lhs: MapNestedSheet, rhs: MapNestedSheet) -> Bool {
         lhs.id == rhs.id
     }
+}
+
+// MARK: - Deep Link Username
+struct DeepLinkUsername: Identifiable {
+    let id = UUID()
+    let value: String
 }

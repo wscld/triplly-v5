@@ -136,7 +136,8 @@ final class TravelsViewModel: ObservableObject {
                 createdAt: newTravel.createdAt,
                 isPublic: newTravel.isPublic ?? false,
                 role: .owner,
-                itineraries: newTravel.itineraries
+                itineraries: newTravel.itineraries,
+                members: nil
             )
 
             travels.insert(listItem, at: 0)

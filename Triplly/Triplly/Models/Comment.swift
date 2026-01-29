@@ -14,6 +14,7 @@ struct CommentUser: Codable, Equatable, Hashable, Sendable {
     let id: String
     let name: String
     let email: String
+    let profilePhotoUrl: String?
 }
 
 // MARK: - Create DTO
@@ -70,6 +71,6 @@ extension ActivityComment {
         userId: "1",
         content: "This looks amazing!",
         createdAt: ISO8601DateFormatter().string(from: Date()),
-        user: CommentUser(id: "1", name: "John Doe", email: "john@example.com")
+        user: CommentUser(id: "1", name: "John Doe", email: "john@example.com", profilePhotoUrl: nil)
     )
 }

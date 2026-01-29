@@ -68,6 +68,8 @@ extension NetworkError {
             return "Failed to upload file"
         case .noConnection:
             return "No internet connection"
+        case .emptyResponse:
+            return "Emptry response"
         }
     }
 }

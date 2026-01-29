@@ -22,14 +22,24 @@ struct MainTabView: View {
             }
             .badge(invitesViewModel.invites.count > 0 ? invitesViewModel.invites.count : 0)
 
-            Tab("Profile", systemImage: "person.circle.fill") {
+            Tab {
                 NavigationStack {
                     ProfileView()
+                }
+            } label: {
+                Label {
+                    Text("Profile")
+                } icon: {
+                    if let profileImage {
+                        Image(uiImage: profileImage)
+                    } else {
+                        Image(systemName: "person.circle.fill")
+                    }
                 }
             }
 
             // Companion tab with .search role creates the separate floating button
-            Tab("Companion", systemImage: "face.smiling.inverse", role: .search) {
+            Tab("Companion", image: "CompanionIcon", role: .search) {
                 NavigationStack {
                     CompanionView()
                 }
@@ -43,14 +53,9 @@ struct MainTabView: View {
         .onChange(of: appState.currentUser?.profilePhotoUrl) { _, _ in
             Task { await loadProfileImage() }
         }
-        .sheet(isPresented: Binding(
-            get: { appState.deepLinkUsername != nil },
-            set: { if !$0 { appState.deepLinkUsername = nil } }
-        )) {
-            if let username = appState.deepLinkUsername {
-                NavigationStack {
-                    PublicProfileView(username: username)
-                }
+        .sheet(item: $appState.deepLinkUsername) { deepLink in
+            NavigationStack {
+                PublicProfileView(username: deepLink.value)
             }
         }
         .sheet(isPresented: $appState.showMapSheet) {

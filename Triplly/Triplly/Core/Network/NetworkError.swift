@@ -8,6 +8,7 @@ enum NetworkError: LocalizedError {
     case decodingError
     case uploadFailed
     case noConnection
+    case emptyResponse
 
     var errorDescription: String? {
         switch self {
@@ -25,6 +26,8 @@ enum NetworkError: LocalizedError {
             return "Failed to upload file"
         case .noConnection:
             return "No internet connection"
+        case .emptyResponse:
+            return "Server returned an empty response"
         }
     }
 }
