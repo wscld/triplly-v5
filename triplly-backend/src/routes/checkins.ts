@@ -186,4 +186,24 @@ checkins.get('/me', async (c) => {
     })));
 });
 
+// DELETE /checkins/:checkInId - Undo check-in (delete own check-in)
+checkins.delete('/:checkInId', async (c) => {
+    const { userId } = getAuth(c);
+    const checkInId = c.req.param('checkInId');
+
+    const checkInRepo = AppDataSource.getRepository(CheckIn);
+    const checkIn = await checkInRepo.findOne({ where: { id: checkInId } });
+
+    if (!checkIn) {
+        return c.json({ error: 'Check-in not found' }, 404);
+    }
+
+    if (checkIn.userId !== userId) {
+        return c.json({ error: 'Not your check-in' }, 403);
+    }
+
+    await checkInRepo.delete({ id: checkInId });
+    return c.json({ success: true });
+});
+
 export default checkins;
