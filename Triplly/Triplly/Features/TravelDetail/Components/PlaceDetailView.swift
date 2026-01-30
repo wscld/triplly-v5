@@ -8,9 +8,15 @@ struct PlaceDetailView: View {
     @State private var place: Place?
     @State private var checkIns: [CheckIn] = []
     @State private var reviews: [PlaceReview] = []
+    @State private var totalCheckIns: Int = 0
+    @State private var totalReviews: Int = 0
     @State private var isLoading = true
     @State private var showingWriteReview = false
     @State private var hasCheckedIn = false
+    @State private var showingAllCheckIns = false
+    @State private var showingAllReviews = false
+
+    private let previewLimit = 5
 
     var body: some View {
         NavigationStack {
@@ -41,6 +47,12 @@ struct PlaceDetailView: View {
                     // Refresh place to update average rating
                     Task { await loadPlace() }
                 }
+            }
+            .sheet(isPresented: $showingAllCheckIns) {
+                AllCheckInsSheet(placeId: placeId)
+            }
+            .sheet(isPresented: $showingAllReviews) {
+                AllReviewsSheet(placeId: placeId)
             }
         }
         .presentationDetents([.large])
@@ -135,9 +147,21 @@ struct PlaceDetailView: View {
                 // Check-ins section
                 if !checkIns.isEmpty {
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("Check-ins")
-                            .font(.headline)
-                            .padding(.horizontal)
+                        HStack {
+                            Text("Check-ins")
+                                .font(.headline)
+                            Spacer()
+                            if totalCheckIns > previewLimit {
+                                Button {
+                                    showingAllCheckIns = true
+                                } label: {
+                                    Text("View All (\(totalCheckIns))")
+                                        .font(.subheadline.weight(.medium))
+                                        .foregroundStyle(Color.appPrimary)
+                                }
+                            }
+                        }
+                        .padding(.horizontal)
 
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 12) {
@@ -169,6 +193,15 @@ struct PlaceDetailView: View {
                         Text("Reviews")
                             .font(.headline)
                         Spacer()
+                        if totalReviews > previewLimit {
+                            Button {
+                                showingAllReviews = true
+                            } label: {
+                                Text("View All (\(totalReviews))")
+                                    .font(.subheadline.weight(.medium))
+                                    .foregroundStyle(Color.appPrimary)
+                            }
+                        }
                         if hasCheckedIn {
                             Button {
                                 showingWriteReview = true
@@ -240,7 +273,9 @@ struct PlaceDetailView: View {
 
     private func loadCheckIns() async {
         do {
-            checkIns = try await APIClient.shared.getPlaceCheckIns(placeId: placeId)
+            let response = try await APIClient.shared.getPlaceCheckIns(placeId: placeId, limit: previewLimit)
+            checkIns = response.data
+            totalCheckIns = response.total
         } catch {
             print("DEBUG: Failed to load check-ins: \(error)")
         }
@@ -248,7 +283,9 @@ struct PlaceDetailView: View {
 
     private func loadReviews() async {
         do {
-            reviews = try await APIClient.shared.getPlaceReviews(placeId: placeId)
+            let response = try await APIClient.shared.getPlaceReviews(placeId: placeId, limit: previewLimit)
+            reviews = response.data
+            totalReviews = response.total
         } catch {
             print("DEBUG: Failed to load reviews: \(error)")
         }
@@ -299,6 +336,212 @@ struct ReviewRow: View {
         .padding(12)
         .background(Color(.secondarySystemBackground))
         .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+}
+
+// MARK: - All Check-Ins Sheet
+struct AllCheckInsSheet: View {
+    let placeId: String
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var checkIns: [CheckIn] = []
+    @State private var total: Int = 0
+    @State private var isLoading = true
+    @State private var isLoadingMore = false
+    private let pageSize = 20
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if isLoading && checkIns.isEmpty {
+                    ProgressView()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    List {
+                        ForEach(checkIns) { checkIn in
+                            if let user = checkIn.user {
+                                HStack(spacing: 12) {
+                                    MiniAvatar(
+                                        name: user.name,
+                                        imageUrl: user.profilePhotoUrl,
+                                        size: 40
+                                    )
+
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(user.name)
+                                            .font(.subheadline.weight(.semibold))
+
+                                        if let createdAt = checkIn.createdAt {
+                                            Text(createdAt.formattedRelativeDate)
+                                                .font(.caption)
+                                                .foregroundStyle(.secondary)
+                                        }
+                                    }
+
+                                    Spacer()
+
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundStyle(.green)
+                                }
+                                .padding(.vertical, 4)
+                                .onAppear {
+                                    if checkIn.id == checkIns.last?.id && checkIns.count < total {
+                                        Task { await loadMore() }
+                                    }
+                                }
+                            }
+                        }
+
+                        if isLoadingMore {
+                            HStack {
+                                Spacer()
+                                ProgressView()
+                                Spacer()
+                            }
+                            .listRowSeparator(.hidden)
+                        }
+                    }
+                    .listStyle(.plain)
+                }
+            }
+            .navigationTitle("All Check-ins")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") { dismiss() }
+                        .fontWeight(.semibold)
+                }
+            }
+        }
+        .presentationDetents([.large])
+        .presentationDragIndicator(.visible)
+        .task { await loadInitial() }
+    }
+
+    private func loadInitial() async {
+        isLoading = true
+        do {
+            let response = try await APIClient.shared.getPlaceCheckIns(placeId: placeId, limit: pageSize, offset: 0)
+            checkIns = response.data
+            total = response.total
+        } catch {
+            print("DEBUG: Failed to load all check-ins: \(error)")
+        }
+        isLoading = false
+    }
+
+    private func loadMore() async {
+        guard !isLoadingMore else { return }
+        isLoadingMore = true
+        do {
+            let response = try await APIClient.shared.getPlaceCheckIns(placeId: placeId, limit: pageSize, offset: checkIns.count)
+            checkIns.append(contentsOf: response.data)
+            total = response.total
+        } catch {
+            print("DEBUG: Failed to load more check-ins: \(error)")
+        }
+        isLoadingMore = false
+    }
+}
+
+// MARK: - All Reviews Sheet
+struct AllReviewsSheet: View {
+    let placeId: String
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var reviews: [PlaceReview] = []
+    @State private var total: Int = 0
+    @State private var isLoading = true
+    @State private var isLoadingMore = false
+    private let pageSize = 20
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if isLoading && reviews.isEmpty {
+                    ProgressView()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    ScrollView {
+                        LazyVStack(spacing: 12) {
+                            ForEach(reviews) { review in
+                                ReviewRow(review: review)
+                                    .onAppear {
+                                        if review.id == reviews.last?.id && reviews.count < total {
+                                            Task { await loadMore() }
+                                        }
+                                    }
+                            }
+
+                            if isLoadingMore {
+                                ProgressView()
+                                    .padding()
+                            }
+                        }
+                        .padding()
+                    }
+                    .background(Color(.systemGroupedBackground))
+                }
+            }
+            .navigationTitle("All Reviews")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") { dismiss() }
+                        .fontWeight(.semibold)
+                }
+            }
+        }
+        .presentationDetents([.large])
+        .presentationDragIndicator(.visible)
+        .task { await loadInitial() }
+    }
+
+    private func loadInitial() async {
+        isLoading = true
+        do {
+            let response = try await APIClient.shared.getPlaceReviews(placeId: placeId, limit: pageSize, offset: 0)
+            reviews = response.data
+            total = response.total
+        } catch {
+            print("DEBUG: Failed to load all reviews: \(error)")
+        }
+        isLoading = false
+    }
+
+    private func loadMore() async {
+        guard !isLoadingMore else { return }
+        isLoadingMore = true
+        do {
+            let response = try await APIClient.shared.getPlaceReviews(placeId: placeId, limit: pageSize, offset: reviews.count)
+            reviews.append(contentsOf: response.data)
+            total = response.total
+        } catch {
+            print("DEBUG: Failed to load more reviews: \(error)")
+        }
+        isLoadingMore = false
+    }
+}
+
+// MARK: - Date Formatting Helper
+private extension String {
+    var formattedRelativeDate: String {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        guard let date = formatter.date(from: self) else {
+            let fallbackFormatter = ISO8601DateFormatter()
+            guard let date = fallbackFormatter.date(from: self) else { return self }
+            return date.relativeFormatted
+        }
+        return date.relativeFormatted
+    }
+}
+
+private extension Date {
+    var relativeFormatted: String {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .short
+        return formatter.localizedString(for: self, relativeTo: Date())
     }
 }
 

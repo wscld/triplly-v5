@@ -453,12 +453,12 @@ actor APIClient {
         try await request(path: "/places/\(id)")
     }
 
-    func getPlaceCheckIns(placeId: String) async throws -> [CheckIn] {
-        try await request(path: "/places/\(placeId)/checkins")
+    func getPlaceCheckIns(placeId: String, limit: Int = 20, offset: Int = 0) async throws -> PaginatedCheckIns {
+        try await request(path: "/places/\(placeId)/checkins?limit=\(limit)&offset=\(offset)")
     }
 
-    func getPlaceReviews(placeId: String) async throws -> [PlaceReview] {
-        try await request(path: "/places/\(placeId)/reviews")
+    func getPlaceReviews(placeId: String, limit: Int = 20, offset: Int = 0) async throws -> PaginatedReviews {
+        try await request(path: "/places/\(placeId)/reviews?limit=\(limit)&offset=\(offset)")
     }
 
     // MARK: - Review Endpoints
@@ -539,5 +539,21 @@ private struct PlaceSearchResult: Codable {
 struct PlaceLookupResponse: Codable {
     let place: Place?
     let checkIns: [CheckIn]
+    let totalCheckIns: Int?
     let reviews: [PlaceReview]
+    let totalReviews: Int?
+}
+
+struct PaginatedCheckIns: Codable {
+    let data: [CheckIn]
+    let total: Int
+    let limit: Int
+    let offset: Int
+}
+
+struct PaginatedReviews: Codable {
+    let data: [PlaceReview]
+    let total: Int
+    let limit: Int
+    let offset: Int
 }

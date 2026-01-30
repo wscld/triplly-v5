@@ -184,8 +184,14 @@ struct PlacePreviewSheet: View {
     @State private var checkIns: [CheckIn] = []
     @State private var reviews: [PlaceReview] = []
     @State private var checkInCount: Int = 0
+    @State private var totalReviews: Int = 0
     @State private var averageRating: Double?
     @State private var isLoadingSocial = true
+    @State private var showingAllCheckIns = false
+    @State private var showingAllReviews = false
+    @State private var foundPlaceId: String?
+
+    private let previewLimit = 5
 
     var body: some View {
         NavigationStack {
@@ -282,9 +288,21 @@ struct PlacePreviewSheet: View {
                     // Check-ins section
                     if !checkIns.isEmpty {
                         VStack(alignment: .leading, spacing: 12) {
-                            Text("Check-ins")
-                                .font(.headline)
-                                .padding(.horizontal)
+                            HStack {
+                                Text("Check-ins")
+                                    .font(.headline)
+                                Spacer()
+                                if checkInCount > previewLimit, foundPlaceId != nil {
+                                    Button {
+                                        showingAllCheckIns = true
+                                    } label: {
+                                        Text("View All (\(checkInCount))")
+                                            .font(.subheadline.weight(.medium))
+                                            .foregroundStyle(Color.appPrimary)
+                                    }
+                                }
+                            }
+                            .padding(.horizontal)
 
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: 12) {
@@ -313,9 +331,21 @@ struct PlacePreviewSheet: View {
                     // Reviews section
                     if !reviews.isEmpty {
                         VStack(alignment: .leading, spacing: 12) {
-                            Text("Reviews")
-                                .font(.headline)
-                                .padding(.horizontal)
+                            HStack {
+                                Text("Reviews")
+                                    .font(.headline)
+                                Spacer()
+                                if totalReviews > previewLimit, foundPlaceId != nil {
+                                    Button {
+                                        showingAllReviews = true
+                                    } label: {
+                                        Text("View All (\(totalReviews))")
+                                            .font(.subheadline.weight(.medium))
+                                            .foregroundStyle(Color.appPrimary)
+                                    }
+                                }
+                            }
+                            .padding(.horizontal)
 
                             LazyVStack(spacing: 12) {
                                 ForEach(reviews) { review in
@@ -363,6 +393,16 @@ struct PlacePreviewSheet: View {
         .task {
             await loadPlaceData()
         }
+        .sheet(isPresented: $showingAllCheckIns) {
+            if let placeId = foundPlaceId {
+                AllCheckInsSheet(placeId: placeId)
+            }
+        }
+        .sheet(isPresented: $showingAllReviews) {
+            if let placeId = foundPlaceId {
+                AllReviewsSheet(placeId: placeId)
+            }
+        }
     }
 
     private func loadPlaceData() async {
@@ -375,9 +415,11 @@ struct PlacePreviewSheet: View {
                 latitude: place.latitude,
                 longitude: place.longitude
             )
+            foundPlaceId = response.place?.id
             checkIns = response.checkIns
             reviews = response.reviews
-            checkInCount = response.place?.checkInCount ?? response.checkIns.count
+            checkInCount = response.totalCheckIns ?? response.checkIns.count
+            totalReviews = response.totalReviews ?? response.reviews.count
             averageRating = response.place?.averageRating?.value
         } catch {
             print("DEBUG: Failed to load place social data: \(error)")

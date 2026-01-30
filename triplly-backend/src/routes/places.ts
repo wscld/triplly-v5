@@ -60,25 +60,29 @@ places.get('/lookup', async (c) => {
         return c.json({ place: null, checkIns: [], reviews: [] });
     }
 
-    const [checkIns, reviews, avgResult] = await Promise.all([
+    const limit = parseInt(c.req.query('limit') || '5', 10);
+
+    const [checkIns, reviews, checkInCount, reviewCount, avgResult] = await Promise.all([
         checkInRepo.find({
             where: { placeId: place.id },
             relations: ['user'],
             order: { createdAt: 'DESC' },
+            take: limit,
         }),
         reviewRepo.find({
             where: { placeId: place.id },
             relations: ['user'],
             order: { createdAt: 'DESC' },
+            take: limit,
         }),
+        checkInRepo.count({ where: { placeId: place.id } }),
+        reviewRepo.count({ where: { placeId: place.id } }),
         reviewRepo
             .createQueryBuilder('review')
             .select('AVG(review.rating)', 'avg')
             .where('review.placeId = :placeId', { placeId: place.id })
             .getRawOne(),
     ]);
-
-    const checkInCount = checkIns.length;
     const averageRating = avgResult?.avg ? parseFloat(avgResult.avg) : null;
 
     return c.json({
@@ -106,6 +110,7 @@ places.get('/lookup', async (c) => {
                 profilePhotoUrl: ci.user.profilePhotoUrl,
             },
         })),
+        totalCheckIns: checkInCount,
         reviews: reviews.map((r) => ({
             id: r.id,
             placeId: r.placeId,
@@ -119,6 +124,7 @@ places.get('/lookup', async (c) => {
                 profilePhotoUrl: r.user.profilePhotoUrl,
             },
         })),
+        totalReviews: reviewCount,
     });
 });
 
@@ -158,55 +164,73 @@ places.get('/:placeId', async (c) => {
     });
 });
 
-// GET /places/:placeId/checkins - All check-ins with user info
+// GET /places/:placeId/checkins - Check-ins with pagination
 places.get('/:placeId/checkins', async (c) => {
     const placeId = c.req.param('placeId');
+    const limit = parseInt(c.req.query('limit') || '20', 10);
+    const offset = parseInt(c.req.query('offset') || '0', 10);
     const checkInRepo = AppDataSource.getRepository(CheckIn);
 
-    const checkIns = await checkInRepo.find({
+    const [checkIns, total] = await checkInRepo.findAndCount({
         where: { placeId },
         relations: ['user'],
         order: { createdAt: 'DESC' },
+        take: limit,
+        skip: offset,
     });
 
-    return c.json(checkIns.map((ci) => ({
-        id: ci.id,
-        placeId: ci.placeId,
-        userId: ci.userId,
-        activityId: ci.activityId,
-        createdAt: ci.createdAt,
-        user: {
-            id: ci.user.id,
-            name: ci.user.name,
-            profilePhotoUrl: ci.user.profilePhotoUrl,
-        },
-    })));
+    return c.json({
+        data: checkIns.map((ci) => ({
+            id: ci.id,
+            placeId: ci.placeId,
+            userId: ci.userId,
+            activityId: ci.activityId,
+            createdAt: ci.createdAt,
+            user: {
+                id: ci.user.id,
+                name: ci.user.name,
+                profilePhotoUrl: ci.user.profilePhotoUrl,
+            },
+        })),
+        total,
+        limit,
+        offset,
+    });
 });
 
-// GET /places/:placeId/reviews - All reviews with user info
+// GET /places/:placeId/reviews - Reviews with pagination
 places.get('/:placeId/reviews', async (c) => {
     const placeId = c.req.param('placeId');
+    const limit = parseInt(c.req.query('limit') || '20', 10);
+    const offset = parseInt(c.req.query('offset') || '0', 10);
     const reviewRepo = AppDataSource.getRepository(PlaceReview);
 
-    const reviews = await reviewRepo.find({
+    const [reviews, total] = await reviewRepo.findAndCount({
         where: { placeId },
         relations: ['user'],
         order: { createdAt: 'DESC' },
+        take: limit,
+        skip: offset,
     });
 
-    return c.json(reviews.map((r) => ({
-        id: r.id,
-        placeId: r.placeId,
-        userId: r.userId,
-        rating: r.rating,
-        content: r.content,
-        createdAt: r.createdAt,
-        user: {
-            id: r.user.id,
-            name: r.user.name,
-            profilePhotoUrl: r.user.profilePhotoUrl,
-        },
-    })));
+    return c.json({
+        data: reviews.map((r) => ({
+            id: r.id,
+            placeId: r.placeId,
+            userId: r.userId,
+            rating: r.rating,
+            content: r.content,
+            createdAt: r.createdAt,
+            user: {
+                id: r.user.id,
+                name: r.user.name,
+                profilePhotoUrl: r.user.profilePhotoUrl,
+            },
+        })),
+        total,
+        limit,
+        offset,
+    });
 });
 
 export default places;
