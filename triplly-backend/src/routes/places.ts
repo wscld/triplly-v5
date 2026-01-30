@@ -27,20 +27,35 @@ places.get('/search', async (c) => {
     }
 });
 
-// GET /places/lookup?externalId=...&provider=... - Lookup place by external ID with check-ins and reviews
+// GET /places/lookup - Lookup place by external ID or name+coords, with check-ins and reviews
 places.get('/lookup', async (c) => {
     const externalId = c.req.query('externalId');
     const provider = c.req.query('provider');
-
-    if (!externalId || !provider) {
-        return c.json({ error: 'Both "externalId" and "provider" query params are required' }, 400);
-    }
+    const name = c.req.query('name');
+    const lat = c.req.query('latitude');
+    const lng = c.req.query('longitude');
 
     const placeRepo = AppDataSource.getRepository(Place);
     const checkInRepo = AppDataSource.getRepository(CheckIn);
     const reviewRepo = AppDataSource.getRepository(PlaceReview);
 
-    const place = await placeRepo.findOne({ where: { externalId, provider } });
+    // Strategy 1: exact match on externalId + provider
+    let place = null;
+    if (externalId && provider) {
+        place = await placeRepo.findOne({ where: { externalId, provider } });
+    }
+
+    // Strategy 2: name + lat/lng proximity (~100m = ~0.001 degrees)
+    if (!place && name && lat && lng) {
+        const proximity = 0.001;
+        place = await placeRepo
+            .createQueryBuilder('place')
+            .where('place.name = :name', { name })
+            .andWhere('ABS(place.latitude - :lat) < :proximity', { lat: parseFloat(lat), proximity })
+            .andWhere('ABS(place.longitude - :lng) < :proximity', { lng: parseFloat(lng), proximity })
+            .getOne();
+    }
+
     if (!place) {
         return c.json({ place: null, checkIns: [], reviews: [] });
     }

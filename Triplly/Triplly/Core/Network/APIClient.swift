@@ -442,10 +442,11 @@ actor APIClient {
         }
     }
 
-    func lookupPlace(externalId: String, provider: String) async throws -> PlaceLookupResponse {
+    func lookupPlace(externalId: String, provider: String, name: String, latitude: Double, longitude: Double) async throws -> PlaceLookupResponse {
         let encodedId = externalId.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? externalId
         let encodedProvider = provider.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? provider
-        return try await request(path: "/places/lookup?externalId=\(encodedId)&provider=\(encodedProvider)")
+        let encodedName = name.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? name
+        return try await request(path: "/places/lookup?externalId=\(encodedId)&provider=\(encodedProvider)&name=\(encodedName)&latitude=\(latitude)&longitude=\(longitude)")
     }
 
     func getPlace(id: String) async throws -> Place {

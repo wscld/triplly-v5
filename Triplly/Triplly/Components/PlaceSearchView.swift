@@ -370,7 +370,10 @@ struct PlacePreviewSheet: View {
         do {
             let response = try await APIClient.shared.lookupPlace(
                 externalId: place.externalId,
-                provider: place.provider
+                provider: place.provider,
+                name: place.name,
+                latitude: place.latitude,
+                longitude: place.longitude
             )
             checkIns = response.checkIns
             reviews = response.reviews
