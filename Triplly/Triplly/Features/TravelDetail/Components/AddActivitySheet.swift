@@ -144,7 +144,8 @@ struct AddActivitySheet: View {
             description: nil,
             latitude: place.latitude,
             longitude: place.longitude,
-            googlePlaceId: nil,
+            externalId: place.externalId,
+            provider: place.provider,
             address: place.address,
             startTime: nil
         )

@@ -9,6 +9,8 @@ final class TravelDetailViewModel: ObservableObject {
     @Published var members: [TravelMember] = []
     @Published var todos: [Todo] = []
     @Published var wishlistActivities: [Activity] = []
+    @Published var checkedInActivityIds: Set<String> = []
+    private var checkInIdsByActivityId: [String: String] = [:] // activityId -> checkInId
 
     @Published var isLoading = false
     @Published var error: Error?
@@ -194,8 +196,9 @@ final class TravelDetailViewModel: ObservableObject {
         async let membersTask: () = loadMembers()
         async let todosTask: () = loadTodos()
         async let wishlistTask: () = loadWishlist()
+        async let checkInsTask: () = loadCheckIns()
 
-        _ = await (membersTask, todosTask, wishlistTask)
+        _ = await (membersTask, todosTask, wishlistTask, checkInsTask)
 
         isLoading = false
     }
@@ -379,6 +382,7 @@ final class TravelDetailViewModel: ObservableObject {
             latitude: updated.latitude,
             longitude: updated.longitude,
             googlePlaceId: updated.googlePlaceId,
+            placeId: updated.placeId,
             createdAt: updated.createdAt,
             startTime: updated.startTime,
             comments: updated.comments,
@@ -484,6 +488,55 @@ final class TravelDetailViewModel: ObservableObject {
             // Rollback on error - refetch travel
             await refreshTravel()
         }
+    }
+
+    // MARK: - Check-in Actions
+    private func loadCheckIns() async {
+        do {
+            let checkIns = try await apiClient.getMyCheckIns()
+            let activityIds = checkIns.compactMap { $0.activityId }
+            checkedInActivityIds = Set(activityIds)
+            checkInIdsByActivityId = [:]
+            for ci in checkIns {
+                if let actId = ci.activityId {
+                    checkInIdsByActivityId[actId] = ci.id
+                }
+            }
+        } catch {
+            print("DEBUG: Failed to load check-ins: \(error)")
+        }
+    }
+
+    func checkInActivity(_ activity: Activity) async {
+        do {
+            let checkIn = try await apiClient.checkIn(activityId: activity.id)
+            checkedInActivityIds.insert(activity.id)
+            checkInIdsByActivityId[activity.id] = checkIn.id
+            if let checkInActivityId = checkIn.activityId {
+                checkedInActivityIds.insert(checkInActivityId)
+                checkInIdsByActivityId[checkInActivityId] = checkIn.id
+            }
+        } catch {
+            print("DEBUG: Failed to check in: \(error)")
+        }
+    }
+
+    func uncheckInActivity(_ activity: Activity) async {
+        guard let checkInId = checkInIdsByActivityId[activity.id] else {
+            print("DEBUG: No check-in ID found for activity \(activity.id)")
+            return
+        }
+        do {
+            try await apiClient.deleteCheckIn(id: checkInId)
+            checkedInActivityIds.remove(activity.id)
+            checkInIdsByActivityId.removeValue(forKey: activity.id)
+        } catch {
+            print("DEBUG: Failed to undo check-in: \(error)")
+        }
+    }
+
+    func isActivityCheckedIn(_ activity: Activity) -> Bool {
+        checkedInActivityIds.contains(activity.id)
     }
 
     // MARK: - Todo Actions

@@ -515,6 +515,7 @@ struct TravelDetailView: View {
                             activityToDelete = activity
                             showingDeleteActivityAlert = true
                         },
+                        checkedInActivityIds: viewModel.checkedInActivityIds,
                         onDragStarted: { activityId in
                             draggedActivityId = activityId
                         },
@@ -842,6 +843,7 @@ struct TimelineView: View {
     let onReorderComplete: (Activity, Int) -> Void  // (movedActivity, newIndex)
     let onMoveToWishlist: (Activity) -> Void
     let onDelete: (Activity) -> Void
+    var checkedInActivityIds: Set<String> = []
     var onDragStarted: ((String) -> Void)?
     var onDragEnded: (() -> Void)?
 
@@ -854,7 +856,8 @@ struct TimelineView: View {
                     activity: activity,
                     number: index + 1,
                     isFirst: index == 0,
-                    isLast: index == activities.count - 1
+                    isLast: index == activities.count - 1,
+                    isCheckedIn: checkedInActivityIds.contains(activity.id)
                 )
                 .contentShape(Rectangle())
                 .onTapGesture {
@@ -871,21 +874,6 @@ struct TimelineView: View {
                     draggedActivity: $draggedActivity,
                     onReorderComplete: onReorderComplete
                 ))
-                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                    Button(role: .destructive) {
-                        onDelete(activity)
-                    } label: {
-                        Label("Delete", systemImage: "trash")
-                    }
-                }
-                .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                    Button {
-                        onMoveToWishlist(activity)
-                    } label: {
-                        Label("Wishlist", systemImage: "star")
-                    }
-                    .tint(.orange)
-                }
 
                 if index < activities.count - 1 {
                     Divider()
@@ -1091,6 +1079,7 @@ struct TimelineItemView: View {
     let number: Int
     let isFirst: Bool
     let isLast: Bool
+    var isCheckedIn: Bool = false
 
     private let circleSize: CGFloat = 28
     private let lineWidth: CGFloat = 2
@@ -1115,7 +1104,7 @@ struct TimelineItemView: View {
                     }
                 }
 
-                // Circle with number
+                // Circle with number + check-in badge
                 ZStack {
                     Circle()
                         .fill(Color.appPrimary)
@@ -1124,6 +1113,18 @@ struct TimelineItemView: View {
                     Text("\(number)")
                         .font(.system(size: 12, weight: .bold))
                         .foregroundStyle(.white)
+
+                    if isCheckedIn {
+                        ZStack {
+                            Circle()
+                                .fill(.white)
+                                .frame(width: 14, height: 14)
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 13))
+                                .foregroundStyle(.green)
+                        }
+                        .offset(x: 10, y: -10)
+                    }
                 }
                 .padding(.top, 6)
             }
@@ -1203,6 +1204,11 @@ struct ActivityDetailSheet: View {
     @State private var showingMoveAlert = false
     @State private var selectedMoveTarget: Itinerary?
     @State private var showCreatorProfile = false
+    @State private var showingPlaceDetail = false
+    @State private var showingCheckInConfirm = false
+    @State private var showingUndoCheckInConfirm = false
+    @State private var isCheckingIn = false
+    @State private var isUndoingCheckIn = false
     @FocusState private var isCommentFocused: Bool
 
     init(activity: Activity, viewModel: TravelDetailViewModel) {
@@ -1218,215 +1224,14 @@ struct ActivityDetailSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    // Map preview
-                    Map(coordinateRegion: $mapRegion, annotationItems: [activity]) { act in
-                        MapAnnotation(coordinate: act.coordinate) {
-                            MapPinView(number: 1)
-                        }
-                    }
-                    .frame(height: 180)
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
-                    .padding(.horizontal)
-
-                    // Details Section
-                    VStack(alignment: .leading, spacing: 16) {
-                        if let time = activity.formattedTime {
-                            DetailRow(icon: "clock.fill", title: "Time", value: time)
-                        }
-
-                        if let address = activity.address {
-                            DetailRow(icon: "mappin.circle.fill", title: "Location", value: address)
-                        }
-
-                        if let description = activity.description, !description.isEmpty {
-                            DetailRow(icon: "text.alignleft", title: "Notes", value: description)
-                        }
-
-                        if let creator = activity.createdBy {
-                            HStack(spacing: 10) {
-                                Image(systemName: "person.fill")
-                                    .foregroundStyle(Color.appPrimary)
-                                    .frame(width: 24)
-
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("Added by")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                    if let username = creator.username {
-                                        Button {
-                                            showCreatorProfile = true
-                                        } label: {
-                                            Text(creator.name)
-                                                .font(.subheadline.weight(.medium))
-                                                .foregroundStyle(Color.appPrimary)
-                                        }
-                                    } else {
-                                        Text(creator.name)
-                                            .font(.subheadline)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    .padding(.horizontal)
-
+                    mapPreviewSection
+                    detailsSection
                     Divider()
                         .padding(.horizontal)
-
-                    // Comments Section
-                    VStack(alignment: .leading, spacing: 12) {
-                        HStack {
-                            Text("Comments")
-                                .font(.headline)
-
-                            if !comments.isEmpty {
-                                Text("\(comments.count)")
-                                    .font(.caption.weight(.semibold))
-                                    .foregroundStyle(.white)
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 2)
-                                    .background(Color.appPrimary)
-                                    .clipShape(Capsule())
-                            }
-                        }
-                        .padding(.horizontal)
-
-                        // Comment Input
-                        HStack(spacing: 10) {
-                            TextField("Add a comment...", text: $newComment, axis: .vertical)
-                                .textFieldStyle(.plain)
-                                .padding(12)
-                                .background(Color(.secondarySystemBackground))
-                                .clipShape(RoundedRectangle(cornerRadius: 12))
-                                .focused($isCommentFocused)
-                                .lineLimit(1...4)
-
-                            Button {
-                                Task { await sendComment() }
-                            } label: {
-                                Group {
-                                    if isSendingComment {
-                                        ProgressView()
-                                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                    } else {
-                                        Image(systemName: "paperplane.fill")
-                                    }
-                                }
-                                .frame(width: 40, height: 40)
-                                .background(newComment.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? Color.gray : Color.appPrimary)
-                                .foregroundStyle(.white)
-                                .clipShape(Circle())
-                            }
-                            .disabled(newComment.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSendingComment)
-                        }
-                        .padding(.horizontal)
-
-                        // Comments List
-                        if isLoadingComments {
-                            HStack {
-                                Spacer()
-                                ProgressView()
-                                    .padding()
-                                Spacer()
-                            }
-                        } else if comments.isEmpty {
-                            VStack(spacing: 8) {
-                                Image(systemName: "bubble.left.and.bubble.right")
-                                    .font(.title)
-                                    .foregroundStyle(.tertiary)
-                                Text("No comments yet")
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
-                                Text("Be the first to comment!")
-                                    .font(.caption)
-                                    .foregroundStyle(.tertiary)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 24)
-                        } else {
-                            LazyVStack(spacing: 12) {
-                                ForEach(comments) { comment in
-                                    CommentRow(comment: comment) {
-                                        Task { await deleteComment(comment) }
-                                    }
-                                }
-                            }
-                            .padding(.horizontal)
-                        }
-                    }
-
+                    commentsSection
                     Divider()
                         .padding(.horizontal)
-
-                    // Actions
-                    VStack(spacing: 10) {
-                        Button {
-                            showingWishlistAlert = true
-                        } label: {
-                            HStack {
-                                Image(systemName: "star")
-                                Text("Move to Wishlist")
-                            }
-                            .font(.subheadline.weight(.medium))
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
-                            .background(Color(.secondarySystemBackground))
-                            .clipShape(RoundedRectangle(cornerRadius: 10))
-                        }
-                        .buttonStyle(.plain)
-
-                        // Move to Day
-                        if viewModel.itineraries.count > 1 {
-                            let currentItineraryId = viewModel.itineraries.first(where: { itinerary in
-                                itinerary.activities?.contains(where: { $0.id == activity.id }) == true
-                            })?.id
-
-                            Menu {
-                                ForEach(Array(viewModel.itineraries.enumerated()), id: \.element.id) { index, itinerary in
-                                    if itinerary.id != currentItineraryId {
-                                        Button {
-                                            selectedMoveTarget = itinerary
-                                            showingMoveAlert = true
-                                        } label: {
-                                            Label(
-                                                "Day \(index + 1) — \(itinerary.title)",
-                                                systemImage: "calendar"
-                                            )
-                                        }
-                                    }
-                                }
-                            } label: {
-                                HStack {
-                                    Image(systemName: "arrow.right.arrow.left")
-                                    Text("Move to Day")
-                                }
-                                .font(.subheadline.weight(.medium))
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 12)
-                                .background(Color(.secondarySystemBackground))
-                                .clipShape(RoundedRectangle(cornerRadius: 10))
-                            }
-                            .buttonStyle(.plain)
-                        }
-
-                        Button(role: .destructive) {
-                            showingDeleteAlert = true
-                        } label: {
-                            HStack {
-                                Image(systemName: "trash")
-                                Text("Delete Activity")
-                            }
-                            .font(.subheadline.weight(.medium))
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
-                            .background(Color.red.opacity(0.1))
-                            .foregroundStyle(.red)
-                            .clipShape(RoundedRectangle(cornerRadius: 10))
-                        }
-                        .buttonStyle(.plain)
-                    }
-                    .padding(.horizontal)
-                    .padding(.bottom, 8)
+                    actionsSection
                 }
                 .padding(.vertical)
             }
@@ -1478,11 +1283,40 @@ struct ActivityDetailSheet: View {
             } message: {
                 Text("Move \"\(activity.title)\" to \"\(selectedMoveTarget?.title ?? "this day")\"?")
             }
+            .alert("Check In", isPresented: $showingCheckInConfirm) {
+                Button("Cancel", role: .cancel) {}
+                Button("Check In") {
+                    isCheckingIn = true
+                    Task {
+                        await viewModel.checkInActivity(activity)
+                        isCheckingIn = false
+                    }
+                }
+            } message: {
+                Text("Check in at \"\(activity.title)\"?")
+            }
+            .alert("Undo Check-In", isPresented: $showingUndoCheckInConfirm) {
+                Button("Cancel", role: .cancel) {}
+                Button("Undo", role: .destructive) {
+                    isUndoingCheckIn = true
+                    Task {
+                        await viewModel.uncheckInActivity(activity)
+                        isUndoingCheckIn = false
+                    }
+                }
+            } message: {
+                Text("Remove your check-in at \"\(activity.title)\"?")
+            }
             .sheet(isPresented: $showCreatorProfile) {
                 if let username = activity.createdBy?.username {
                     NavigationStack {
                         PublicProfileView(username: username)
                     }
+                }
+            }
+            .sheet(isPresented: $showingPlaceDetail) {
+                if let placeId = activity.placeId {
+                    PlaceDetailView(placeId: placeId)
                 }
             }
         }
@@ -1491,6 +1325,323 @@ struct ActivityDetailSheet: View {
         .task {
             await loadComments()
         }
+    }
+    
+    // MARK: - Activity Detail Sections
+    
+    private var mapPreviewSection: some View {
+        Map(coordinateRegion: $mapRegion, annotationItems: [activity]) { act in
+            MapAnnotation(coordinate: act.coordinate) {
+                MapPinView(number: 1)
+            }
+        }
+        .frame(height: 180)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .padding(.horizontal)
+    }
+    
+    private var detailsSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            if let time = activity.formattedTime {
+                DetailRow(icon: "clock.fill", title: "Time", value: time)
+            }
+
+            if let address = activity.address {
+                DetailRow(icon: "mappin.circle.fill", title: "Location", value: address)
+            }
+
+            if let description = activity.description, !description.isEmpty {
+                DetailRow(icon: "text.alignleft", title: "Notes", value: description)
+            }
+
+            if let creator = activity.createdBy {
+                creatorRow(creator)
+            }
+
+            if activity.placeId != nil {
+                placeDetailButton
+            }
+        }
+        .padding(.horizontal)
+    }
+    
+    private func creatorRow(_ creator: ActivityCreator) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: "person.fill")
+                .foregroundStyle(Color.appPrimary)
+                .frame(width: 24)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Added by")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                if let username = creator.username {
+                    Button {
+                        showCreatorProfile = true
+                    } label: {
+                        Text(creator.name)
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(Color.appPrimary)
+                    }
+                } else {
+                    Text(creator.name)
+                        .font(.subheadline)
+                }
+            }
+        }
+    }
+    
+    private var placeDetailButton: some View {
+        Button {
+            showingPlaceDetail = true
+        } label: {
+            HStack(spacing: 10) {
+                Image(systemName: "building.2.fill")
+                    .foregroundStyle(Color.appPrimary)
+                    .frame(width: 24)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Place")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text("View Place Details")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(Color.appPrimary)
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .buttonStyle(.plain)
+    }
+    
+    private var commentsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            commentHeader
+            commentInput
+            commentsList
+        }
+    }
+    
+    private var commentHeader: some View {
+        HStack {
+            Text("Comments")
+                .font(.headline)
+
+            if !comments.isEmpty {
+                Text("\(comments.count)")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 2)
+                    .background(Color.appPrimary)
+                    .clipShape(Capsule())
+            }
+        }
+        .padding(.horizontal)
+    }
+    
+    private var commentInput: some View {
+        HStack(spacing: 10) {
+            TextField("Add a comment...", text: $newComment, axis: .vertical)
+                .textFieldStyle(.plain)
+                .padding(12)
+                .background(Color(.secondarySystemBackground))
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .focused($isCommentFocused)
+                .lineLimit(1...4)
+
+            Button {
+                Task { await sendComment() }
+            } label: {
+                Group {
+                    if isSendingComment {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                    } else {
+                        Image(systemName: "paperplane.fill")
+                    }
+                }
+                .frame(width: 40, height: 40)
+                .background(newComment.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? Color.gray : Color.appPrimary)
+                .foregroundStyle(.white)
+                .clipShape(Circle())
+            }
+            .disabled(newComment.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSendingComment)
+        }
+        .padding(.horizontal)
+    }
+    
+    private var commentsList: some View {
+        Group {
+            if isLoadingComments {
+                HStack {
+                    Spacer()
+                    ProgressView()
+                        .padding()
+                    Spacer()
+                }
+            } else if comments.isEmpty {
+                VStack(spacing: 8) {
+                    Image(systemName: "bubble.left.and.bubble.right")
+                        .font(.title)
+                        .foregroundStyle(.tertiary)
+                    Text("No comments yet")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    Text("Be the first to comment!")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 24)
+            } else {
+                LazyVStack(spacing: 12) {
+                    ForEach(comments) { comment in
+                        CommentRow(comment: comment) {
+                            Task { await deleteComment(comment) }
+                        }
+                    }
+                }
+                .padding(.horizontal)
+            }
+        }
+    }
+    
+    private var actionsSection: some View {
+        VStack(spacing: 10) {
+            checkInButton
+            wishlistButton
+            moveToDayButton
+            deleteButton
+        }
+        .padding(.horizontal)
+        .padding(.bottom, 8)
+    }
+    
+    private var checkInButton: some View {
+        Group {
+            if viewModel.isActivityCheckedIn(activity) {
+                Button {
+                    showingUndoCheckInConfirm = true
+                } label: {
+                    HStack {
+                        if isUndoingCheckIn {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: .green))
+                        } else {
+                            Image(systemName: "checkmark.circle.fill")
+                            Text("Checked In")
+                        }
+                    }
+                    .font(.subheadline.weight(.medium))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(Color.green.opacity(0.15))
+                    .foregroundStyle(.green)
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                }
+                .buttonStyle(.plain)
+                .disabled(isUndoingCheckIn)
+            } else {
+                Button {
+                    showingCheckInConfirm = true
+                } label: {
+                    HStack {
+                        if isCheckingIn {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: .primary))
+                        } else {
+                            Image(systemName: "checkmark.circle")
+                            Text("Check In")
+                        }
+                    }
+                    .font(.subheadline.weight(.medium))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(Color.green.opacity(0.1))
+                    .foregroundStyle(.primary)
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                }
+                .buttonStyle(.plain)
+                .disabled(isCheckingIn)
+            }
+        }
+    }
+    
+    private var wishlistButton: some View {
+        Button {
+            showingWishlistAlert = true
+        } label: {
+            HStack {
+                Image(systemName: "star")
+                Text("Move to Wishlist")
+            }
+            .font(.subheadline.weight(.medium))
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
+            .background(Color(.secondarySystemBackground))
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+        }
+        .buttonStyle(.plain)
+    }
+    
+    @ViewBuilder
+    private var moveToDayButton: some View {
+        if viewModel.itineraries.count > 1 {
+            let currentItineraryId = viewModel.itineraries.first(where: { itinerary in
+                itinerary.activities?.contains(where: { $0.id == activity.id }) == true
+            })?.id
+
+            Menu {
+                ForEach(Array(viewModel.itineraries.enumerated()), id: \.element.id) { index, itinerary in
+                    if itinerary.id != currentItineraryId {
+                        Button {
+                            selectedMoveTarget = itinerary
+                            showingMoveAlert = true
+                        } label: {
+                            Label(
+                                "Day \(index + 1) — \(itinerary.title)",
+                                systemImage: "calendar"
+                            )
+                        }
+                    }
+                }
+            } label: {
+                HStack {
+                    Image(systemName: "arrow.right.arrow.left")
+                    Text("Move to Day")
+                }
+                .font(.subheadline.weight(.medium))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(Color(.secondarySystemBackground))
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+            }
+            .buttonStyle(.plain)
+        }
+    }
+    
+    private var deleteButton: some View {
+        Button(role: .destructive) {
+            showingDeleteAlert = true
+        } label: {
+            HStack {
+                Image(systemName: "trash")
+                Text("Delete Activity")
+            }
+            .font(.subheadline.weight(.medium))
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
+            .background(Color.red.opacity(0.1))
+            .foregroundStyle(.red)
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+        }
+        .buttonStyle(.plain)
     }
 
     private func loadComments() async {

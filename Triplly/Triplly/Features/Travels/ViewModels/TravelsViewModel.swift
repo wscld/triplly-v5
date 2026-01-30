@@ -115,7 +115,9 @@ final class TravelsViewModel: ObservableObject {
             startDate: newTravelStartDate.map { formatter.string(from: $0) },
             endDate: newTravelEndDate.map { formatter.string(from: $0) },
             latitude: location.latitude,
-            longitude: location.longitude
+            longitude: location.longitude,
+            externalId: location.externalId,
+            provider: location.provider
         )
 
         do {

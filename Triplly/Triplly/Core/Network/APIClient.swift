@@ -404,6 +404,69 @@ actor APIClient {
         try await requestVoid(path: "/todos/\(id)", method: .delete)
     }
 
+    // MARK: - Check-in Endpoints
+    func checkIn(activityId: String) async throws -> CheckIn {
+        try await request(
+            path: "/checkins",
+            method: .post,
+            body: CreateCheckInRequest(activityId: activityId)
+        )
+    }
+
+    func getActivityCheckIns(activityId: String) async throws -> [CheckIn] {
+        try await request(path: "/checkins/activity/\(activityId)")
+    }
+
+    func getMyCheckIns() async throws -> [CheckIn] {
+        try await request(path: "/checkins/me")
+    }
+
+    func deleteCheckIn(id: String) async throws {
+        try await requestVoid(path: "/checkins/\(id)", method: .delete)
+    }
+
+    // MARK: - Place Endpoints
+    func searchPlaces(query: String) async throws -> [PlaceResult] {
+        let encodedQuery = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? query
+        let results: [PlaceSearchResult] = try await request(path: "/places/search?q=\(encodedQuery)")
+        return results.map { r in
+            PlaceResult(
+                id: r.externalId,
+                name: r.name,
+                address: r.address,
+                latitude: r.latitude,
+                longitude: r.longitude,
+                externalId: r.externalId,
+                provider: r.provider
+            )
+        }
+    }
+
+    func getPlace(id: String) async throws -> Place {
+        try await request(path: "/places/\(id)")
+    }
+
+    func getPlaceCheckIns(placeId: String) async throws -> [CheckIn] {
+        try await request(path: "/places/\(placeId)/checkins")
+    }
+
+    func getPlaceReviews(placeId: String) async throws -> [PlaceReview] {
+        try await request(path: "/places/\(placeId)/reviews")
+    }
+
+    // MARK: - Review Endpoints
+    func createReview(placeId: String, rating: Int, content: String) async throws -> PlaceReview {
+        try await request(
+            path: "/reviews",
+            method: .post,
+            body: CreateReviewRequest(placeId: placeId, rating: rating, content: content)
+        )
+    }
+
+    func deleteReview(reviewId: String) async throws {
+        try await requestVoid(path: "/reviews/\(reviewId)", method: .delete)
+    }
+
     // MARK: - Companion Endpoints
     func sendCompanionMessage(message: String, history: [[String: String]]?) async throws -> CompanionResponse {
         try await request(
@@ -455,4 +518,13 @@ private struct UpdateProfileRequest: Codable {
 private struct AppleSignInRequest: Codable {
     let identityToken: String
     let name: String?
+}
+
+private struct PlaceSearchResult: Codable {
+    let name: String
+    let address: String
+    let latitude: Double
+    let longitude: Double
+    let externalId: String
+    let provider: String
 }

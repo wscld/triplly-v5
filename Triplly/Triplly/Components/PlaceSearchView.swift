@@ -10,6 +10,7 @@ struct PlaceSearchView: View {
     @State private var searchResults: [PlaceResult] = []
     @State private var isSearching = false
     @State private var searchTask: Task<Void, Never>?
+    @State private var previewPlace: PlaceResult?
 
     var body: some View {
         NavigationStack {
@@ -86,8 +87,7 @@ struct PlaceSearchView: View {
                 } else {
                     List(searchResults) { result in
                         Button {
-                            selectedPlace = result
-                            dismiss()
+                            previewPlace = result
                         } label: {
                             HStack(spacing: 12) {
                                 Image(systemName: "mappin.circle.fill")
@@ -121,6 +121,13 @@ struct PlaceSearchView: View {
                     }
                 }
             }
+            .sheet(item: $previewPlace) { place in
+                PlacePreviewSheet(place: place) {
+                    previewPlace = nil
+                    selectedPlace = place
+                    dismiss()
+                }
+            }
         }
     }
 
@@ -141,40 +148,10 @@ struct PlaceSearchView: View {
             isSearching = true
         }
 
-        // Using Nominatim API (same as React Native version)
-        let query = searchText.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
-        let urlString = "https://nominatim.openstreetmap.org/search?q=\(query)&format=json&limit=10"
-
-        guard let url = URL(string: urlString) else {
-            await MainActor.run {
-                isSearching = false
-            }
-            return
-        }
-
-        var request = URLRequest(url: url)
-        request.setValue("Triplly/1.0", forHTTPHeaderField: "User-Agent")
-
         do {
-            let (data, response) = try await URLSession.shared.data(for: request)
-
-            if let httpResponse = response as? HTTPURLResponse {
-                print("DEBUG: Place search response status: \(httpResponse.statusCode)")
-            }
-
-            let results = try JSONDecoder().decode([NominatimResult].self, from: data)
-            print("DEBUG: Found \(results.count) places")
-
+            let results = try await APIClient.shared.searchPlaces(query: searchText)
             await MainActor.run {
-                searchResults = results.map { result in
-                    PlaceResult(
-                        id: String(result.placeId),
-                        name: result.displayName.components(separatedBy: ",").first ?? result.displayName,
-                        address: result.displayName,
-                        latitude: Double(result.lat) ?? 0,
-                        longitude: Double(result.lon) ?? 0
-                    )
-                }
+                searchResults = results
                 isSearching = false
             }
         } catch {
@@ -194,19 +171,99 @@ struct PlaceResult: Identifiable, Equatable {
     let address: String
     let latitude: Double
     let longitude: Double
+    let externalId: String
+    let provider: String
 }
 
-// MARK: - Nominatim Result
-struct NominatimResult: Codable {
-    let placeId: Int
-    let displayName: String
-    let lat: String
-    let lon: String
+// MARK: - Place Preview Sheet
+struct PlacePreviewSheet: View {
+    let place: PlaceResult
+    let onConfirm: () -> Void
+    @Environment(\.dismiss) private var dismiss
 
-    enum CodingKeys: String, CodingKey {
-        case placeId = "place_id"
-        case displayName = "display_name"
-        case lat, lon
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 20) {
+                    // Map preview
+                    Map(coordinateRegion: .constant(MKCoordinateRegion(
+                        center: CLLocationCoordinate2D(latitude: place.latitude, longitude: place.longitude),
+                        span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
+                    )), annotationItems: [place]) { (p: PlaceResult) in
+                        MapAnnotation(coordinate: CLLocationCoordinate2D(latitude: p.latitude, longitude: p.longitude)) {
+                            ZStack {
+                                Circle()
+                                    .fill(Color.appPrimary)
+                                    .frame(width: 32, height: 32)
+                                    .shadow(color: Color.appPrimary.opacity(0.4), radius: 6, y: 3)
+                                Image(systemName: "mappin")
+                                    .font(.system(size: 16, weight: .bold))
+                                    .foregroundStyle(.white)
+                            }
+                        }
+                    }
+                    .frame(height: 200)
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .padding(.horizontal)
+
+                    // Place info
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text(place.name)
+                            .font(.title2.weight(.bold))
+
+                        HStack(spacing: 8) {
+                            Image(systemName: "mappin.circle.fill")
+                                .foregroundStyle(Color.appPrimary)
+                            Text(place.address)
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        HStack(spacing: 8) {
+                            Image(systemName: "globe")
+                                .foregroundStyle(Color.appPrimary)
+                            Text(String(format: "%.5f, %.5f", place.latitude, place.longitude))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal)
+
+                    // Confirm button
+                    Button {
+                        onConfirm()
+                    } label: {
+                        HStack {
+                            Image(systemName: "checkmark.circle.fill")
+                            Text("Select This Place")
+                        }
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                        .background(Color.appPrimary)
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                    }
+                    .padding(.horizontal)
+                    .padding(.top, 8)
+                }
+                .padding(.vertical)
+            }
+            .background(Color(.systemGroupedBackground))
+            .navigationTitle("Place Details")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Back") {
+                        dismiss()
+                    }
+                    .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
     }
 }
 

@@ -426,11 +426,12 @@ struct AddWishlistItemSheet: View {
         let request = CreateActivityRequest(
             travelId: viewModel.travelId,
             itineraryId: nil, // nil = wishlist item
-            title: title,
+            title: title.isEmpty ? place.name : title,
             description: description.isEmpty ? nil : description,
             latitude: place.latitude,
             longitude: place.longitude,
-            googlePlaceId: nil,
+            externalId: place.externalId,
+            provider: place.provider,
             address: place.address,
             startTime: nil
         )

@@ -10,7 +10,9 @@ struct Activity: Codable, Identifiable, Equatable, Hashable, Sendable {
     let orderIndex: Double
     let latitude: FlexibleDouble
     let longitude: FlexibleDouble
-    let googlePlaceId: String?
+    let externalId: String?
+    let provider: String?
+    let placeId: String?
     let createdAt: String?
     let startTime: String?
     var comments: [ActivityComment]?
@@ -43,7 +45,8 @@ struct CreateActivityRequest: Codable, Sendable {
     let description: String?
     let latitude: Double
     let longitude: Double
-    let googlePlaceId: String?
+    let externalId: String?
+    let provider: String?
     let address: String?
     let startTime: String?
 }
@@ -124,7 +127,9 @@ extension Activity {
         orderIndex: 0.0,
         latitude: FlexibleDouble(35.6586),
         longitude: FlexibleDouble(139.7454),
-        googlePlaceId: nil,
+        externalId: nil,
+        provider: nil,
+        placeId: nil,
         createdAt: ISO8601DateFormatter().string(from: Date()),
         startTime: "10:00",
         comments: [],
