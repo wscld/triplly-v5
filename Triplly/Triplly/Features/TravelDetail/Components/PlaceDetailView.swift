@@ -15,6 +15,7 @@ struct PlaceDetailView: View {
     @State private var hasCheckedIn = false
     @State private var showingAllCheckIns = false
     @State private var showingAllReviews = false
+    @State private var selectedProfileUsername: String?
 
     private let previewLimit = 5
 
@@ -53,6 +54,16 @@ struct PlaceDetailView: View {
             }
             .sheet(isPresented: $showingAllReviews) {
                 AllReviewsSheet(placeId: placeId)
+            }
+            .sheet(isPresented: Binding(
+                get: { selectedProfileUsername != nil },
+                set: { if !$0 { selectedProfileUsername = nil } }
+            )) {
+                if let username = selectedProfileUsername {
+                    NavigationStack {
+                        PublicProfileView(username: username)
+                    }
+                }
             }
         }
         .presentationDetents([.large])
@@ -167,18 +178,25 @@ struct PlaceDetailView: View {
                             HStack(spacing: 12) {
                                 ForEach(checkIns) { checkIn in
                                     if let user = checkIn.user {
-                                        VStack(spacing: 6) {
-                                            MiniAvatar(
-                                                name: user.name,
-                                                imageUrl: user.profilePhotoUrl,
-                                                size: 40
-                                            )
-                                            Text(user.name.components(separatedBy: " ").first ?? user.name)
-                                                .font(.caption2)
-                                                .foregroundStyle(.secondary)
-                                                .lineLimit(1)
+                                        Button {
+                                            if let username = user.username {
+                                                selectedProfileUsername = username
+                                            }
+                                        } label: {
+                                            VStack(spacing: 6) {
+                                                MiniAvatar(
+                                                    name: user.name,
+                                                    imageUrl: user.profilePhotoUrl,
+                                                    size: 40
+                                                )
+                                                Text(user.name.components(separatedBy: " ").first ?? user.name)
+                                                    .font(.caption2)
+                                                    .foregroundStyle(.secondary)
+                                                    .lineLimit(1)
+                                            }
+                                            .frame(width: 56)
                                         }
-                                        .frame(width: 56)
+                                        .buttonStyle(.plain)
                                     }
                                 }
                             }
@@ -240,7 +258,9 @@ struct PlaceDetailView: View {
                     } else {
                         LazyVStack(spacing: 12) {
                             ForEach(reviews) { review in
-                                ReviewRow(review: review)
+                                ReviewRow(review: review) { username in
+                                    selectedProfileUsername = username
+                                }
                             }
                         }
                         .padding(.horizontal)
@@ -304,18 +324,28 @@ struct PlaceDetailView: View {
 // MARK: - Review Row
 struct ReviewRow: View {
     let review: PlaceReview
+    var onUserTap: ((String) -> Void)?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 if let user = review.user {
-                    MiniAvatar(
-                        name: user.name,
-                        imageUrl: user.profilePhotoUrl,
-                        size: 28
-                    )
-                    Text(user.name)
-                        .font(.subheadline.weight(.semibold))
+                    Button {
+                        if let username = user.username {
+                            onUserTap?(username)
+                        }
+                    } label: {
+                        HStack {
+                            MiniAvatar(
+                                name: user.name,
+                                imageUrl: user.profilePhotoUrl,
+                                size: 28
+                            )
+                            Text(user.name)
+                                .font(.subheadline.weight(.semibold))
+                        }
+                    }
+                    .buttonStyle(.plain)
                 }
 
                 Spacer()
@@ -348,6 +378,7 @@ struct AllCheckInsSheet: View {
     @State private var total: Int = 0
     @State private var isLoading = true
     @State private var isLoadingMore = false
+    @State private var selectedProfileUsername: String?
     private let pageSize = 20
 
     var body: some View {
@@ -360,29 +391,36 @@ struct AllCheckInsSheet: View {
                     List {
                         ForEach(checkIns) { checkIn in
                             if let user = checkIn.user {
-                                HStack(spacing: 12) {
-                                    MiniAvatar(
-                                        name: user.name,
-                                        imageUrl: user.profilePhotoUrl,
-                                        size: 40
-                                    )
-
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text(user.name)
-                                            .font(.subheadline.weight(.semibold))
-
-                                        if let createdAt = checkIn.createdAt {
-                                            Text(createdAt.formattedRelativeDate)
-                                                .font(.caption)
-                                                .foregroundStyle(.secondary)
-                                        }
+                                Button {
+                                    if let username = user.username {
+                                        selectedProfileUsername = username
                                     }
+                                } label: {
+                                    HStack(spacing: 12) {
+                                        MiniAvatar(
+                                            name: user.name,
+                                            imageUrl: user.profilePhotoUrl,
+                                            size: 40
+                                        )
 
-                                    Spacer()
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text(user.name)
+                                                .font(.subheadline.weight(.semibold))
 
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .foregroundStyle(.green)
+                                            if let createdAt = checkIn.createdAt {
+                                                Text(createdAt.formattedRelativeDate)
+                                                    .font(.caption)
+                                                    .foregroundStyle(.secondary)
+                                            }
+                                        }
+
+                                        Spacer()
+
+                                        Image(systemName: "checkmark.circle.fill")
+                                            .foregroundStyle(.green)
+                                    }
                                 }
+                                .buttonStyle(.plain)
                                 .padding(.vertical, 4)
                                 .onAppear {
                                     if checkIn.id == checkIns.last?.id && checkIns.count < total {
@@ -416,6 +454,16 @@ struct AllCheckInsSheet: View {
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
         .task { await loadInitial() }
+        .sheet(isPresented: Binding(
+            get: { selectedProfileUsername != nil },
+            set: { if !$0 { selectedProfileUsername = nil } }
+        )) {
+            if let username = selectedProfileUsername {
+                NavigationStack {
+                    PublicProfileView(username: username)
+                }
+            }
+        }
     }
 
     private func loadInitial() async {
@@ -453,6 +501,7 @@ struct AllReviewsSheet: View {
     @State private var total: Int = 0
     @State private var isLoading = true
     @State private var isLoadingMore = false
+    @State private var selectedProfileUsername: String?
     private let pageSize = 20
 
     var body: some View {
@@ -465,7 +514,9 @@ struct AllReviewsSheet: View {
                     ScrollView {
                         LazyVStack(spacing: 12) {
                             ForEach(reviews) { review in
-                                ReviewRow(review: review)
+                                ReviewRow(review: review) { username in
+                                    selectedProfileUsername = username
+                                }
                                     .onAppear {
                                         if review.id == reviews.last?.id && reviews.count < total {
                                             Task { await loadMore() }
@@ -495,6 +546,16 @@ struct AllReviewsSheet: View {
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
         .task { await loadInitial() }
+        .sheet(isPresented: Binding(
+            get: { selectedProfileUsername != nil },
+            set: { if !$0 { selectedProfileUsername = nil } }
+        )) {
+            if let username = selectedProfileUsername {
+                NavigationStack {
+                    PublicProfileView(username: username)
+                }
+            }
+        }
     }
 
     private func loadInitial() async {

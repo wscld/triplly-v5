@@ -107,6 +107,7 @@ places.get('/lookup', async (c) => {
             user: {
                 id: ci.user.id,
                 name: ci.user.name,
+                username: ci.user.username,
                 profilePhotoUrl: ci.user.profilePhotoUrl,
             },
         })),
@@ -121,6 +122,7 @@ places.get('/lookup', async (c) => {
             user: {
                 id: r.user.id,
                 name: r.user.name,
+                username: r.user.username,
                 profilePhotoUrl: r.user.profilePhotoUrl,
             },
         })),
@@ -189,6 +191,7 @@ places.get('/:placeId/checkins', async (c) => {
             user: {
                 id: ci.user.id,
                 name: ci.user.name,
+                username: ci.user.username,
                 profilePhotoUrl: ci.user.profilePhotoUrl,
             },
         })),
@@ -224,6 +227,7 @@ places.get('/:placeId/reviews', async (c) => {
             user: {
                 id: r.user.id,
                 name: r.user.name,
+                username: r.user.username,
                 profilePhotoUrl: r.user.profilePhotoUrl,
             },
         })),

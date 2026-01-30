@@ -13,6 +13,7 @@ struct CheckIn: Codable, Identifiable, Equatable, Sendable {
 struct CheckInUser: Codable, Equatable, Sendable {
     let id: String
     let name: String
+    let username: String?
     let profilePhotoUrl: String?
 }
 

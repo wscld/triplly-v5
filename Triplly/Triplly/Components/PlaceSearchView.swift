@@ -190,6 +190,7 @@ struct PlacePreviewSheet: View {
     @State private var showingAllCheckIns = false
     @State private var showingAllReviews = false
     @State private var foundPlaceId: String?
+    @State private var selectedProfileUsername: String?
 
     private let previewLimit = 5
 
@@ -308,18 +309,25 @@ struct PlacePreviewSheet: View {
                                 HStack(spacing: 12) {
                                     ForEach(checkIns) { checkIn in
                                         if let user = checkIn.user {
-                                            VStack(spacing: 6) {
-                                                MiniAvatar(
-                                                    name: user.name,
-                                                    imageUrl: user.profilePhotoUrl,
-                                                    size: 40
-                                                )
-                                                Text(user.name.components(separatedBy: " ").first ?? user.name)
-                                                    .font(.caption2)
-                                                    .foregroundStyle(.secondary)
-                                                    .lineLimit(1)
+                                            Button {
+                                                if let username = user.username {
+                                                    selectedProfileUsername = username
+                                                }
+                                            } label: {
+                                                VStack(spacing: 6) {
+                                                    MiniAvatar(
+                                                        name: user.name,
+                                                        imageUrl: user.profilePhotoUrl,
+                                                        size: 40
+                                                    )
+                                                    Text(user.name.components(separatedBy: " ").first ?? user.name)
+                                                        .font(.caption2)
+                                                        .foregroundStyle(.secondary)
+                                                        .lineLimit(1)
+                                                }
+                                                .frame(width: 56)
                                             }
-                                            .frame(width: 56)
+                                            .buttonStyle(.plain)
                                         }
                                     }
                                 }
@@ -349,7 +357,9 @@ struct PlacePreviewSheet: View {
 
                             LazyVStack(spacing: 12) {
                                 ForEach(reviews) { review in
-                                    ReviewRow(review: review)
+                                    ReviewRow(review: review) { username in
+                                        selectedProfileUsername = username
+                                    }
                                 }
                             }
                             .padding(.horizontal)
@@ -401,6 +411,16 @@ struct PlacePreviewSheet: View {
         .sheet(isPresented: $showingAllReviews) {
             if let placeId = foundPlaceId {
                 AllReviewsSheet(placeId: placeId)
+            }
+        }
+        .sheet(isPresented: Binding(
+            get: { selectedProfileUsername != nil },
+            set: { if !$0 { selectedProfileUsername = nil } }
+        )) {
+            if let username = selectedProfileUsername {
+                NavigationStack {
+                    PublicProfileView(username: username)
+                }
             }
         }
     }
