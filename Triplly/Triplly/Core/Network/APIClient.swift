@@ -442,6 +442,12 @@ actor APIClient {
         }
     }
 
+    func lookupPlace(externalId: String, provider: String) async throws -> PlaceLookupResponse {
+        let encodedId = externalId.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? externalId
+        let encodedProvider = provider.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? provider
+        return try await request(path: "/places/lookup?externalId=\(encodedId)&provider=\(encodedProvider)")
+    }
+
     func getPlace(id: String) async throws -> Place {
         try await request(path: "/places/\(id)")
     }
@@ -527,4 +533,10 @@ private struct PlaceSearchResult: Codable {
     let longitude: Double
     let externalId: String
     let provider: String
+}
+
+struct PlaceLookupResponse: Codable {
+    let place: Place?
+    let checkIns: [CheckIn]
+    let reviews: [PlaceReview]
 }

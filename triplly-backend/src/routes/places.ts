@@ -27,6 +27,86 @@ places.get('/search', async (c) => {
     }
 });
 
+// GET /places/lookup?externalId=...&provider=... - Lookup place by external ID with check-ins and reviews
+places.get('/lookup', async (c) => {
+    const externalId = c.req.query('externalId');
+    const provider = c.req.query('provider');
+
+    if (!externalId || !provider) {
+        return c.json({ error: 'Both "externalId" and "provider" query params are required' }, 400);
+    }
+
+    const placeRepo = AppDataSource.getRepository(Place);
+    const checkInRepo = AppDataSource.getRepository(CheckIn);
+    const reviewRepo = AppDataSource.getRepository(PlaceReview);
+
+    const place = await placeRepo.findOne({ where: { externalId, provider } });
+    if (!place) {
+        return c.json({ place: null, checkIns: [], reviews: [] });
+    }
+
+    const [checkIns, reviews, avgResult] = await Promise.all([
+        checkInRepo.find({
+            where: { placeId: place.id },
+            relations: ['user'],
+            order: { createdAt: 'DESC' },
+        }),
+        reviewRepo.find({
+            where: { placeId: place.id },
+            relations: ['user'],
+            order: { createdAt: 'DESC' },
+        }),
+        reviewRepo
+            .createQueryBuilder('review')
+            .select('AVG(review.rating)', 'avg')
+            .where('review.placeId = :placeId', { placeId: place.id })
+            .getRawOne(),
+    ]);
+
+    const checkInCount = checkIns.length;
+    const averageRating = avgResult?.avg ? parseFloat(avgResult.avg) : null;
+
+    return c.json({
+        place: {
+            id: place.id,
+            name: place.name,
+            latitude: Number(place.latitude),
+            longitude: Number(place.longitude),
+            address: place.address,
+            externalId: place.externalId,
+            provider: place.provider,
+            createdAt: place.createdAt,
+            checkInCount,
+            averageRating,
+        },
+        checkIns: checkIns.map((ci) => ({
+            id: ci.id,
+            placeId: ci.placeId,
+            userId: ci.userId,
+            activityId: ci.activityId,
+            createdAt: ci.createdAt,
+            user: {
+                id: ci.user.id,
+                name: ci.user.name,
+                profilePhotoUrl: ci.user.profilePhotoUrl,
+            },
+        })),
+        reviews: reviews.map((r) => ({
+            id: r.id,
+            placeId: r.placeId,
+            userId: r.userId,
+            rating: r.rating,
+            content: r.content,
+            createdAt: r.createdAt,
+            user: {
+                id: r.user.id,
+                name: r.user.name,
+                profilePhotoUrl: r.user.profilePhotoUrl,
+            },
+        })),
+    });
+});
+
 // GET /places/:placeId - Place details + stats
 places.get('/:placeId', async (c) => {
     const placeId = c.req.param('placeId');

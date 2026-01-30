@@ -181,6 +181,12 @@ struct PlacePreviewSheet: View {
     let onConfirm: () -> Void
     @Environment(\.dismiss) private var dismiss
 
+    @State private var checkIns: [CheckIn] = []
+    @State private var reviews: [PlaceReview] = []
+    @State private var checkInCount: Int = 0
+    @State private var averageRating: Double?
+    @State private var isLoadingSocial = true
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -230,6 +236,96 @@ struct PlacePreviewSheet: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal)
 
+                    // Stats
+                    if !isLoadingSocial && (checkInCount > 0 || averageRating != nil) {
+                        HStack(spacing: 0) {
+                            VStack(spacing: 4) {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundStyle(.green)
+                                    Text("\(checkInCount)")
+                                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                                }
+                                Text("Check-ins")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            .frame(maxWidth: .infinity)
+
+                            Divider().frame(height: 40)
+
+                            VStack(spacing: 4) {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "star.fill")
+                                        .foregroundStyle(.orange)
+                                    if let avg = averageRating {
+                                        Text(String(format: "%.1f", avg))
+                                            .font(.system(size: 16, weight: .bold, design: .rounded))
+                                    } else {
+                                        Text("—")
+                                            .font(.system(size: 16, weight: .bold, design: .rounded))
+                                            .foregroundStyle(.secondary)
+                                    }
+                                }
+                                Text("Rating")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            .frame(maxWidth: .infinity)
+                        }
+                        .padding(.vertical, 16)
+                        .background(Color(.systemBackground))
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                        .padding(.horizontal)
+                    }
+
+                    // Check-ins section
+                    if !checkIns.isEmpty {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Check-ins")
+                                .font(.headline)
+                                .padding(.horizontal)
+
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 12) {
+                                    ForEach(checkIns) { checkIn in
+                                        if let user = checkIn.user {
+                                            VStack(spacing: 6) {
+                                                MiniAvatar(
+                                                    name: user.name,
+                                                    imageUrl: user.profilePhotoUrl,
+                                                    size: 40
+                                                )
+                                                Text(user.name.components(separatedBy: " ").first ?? user.name)
+                                                    .font(.caption2)
+                                                    .foregroundStyle(.secondary)
+                                                    .lineLimit(1)
+                                            }
+                                            .frame(width: 56)
+                                        }
+                                    }
+                                }
+                                .padding(.horizontal)
+                            }
+                        }
+                    }
+
+                    // Reviews section
+                    if !reviews.isEmpty {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Reviews")
+                                .font(.headline)
+                                .padding(.horizontal)
+
+                            LazyVStack(spacing: 12) {
+                                ForEach(reviews) { review in
+                                    ReviewRow(review: review)
+                                }
+                            }
+                            .padding(.horizontal)
+                        }
+                    }
+
                     // Confirm button
                     Button {
                         onConfirm()
@@ -264,6 +360,26 @@ struct PlacePreviewSheet: View {
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
+        .task {
+            await loadPlaceData()
+        }
+    }
+
+    private func loadPlaceData() async {
+        isLoadingSocial = true
+        do {
+            let response = try await APIClient.shared.lookupPlace(
+                externalId: place.externalId,
+                provider: place.provider
+            )
+            checkIns = response.checkIns
+            reviews = response.reviews
+            checkInCount = response.place?.checkInCount ?? response.checkIns.count
+            averageRating = response.place?.averageRating?.value
+        } catch {
+            print("DEBUG: Failed to load place social data: \(error)")
+        }
+        isLoadingSocial = false
     }
 }
 
