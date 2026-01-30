@@ -24,8 +24,8 @@ function formatCheckIn(ci: CheckIn) {
         place: ci.place ? {
             id: ci.place.id,
             name: ci.place.name,
-            latitude: ci.place.latitude,
-            longitude: ci.place.longitude,
+            latitude: Number(ci.place.latitude),
+            longitude: Number(ci.place.longitude),
             address: ci.place.address,
         } : undefined,
         user: ci.user ? {
@@ -179,8 +179,8 @@ checkins.get('/me', async (c) => {
         place: {
             id: ci.place.id,
             name: ci.place.name,
-            latitude: ci.place.latitude,
-            longitude: ci.place.longitude,
+            latitude: Number(ci.place.latitude),
+            longitude: Number(ci.place.longitude),
             address: ci.place.address,
         },
     })));

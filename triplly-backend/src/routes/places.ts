@@ -32,8 +32,8 @@ places.get('/:placeId', async (c) => {
     return c.json({
         id: place.id,
         name: place.name,
-        latitude: place.latitude,
-        longitude: place.longitude,
+        latitude: Number(place.latitude),
+        longitude: Number(place.longitude),
         address: place.address,
         externalId: place.externalId,
         provider: place.provider,
