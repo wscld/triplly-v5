@@ -1,5 +1,6 @@
 import SwiftUI
 import PhotosUI
+import Himetrica
 
 struct ProfileView: View {
     @EnvironmentObject var appState: AppState
@@ -13,16 +14,6 @@ struct ProfileView: View {
             }
             .listRowInsets(EdgeInsets())
             .listRowBackground(Color.clear)
-
-            // Awards
-            if let awards = appState.currentUser?.awards, !awards.isEmpty {
-                Section {
-                    AwardsSection(awards: awards)
-                        .padding(.vertical, 4)
-                }
-                .listRowInsets(EdgeInsets())
-                .listRowBackground(Color.clear)
-            }
 
             // Settings
             Section("Settings") {
@@ -86,29 +77,37 @@ struct ProfileView: View {
         .listStyle(.insetGrouped)
         .navigationTitle("Profile")
         .navigationBarTitleDisplayMode(.large)
+        .trackScreen("Profile")
     }
 
     private var profileHeader: some View {
-        VStack(spacing: 16) {
-            NetworkAvatarView(
-                name: appState.currentUser?.name ?? "User",
-                imageUrl: appState.currentUser?.profilePhotoUrl,
-                size: 80
-            )
+        VStack(alignment: .leading, spacing: 20) {
+            // Avatar + Name row
+            HStack(spacing: 16) {
+                NetworkAvatarView(
+                    name: appState.currentUser?.name ?? "User",
+                    imageUrl: appState.currentUser?.profilePhotoUrl,
+                    size: 124
+                )
 
-            VStack(spacing: 4) {
-                Text(appState.currentUser?.name ?? "User")
-                    .font(.title2.bold())
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(appState.currentUser?.name ?? "User")
+                        .font(.system(size: 22, weight: .bold, design: .rounded))
 
-                if let username = appState.currentUser?.username {
-                    Text("@\(username)")
-                        .font(.subheadline.weight(.medium))
-                        .foregroundStyle(Color.appPrimary)
+                    if let username = appState.currentUser?.username {
+                        Text(username)
+                            .font(.system(.subheadline, design: .rounded))
+                            .foregroundStyle(.secondary)
+                    }
                 }
 
-                Text(appState.currentUser?.email ?? "")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                Spacer()
+            }
+
+
+            // Awards inline row
+            if let awards = appState.currentUser?.awards, !awards.isEmpty {
+                AwardsInlineRow(awards: awards)
             }
 
             // Edit Profile Button
@@ -120,13 +119,13 @@ struct ProfileView: View {
                     Text("Edit Profile")
                 }
                 .font(.subheadline.weight(.medium))
-                .padding(.horizontal, 16)
+                .frame(maxWidth: .infinity)
                 .padding(.vertical, 10)
                 .background(Color(.systemGray5))
                 .clipShape(Capsule())
             }
         }
-        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 16)
         .padding(.vertical, 20)
         .sheet(isPresented: $showingEditSheet) {
             EditProfileSheet(appState: appState)
@@ -219,7 +218,7 @@ struct EditProfileSheet: View {
                                 NetworkAvatarView(
                                     name: appState.currentUser?.name ?? "User",
                                     imageUrl: appState.currentUser?.profilePhotoUrl,
-                                    size: 100
+                                    size: 124
                                 )
                             }
 

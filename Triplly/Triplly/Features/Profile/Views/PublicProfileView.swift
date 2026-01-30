@@ -45,30 +45,35 @@ struct PublicProfileView: View {
         ScrollView {
             VStack(spacing: 24) {
                 // Profile Header
-                VStack(spacing: 12) {
-                    NetworkAvatarView(
-                        name: profile.name,
-                        imageUrl: profile.profilePhotoUrl,
-                        size: 80
-                    )
+                VStack(alignment: .leading, spacing: 16) {
+                    HStack(spacing: 16) {
+                        NetworkAvatarView(
+                            name: profile.name,
+                            imageUrl: profile.profilePhotoUrl,
+                            size: 124
+                        )
 
-                    VStack(spacing: 4) {
-                        Text(profile.name)
-                            .font(.title2.bold())
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(profile.name)
+                                .font(.system(size: 22, weight: .bold, design: .rounded))
 
-                        if let username = profile.username {
-                            Text("@\(username)")
-                                .font(.subheadline.weight(.medium))
-                                .foregroundStyle(Color.appPrimary)
+                            if let username = profile.username {
+                                Text("@\(username)")
+                                    .font(.system(.subheadline, design: .rounded))
+                                    .foregroundStyle(.secondary)
+                            }
                         }
+
+                        Spacer()
+                    }
+
+                    // Awards inline
+                    if let awards = profile.awards, !awards.isEmpty {
+                        AwardsInlineRow(awards: awards)
                     }
                 }
+                .padding(.horizontal, 16)
                 .padding(.top, 20)
-
-                // Awards
-                if let awards = profile.awards, !awards.isEmpty {
-                    AwardsSection(awards: awards)
-                }
 
                 // Public Travels
                 if profile.travels.isEmpty {

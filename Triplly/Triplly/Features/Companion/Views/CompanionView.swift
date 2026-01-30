@@ -1,4 +1,5 @@
 import SwiftUI
+import Himetrica
 
 struct CompanionView: View {
     @Environment(\.dismiss) private var dismiss
@@ -194,6 +195,7 @@ struct TypingIndicator: View {
         .onAppear {
             animating = true
         }
+        .trackScreen("Companion")
     }
 }
 

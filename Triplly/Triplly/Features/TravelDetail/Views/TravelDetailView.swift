@@ -1,6 +1,7 @@
 import SwiftUI
 import MapKit
 internal import UniformTypeIdentifiers
+import Himetrica
 
 struct TravelDetailView: View {
     let travelId: String
@@ -28,7 +29,9 @@ struct TravelDetailView: View {
 
     // Day reordering state
     @State private var draggedItinerary: Itinerary?
+    @State private var draggedActivityId: String?
     @State private var targetItineraryId: String?
+    @State private var isWishlistDropTarget = false
     @State private var itineraryToDelete: Itinerary?
     @State private var showingDeleteItineraryAlert = false
 
@@ -155,7 +158,9 @@ struct TravelDetailView: View {
             showingDeleteTravelAlert: $showingDeleteTravelAlert,
             showingDeleteActivityAlert: $showingDeleteActivityAlert,
             showingLeaveTravelAlert: $showingLeaveTravelAlert,
-            activityToDelete: $activityToDelete
+            activityToDelete: $activityToDelete,
+            showingWishlistAlert: $showingWishlistAlert,
+            activityToWishlist: $activityToWishlist
         ))
         .task {
             await viewModel.loadTravel()
@@ -176,6 +181,7 @@ struct TravelDetailView: View {
             appState.updateMapActivities(viewModel.selectedActivities, title: viewModel.selectedItinerary?.title)
         }
         .enableInteractivePopGesture()
+        .trackScreen("Travel Detail")
         // Sheet presentations
         .sheet(isPresented: $showingEditTravel) {
             EditTravelSheet(viewModel: viewModel)
@@ -322,7 +328,7 @@ struct TravelDetailView: View {
     // MARK: - Clickable Stats Section
     private var clickableStatsSection: some View {
         HStack(spacing: 0) {
-            // Wishlist stat
+            // Wishlist stat (drop target for activities)
             Button {
                 showingWishlist = true
             } label: {
@@ -332,8 +338,23 @@ struct TravelDetailView: View {
                     value: "\(viewModel.wishlistActivities.count)",
                     label: "Wishlist"
                 )
+                .overlay {
+                    if isWishlistDropTarget {
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .stroke(Color.orange, lineWidth: 2)
+                            .background(Color.orange.opacity(0.1))
+                            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    }
+                }
+                .scaleEffect(isWishlistDropTarget ? 1.05 : 1.0)
+                .animation(.spring(response: 0.2, dampingFraction: 0.7), value: isWishlistDropTarget)
             }
             .buttonStyle(StatButtonStyle())
+            .onDrop(of: [.text], delegate: WishlistDropDelegate(
+                viewModel: viewModel,
+                draggedActivityId: $draggedActivityId,
+                isWishlistDropTarget: $isWishlistDropTarget
+            ))
 
             Divider()
                 .frame(height: 40)
@@ -390,7 +411,7 @@ struct TravelDetailView: View {
                         itinerary: itinerary,
                         dayNumber: index + 1,
                         isSelected: index == viewModel.selectedItineraryIndex,
-                        isDropTarget: targetItineraryId == itinerary.id && draggedItinerary != nil
+                        isDropTarget: targetItineraryId == itinerary.id && (draggedItinerary != nil || draggedActivityId != nil)
                     ) {
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                             viewModel.selectedItineraryIndex = index
@@ -401,10 +422,11 @@ struct TravelDetailView: View {
                         draggedItinerary = itinerary
                         return NSItemProvider(object: itinerary.id as NSString)
                     }
-                    .onDrop(of: [.text], delegate: ItineraryDropDelegate(
+                    .onDrop(of: [.text], delegate: DayChipDropDelegate(
                         itinerary: itinerary,
                         viewModel: viewModel,
                         draggedItinerary: $draggedItinerary,
+                        draggedActivityId: $draggedActivityId,
                         targetItineraryId: $targetItineraryId
                     ))
                     .contextMenu {
@@ -465,20 +487,7 @@ struct TravelDetailView: View {
                     }
                     Spacer()
 
-                    if !viewModel.selectedActivities.isEmpty {
-                        Button {
-                            showingAddActivity = true
-                        } label: {
-                            Image(systemName: "plus")
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundStyle(.primary)
-                                .frame(width: 32, height: 32)
-                                .background(Color(.secondarySystemBackground))
-                                .clipShape(Circle())
-                            Text("Add activity")
-                                .font(.system(size: 10, weight: .semibold, design: .rounded))
-                        }
-                    }
+  
                 }
                 .padding(.top, 8)
 
@@ -505,8 +514,37 @@ struct TravelDetailView: View {
                         onDelete: { activity in
                             activityToDelete = activity
                             showingDeleteActivityAlert = true
+                        },
+                        onDragStarted: { activityId in
+                            draggedActivityId = activityId
+                        },
+                        onDragEnded: {
+                            draggedActivityId = nil
                         }
                     )
+
+                    // Add Activity Button
+                    Button {
+                        showingAddActivity = true
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "plus.circle.fill")
+                                .font(.system(size: 18))
+                            Text("Add Activity")
+                                .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                        }
+                        .foregroundStyle(Color.appPrimary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(Color.appPrimary.opacity(0.08))
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .stroke(Color.appPrimary.opacity(0.2), lineWidth: 1)
+                        }
+                    }
+                    .buttonStyle(ScaleButtonStyle())
+                    .padding(.top, 4)
                 }
 
             } else if viewModel.itineraries.isEmpty {
@@ -804,6 +842,8 @@ struct TimelineView: View {
     let onReorderComplete: (Activity, Int) -> Void  // (movedActivity, newIndex)
     let onMoveToWishlist: (Activity) -> Void
     let onDelete: (Activity) -> Void
+    var onDragStarted: ((String) -> Void)?
+    var onDragEnded: (() -> Void)?
 
     @State private var draggedActivity: Activity?
 
@@ -822,6 +862,7 @@ struct TimelineView: View {
                 }
                 .onDrag {
                     draggedActivity = activity
+                    onDragStarted?(activity.id)
                     return NSItemProvider(object: activity.id as NSString)
                 }
                 .onDrop(of: [.text], delegate: TimelineDropDelegate(
@@ -856,6 +897,11 @@ struct TimelineView: View {
         .padding(.horizontal, 12)
         .background(Color(.systemBackground))
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .onChange(of: draggedActivity) { _, newValue in
+            if newValue == nil {
+                onDragEnded?()
+            }
+        }
     }
 }
 
@@ -899,14 +945,52 @@ struct TimelineDropDelegate: DropDelegate {
     }
 }
 
-// MARK: - Itinerary Drop Delegate
-struct ItineraryDropDelegate: DropDelegate {
+// MARK: - Day Chip Drop Delegate (handles both itinerary reorder and activity moves)
+struct DayChipDropDelegate: DropDelegate {
     let itinerary: Itinerary
     let viewModel: TravelDetailViewModel
     @Binding var draggedItinerary: Itinerary?
+    @Binding var draggedActivityId: String?
     @Binding var targetItineraryId: String?
 
     func performDrop(info: DropInfo) -> Bool {
+        // Activity drop
+        if let activityId = draggedActivityId {
+            var foundActivity: Activity?
+            for itin in viewModel.itineraries {
+                if let activity = itin.activities?.first(where: { $0.id == activityId }) {
+                    foundActivity = activity
+                    break
+                }
+            }
+
+            guard let activity = foundActivity else {
+                draggedActivityId = nil
+                targetItineraryId = nil
+                return false
+            }
+
+            // Don't move if dropping on the same day
+            let sourceItinerary = viewModel.itineraries.first { itin in
+                itin.activities?.contains(where: { $0.id == activityId }) == true
+            }
+            guard sourceItinerary?.id != itinerary.id else {
+                draggedActivityId = nil
+                targetItineraryId = nil
+                return false
+            }
+
+            let targetId = itinerary.id
+            draggedActivityId = nil
+            targetItineraryId = nil
+
+            Task {
+                await viewModel.moveActivityToDay(activity, itineraryId: targetId)
+            }
+            return true
+        }
+
+        // Itinerary reorder
         guard let dragged = draggedItinerary,
               let targetId = targetItineraryId,
               let toIndex = viewModel.itineraries.firstIndex(where: { $0.id == targetId }) else {
@@ -922,6 +1006,16 @@ struct ItineraryDropDelegate: DropDelegate {
     }
 
     func dropEntered(info: DropInfo) {
+        // Activity drag
+        if let activityId = draggedActivityId {
+            let isInThisItinerary = itinerary.activities?.contains(where: { $0.id == activityId }) == true
+            if !isInThisItinerary {
+                targetItineraryId = itinerary.id
+            }
+            return
+        }
+
+        // Itinerary reorder
         guard let dragged = draggedItinerary,
               dragged.id != itinerary.id else {
             return
@@ -929,8 +1023,65 @@ struct ItineraryDropDelegate: DropDelegate {
         targetItineraryId = itinerary.id
     }
 
+    func dropExited(info: DropInfo) {
+        if targetItineraryId == itinerary.id {
+            targetItineraryId = nil
+        }
+    }
+
     func dropUpdated(info: DropInfo) -> DropProposal? {
         DropProposal(operation: .move)
+    }
+}
+
+// MARK: - Wishlist Drop Delegate
+struct WishlistDropDelegate: DropDelegate {
+    let viewModel: TravelDetailViewModel
+    @Binding var draggedActivityId: String?
+    @Binding var isWishlistDropTarget: Bool
+
+    func performDrop(info: DropInfo) -> Bool {
+        guard let activityId = draggedActivityId else {
+            isWishlistDropTarget = false
+            return false
+        }
+
+        // Find the activity in itineraries
+        var foundActivity: Activity?
+        for itinerary in viewModel.itineraries {
+            if let activity = itinerary.activities?.first(where: { $0.id == activityId }) {
+                foundActivity = activity
+                break
+            }
+        }
+
+        guard let activity = foundActivity else {
+            draggedActivityId = nil
+            isWishlistDropTarget = false
+            return false
+        }
+
+        draggedActivityId = nil
+        isWishlistDropTarget = false
+
+        Task {
+            await viewModel.moveActivityToWishlist(activity)
+        }
+        return true
+    }
+
+    func dropEntered(info: DropInfo) {
+        if draggedActivityId != nil {
+            isWishlistDropTarget = true
+        }
+    }
+
+    func dropExited(info: DropInfo) {
+        isWishlistDropTarget = false
+    }
+
+    func dropUpdated(info: DropInfo) -> DropProposal? {
+        DropProposal(operation: draggedActivityId != nil ? .move : .cancel)
     }
 }
 
@@ -1049,6 +1200,8 @@ struct ActivityDetailSheet: View {
     @State private var isSendingComment = false
     @State private var showingDeleteAlert = false
     @State private var showingWishlistAlert = false
+    @State private var showingMoveAlert = false
+    @State private var selectedMoveTarget: Itinerary?
     @State private var showCreatorProfile = false
     @FocusState private var isCommentFocused: Bool
 
@@ -1222,6 +1375,40 @@ struct ActivityDetailSheet: View {
                         }
                         .buttonStyle(.plain)
 
+                        // Move to Day
+                        if viewModel.itineraries.count > 1 {
+                            let currentItineraryId = viewModel.itineraries.first(where: { itinerary in
+                                itinerary.activities?.contains(where: { $0.id == activity.id }) == true
+                            })?.id
+
+                            Menu {
+                                ForEach(Array(viewModel.itineraries.enumerated()), id: \.element.id) { index, itinerary in
+                                    if itinerary.id != currentItineraryId {
+                                        Button {
+                                            selectedMoveTarget = itinerary
+                                            showingMoveAlert = true
+                                        } label: {
+                                            Label(
+                                                "Day \(index + 1) — \(itinerary.title)",
+                                                systemImage: "calendar"
+                                            )
+                                        }
+                                    }
+                                }
+                            } label: {
+                                HStack {
+                                    Image(systemName: "arrow.right.arrow.left")
+                                    Text("Move to Day")
+                                }
+                                .font(.subheadline.weight(.medium))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                                .background(Color(.secondarySystemBackground))
+                                .clipShape(RoundedRectangle(cornerRadius: 10))
+                            }
+                            .buttonStyle(.plain)
+                        }
+
                         Button(role: .destructive) {
                             showingDeleteAlert = true
                         } label: {
@@ -1274,6 +1461,22 @@ struct ActivityDetailSheet: View {
                 }
             } message: {
                 Text("Move \"\(activity.title)\" to the wishlist? It will be removed from the current day.")
+            }
+            .alert("Move to Day", isPresented: $showingMoveAlert) {
+                Button("Cancel", role: .cancel) {
+                    selectedMoveTarget = nil
+                }
+                Button("Move") {
+                    if let target = selectedMoveTarget {
+                        Task {
+                            await viewModel.moveActivityToDay(activity, itineraryId: target.id)
+                            dismiss()
+                        }
+                    }
+                    selectedMoveTarget = nil
+                }
+            } message: {
+                Text("Move \"\(activity.title)\" to \"\(selectedMoveTarget?.title ?? "this day")\"?")
             }
             .sheet(isPresented: $showCreatorProfile) {
                 if let username = activity.createdBy?.username {
@@ -1462,6 +1665,8 @@ struct TravelDetailAlertsModifier: ViewModifier {
     @Binding var showingDeleteActivityAlert: Bool
     @Binding var showingLeaveTravelAlert: Bool
     @Binding var activityToDelete: Activity?
+    @Binding var showingWishlistAlert: Bool
+    @Binding var activityToWishlist: Activity?
 
     func body(content: Content) -> some View {
         content

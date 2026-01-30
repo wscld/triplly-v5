@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		C93DCF532F2BC58800B6F02A /* Himetrica in Frameworks */ = {isa = PBXBuildFile; productRef = C93DCF522F2BC58800B6F02A /* Himetrica */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		C92DBBED2F28137A006345CD /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -52,6 +56,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C93DCF532F2BC58800B6F02A /* Himetrica in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -112,6 +117,7 @@
 			);
 			name = Triplly;
 			packageProductDependencies = (
+				C93DCF522F2BC58800B6F02A /* Himetrica */,
 			);
 			productName = Triplly;
 			productReference = C92DBBDF2F281378006345CD /* Triplly.app */;
@@ -196,6 +202,7 @@
 			mainGroup = C92DBBD62F281378006345CD;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
+				C93DCF512F2BC58800B6F02A /* XCRemoteSwiftPackageReference "himetrica-swift" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = C92DBBE02F281378006345CD /* Products */;
@@ -580,6 +587,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		C93DCF512F2BC58800B6F02A /* XCRemoteSwiftPackageReference "himetrica-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/himetrica/himetrica-swift";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		C93DCF522F2BC58800B6F02A /* Himetrica */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C93DCF512F2BC58800B6F02A /* XCRemoteSwiftPackageReference "himetrica-swift" */;
+			productName = Himetrica;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = C92DBBD72F281378006345CD /* Project object */;
 }

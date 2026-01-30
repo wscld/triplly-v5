@@ -1,5 +1,6 @@
 import SwiftUI
 import Combine
+import Himetrica
 
 @MainActor
 final class AppState: ObservableObject {
@@ -84,6 +85,7 @@ final class AppState: ObservableObject {
             let user = try await apiClient.getCurrentUser()
             self.currentUser = user
             self.isAuthenticated = true
+            Himetrica.shared.identify(name: user.name, email: user.email)
 
             // Show onboarding if first time after authentication
             if !hasCompletedOnboarding {
@@ -105,6 +107,8 @@ final class AppState: ObservableObject {
 
         currentUser = response.user
         isAuthenticated = true
+        Himetrica.shared.identify(name: response.user.name, email: response.user.email)
+        Himetrica.shared.track("login", properties: ["method": "email"])
     }
 
     func register(name: String, email: String, password: String) async throws {
@@ -115,6 +119,8 @@ final class AppState: ObservableObject {
 
         currentUser = response.user
         isAuthenticated = true
+        Himetrica.shared.identify(name: response.user.name, email: response.user.email)
+        Himetrica.shared.track("register", properties: ["method": "email"])
     }
 
     func appleSignIn(identityToken: String, name: String?) async throws {
@@ -125,6 +131,8 @@ final class AppState: ObservableObject {
 
         currentUser = response.user
         isAuthenticated = true
+        Himetrica.shared.identify(name: response.user.name, email: response.user.email)
+        Himetrica.shared.track("login", properties: ["method": "apple"])
     }
 
     func logout() {

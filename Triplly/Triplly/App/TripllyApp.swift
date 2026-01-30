@@ -1,9 +1,21 @@
 import SwiftUI
+import Himetrica
+
+class AppDelegate: NSObject, UIApplicationDelegate {
+    func application(
+        _ application: UIApplication,
+        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
+    ) -> Bool {
+        Himetrica.configure(apiKey: "hm_58e9ef6e9f3102833740e6d5993ac2ca8634623594a6e49c")
+        return true
+    }
+}
 
 @main
 struct TripllyApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var appState = AppState()
-
+    
     var body: some Scene {
         WindowGroup {
             RootView()
@@ -49,6 +61,8 @@ struct RootView: View {
         .sheet(isPresented: $appState.showPaywall) {
             PaywallView()
         }
+        .himetricaLifecycle()
+        .himetricaDeepLink()
     }
 }
 

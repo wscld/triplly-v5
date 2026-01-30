@@ -1,4 +1,5 @@
 import SwiftUI
+import Himetrica
 
 struct InvitesView: View {
     @StateObject private var viewModel = InvitesViewModel()
@@ -14,6 +15,7 @@ struct InvitesView: View {
             }
         }
         .navigationTitle("Invites")
+        .trackScreen("Invites")
         .task {
             await viewModel.loadInvites()
         }

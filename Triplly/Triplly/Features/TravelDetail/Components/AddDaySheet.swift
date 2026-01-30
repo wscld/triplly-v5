@@ -6,6 +6,20 @@ struct AddDaySheet: View {
 
     @State private var selectedDate: Date = Date()
 
+    private var dateFormatter: DateFormatter {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        return f
+    }
+
+    private var travelStartDate: Date? {
+        viewModel.travel?.startDate.flatMap { dateFormatter.date(from: $0) }
+    }
+
+    private var travelEndDate: Date? {
+        viewModel.travel?.endDate.flatMap { dateFormatter.date(from: $0) }
+    }
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
@@ -13,6 +27,7 @@ struct AddDaySheet: View {
                 DatePicker(
                     "Select Date",
                     selection: $selectedDate,
+                    in: (travelStartDate ?? .distantPast)...(travelEndDate ?? .distantFuture),
                     displayedComponents: .date
                 )
                 .datePickerStyle(.graphical)
@@ -60,7 +75,7 @@ struct AddDaySheet: View {
                 }
             }
         }
-        .presentationDetents([.medium, .large])
+        .presentationDetents([.large])
         .presentationDragIndicator(.visible)
         .onAppear {
             // Default to the day after the last itinerary date, or travel start date

@@ -1,0 +1,15 @@
+{
+  "originHash" : "52318dab133d937e8b71108e7f7b79fb6621f17cf9b42a8d210ff676b92e33e5",
+  "pins" : [
+    {
+      "identity" : "himetrica-swift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/himetrica/himetrica-swift",
+      "state" : {
+        "branch" : "main",
+        "revision" : "ebbce2379d7a2bc5348fdb8de6344ea3841b6a78"
+      }
+    }
+  ],
+  "version" : 3
+}

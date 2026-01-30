@@ -361,9 +361,37 @@ final class TravelDetailViewModel: ObservableObject {
         }
     }
 
+    /// Merges API response with the original activity, preserving fields the API may not return (e.g. createdBy).
+    private func mergeActivity(original: Activity, updated: Activity) -> Activity {
+        // If the updated activity already has createdBy, return it as-is
+        if updated.createdBy != nil {
+            return updated
+        }
+        
+        // Otherwise, create a new Activity with the original's createdBy
+        return Activity(
+            id: updated.id,
+            travelId: updated.travelId,
+            itineraryId: updated.itineraryId,
+            title: updated.title,
+            description: updated.description,
+            orderIndex: updated.orderIndex,
+            latitude: updated.latitude,
+            longitude: updated.longitude,
+            googlePlaceId: updated.googlePlaceId,
+            createdAt: updated.createdAt,
+            startTime: updated.startTime,
+            comments: updated.comments,
+            address: updated.address,
+            createdById: updated.createdById,
+            createdBy: original.createdBy
+        )
+    }
+
     func moveActivityToWishlist(_ activity: Activity) async {
         do {
-            let updated = try await apiClient.assignActivityToItinerary(activityId: activity.id, itineraryId: nil)
+            let response = try await apiClient.assignActivityToItinerary(activityId: activity.id, itineraryId: nil)
+            let merged = mergeActivity(original: activity, updated: response)
 
             // Remove from itinerary
             if var updatedTravel = travel {
@@ -375,7 +403,7 @@ final class TravelDetailViewModel: ObservableObject {
             }
 
             // Add to wishlist
-            wishlistActivities.append(updated)
+            wishlistActivities.append(merged)
         } catch {
             self.error = error
         }
@@ -383,7 +411,8 @@ final class TravelDetailViewModel: ObservableObject {
 
     func assignActivityToDay(_ activity: Activity, itineraryId: String) async {
         do {
-            let updated = try await apiClient.assignActivityToItinerary(activityId: activity.id, itineraryId: itineraryId)
+            let response = try await apiClient.assignActivityToItinerary(activityId: activity.id, itineraryId: itineraryId)
+            let merged = mergeActivity(original: activity, updated: response)
 
             // Remove from wishlist
             wishlistActivities.removeAll { $0.id == activity.id }
@@ -393,11 +422,39 @@ final class TravelDetailViewModel: ObservableObject {
                 if let index = updatedTravel.itineraries?.firstIndex(where: { $0.id == itineraryId }) {
                     var itinerary = updatedTravel.itineraries![index]
                     var activities = itinerary.activities ?? []
-                    activities.append(updated)
+                    activities.append(merged)
                     itinerary.activities = activities
                     updatedTravel.itineraries![index] = itinerary
                     travel = updatedTravel
                 }
+            }
+        } catch {
+            self.error = error
+        }
+    }
+
+    func moveActivityToDay(_ activity: Activity, itineraryId: String) async {
+        do {
+            let response = try await apiClient.assignActivityToItinerary(
+                activityId: activity.id, itineraryId: itineraryId
+            )
+            let merged = mergeActivity(original: activity, updated: response)
+
+            // Remove from source itinerary
+            if var updatedTravel = travel {
+                for (index, var itinerary) in (updatedTravel.itineraries ?? []).enumerated() {
+                    itinerary.activities?.removeAll { $0.id == activity.id }
+                    updatedTravel.itineraries?[index] = itinerary
+                }
+                // Add to target itinerary
+                if let targetIndex = updatedTravel.itineraries?.firstIndex(where: { $0.id == itineraryId }) {
+                    var targetItinerary = updatedTravel.itineraries![targetIndex]
+                    var activities = targetItinerary.activities ?? []
+                    activities.append(merged)
+                    targetItinerary.activities = activities
+                    updatedTravel.itineraries![targetIndex] = targetItinerary
+                }
+                travel = updatedTravel
             }
         } catch {
             self.error = error

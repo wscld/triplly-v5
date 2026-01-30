@@ -1,4 +1,5 @@
 import SwiftUI
+import Himetrica
 
 struct TravelsListView: View {
     @EnvironmentObject var appState: AppState
@@ -106,6 +107,7 @@ struct TravelsListView: View {
                 }
             }
         }
+        .trackScreen("Trips")
     }
 
     // MARK: - Hero Header with Parallax

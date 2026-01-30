@@ -424,13 +424,18 @@ private struct DateRangePickerSheet: View {
     let onSave: () -> Void
     let onCancel: () -> Void
 
+    private var dayCount: Int {
+        let days = Calendar.current.dateComponents([.day], from: startDate, to: endDate).day ?? 0
+        return max(days, 0)
+    }
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                // Date selection tabs
+                // Date range summary
                 HStack(spacing: 0) {
                     DateTabButton(
-                        title: "Start Date",
+                        title: "Start",
                         date: startDate,
                         isSelected: !selectingEndDate
                     ) {
@@ -439,8 +444,21 @@ private struct DateRangePickerSheet: View {
                         }
                     }
 
+                    // Duration indicator
+                    VStack(spacing: 2) {
+                        Image(systemName: "arrow.right")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(.secondary)
+                        if dayCount > 0 {
+                            Text("\(dayCount) \(dayCount == 1 ? "day" : "days")")
+                                .font(.system(size: 10, weight: .medium, design: .rounded))
+                                .foregroundStyle(Color.appPrimary)
+                        }
+                    }
+                    .frame(width: 60)
+
                     DateTabButton(
-                        title: "End Date",
+                        title: "End",
                         date: endDate,
                         isSelected: selectingEndDate
                     ) {
@@ -476,6 +494,10 @@ private struct DateRangePickerSheet: View {
                         if endDate < newValue {
                             endDate = newValue
                         }
+                        // Auto-switch to end date after selecting start
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            selectingEndDate = true
+                        }
                     }
                 }
 
@@ -493,7 +515,7 @@ private struct DateRangePickerSheet: View {
                 }
             }
         }
-        .presentationDetents([.medium, .large])
+        .presentationDetents([.large])
         .presentationDragIndicator(.visible)
     }
 }
@@ -515,17 +537,24 @@ private struct DateTabButton: View {
         Button(action: action) {
             VStack(spacing: 4) {
                 Text(title)
-                    .font(.caption)
+                    .font(.system(size: 11, weight: .medium, design: .rounded))
                     .foregroundStyle(isSelected ? Color.appPrimary : .secondary)
+                    .textCase(.uppercase)
 
                 Text(formattedDate)
-                    .font(.subheadline.weight(.semibold))
+                    .font(.system(.subheadline, design: .rounded).weight(.semibold))
                     .foregroundStyle(isSelected ? Color.appPrimary : .primary)
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 12)
-            .background(isSelected ? Color.appPrimary.opacity(0.1) : Color.clear)
-            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .background(isSelected ? Color.appPrimary.opacity(0.1) : Color(.secondarySystemBackground))
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .overlay {
+                if isSelected {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .stroke(Color.appPrimary.opacity(0.3), lineWidth: 1.5)
+                }
+            }
         }
         .buttonStyle(.plain)
     }
