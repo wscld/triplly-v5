@@ -14,10 +14,43 @@ const createCheckInSchema = z.object({
     activityId: z.string().uuid(),
 });
 
+function formatCheckIn(ci: CheckIn) {
+    return {
+        id: ci.id,
+        placeId: ci.placeId,
+        userId: ci.userId,
+        activityId: ci.activityId,
+        createdAt: ci.createdAt,
+        place: ci.place ? {
+            id: ci.place.id,
+            name: ci.place.name,
+            latitude: ci.place.latitude,
+            longitude: ci.place.longitude,
+            address: ci.place.address,
+        } : undefined,
+        user: ci.user ? {
+            id: ci.user.id,
+            name: ci.user.name,
+            profilePhotoUrl: ci.user.profilePhotoUrl,
+        } : undefined,
+    };
+}
+
 // POST /checkins - Check in at activity's place
-checkins.post('/', zValidator('json', createCheckInSchema), async (c) => {
+checkins.post('/', async (c) => {
     const { userId } = getAuth(c);
-    const { activityId } = c.req.valid('json');
+
+    let body: any;
+    try {
+        body = await c.req.json();
+    } catch {
+        return c.json({ error: 'Invalid JSON body' }, 400);
+    }
+
+    const activityId = body?.activityId;
+    if (!activityId || typeof activityId !== 'string') {
+        return c.json({ error: 'activityId is required' }, 400);
+    }
 
     const activityRepo = AppDataSource.getRepository(Activity);
     const checkInRepo = AppDataSource.getRepository(CheckIn);
@@ -40,23 +73,29 @@ checkins.post('/', zValidator('json', createCheckInSchema), async (c) => {
     // Ensure activity has a place; auto-create if needed
     let placeId = activity.placeId;
     if (!placeId) {
-        const place = await findOrCreatePlace({
-            name: activity.title,
-            latitude: activity.latitude,
-            longitude: activity.longitude,
-            address: activity.address,
-        });
-        placeId = place.id;
-        activity.placeId = place.id;
-        await activityRepo.save(activity);
+        try {
+            const place = await findOrCreatePlace({
+                name: activity.title,
+                latitude: activity.latitude,
+                longitude: activity.longitude,
+                address: activity.address,
+            });
+            placeId = place.id;
+            activity.placeId = place.id;
+            await activityRepo.save(activity);
+        } catch (err) {
+            console.error('Failed to create place for check-in:', err);
+            return c.json({ error: 'Failed to create place' }, 500);
+        }
     }
 
-    // Check for existing check-in
+    // Check for existing check-in — return it instead of erroring (idempotent)
     const existing = await checkInRepo.findOne({
         where: { placeId, userId },
+        relations: ['place', 'user'],
     });
     if (existing) {
-        return c.json({ error: 'Already checked in at this place' }, 400);
+        return c.json(formatCheckIn(existing));
     }
 
     const checkIn = checkInRepo.create({
@@ -72,25 +111,7 @@ checkins.post('/', zValidator('json', createCheckInSchema), async (c) => {
         relations: ['place', 'user'],
     });
 
-    return c.json({
-        id: result!.id,
-        placeId: result!.placeId,
-        userId: result!.userId,
-        activityId: result!.activityId,
-        createdAt: result!.createdAt,
-        place: {
-            id: result!.place.id,
-            name: result!.place.name,
-            latitude: result!.place.latitude,
-            longitude: result!.place.longitude,
-            address: result!.place.address,
-        },
-        user: {
-            id: result!.user.id,
-            name: result!.user.name,
-            profilePhotoUrl: result!.user.profilePhotoUrl,
-        },
-    }, 201);
+    return c.json(formatCheckIn(result!), 201);
 });
 
 // GET /checkins/activity/:activityId - Get all check-ins for activity's place
