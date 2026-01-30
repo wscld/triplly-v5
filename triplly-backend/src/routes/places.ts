@@ -2,10 +2,30 @@ import { Hono } from 'hono';
 import { AppDataSource } from '../data-source.js';
 import { Place, CheckIn, PlaceReview } from '../entities/index.js';
 import { authMiddleware, getAuth } from '../middleware/index.js';
+import { searchPlaces } from '../services/search.js';
 
 const places = new Hono();
 
 places.use('*', authMiddleware);
+
+// GET /places/search?q=...&limit=... - Search places via Nominatim
+places.get('/search', async (c) => {
+    const query = c.req.query('q');
+    if (!query) {
+        return c.json({ error: 'Query parameter "q" is required' }, 400);
+    }
+
+    const limitParam = c.req.query('limit');
+    const limit = limitParam ? parseInt(limitParam, 10) : undefined;
+
+    try {
+        const results = await searchPlaces(query, limit);
+        return c.json(results);
+    } catch (err) {
+        console.error('Place search failed:', err);
+        return c.json({ error: 'Search failed' }, 500);
+    }
+});
 
 // GET /places/:placeId - Place details + stats
 places.get('/:placeId', async (c) => {

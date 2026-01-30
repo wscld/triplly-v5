@@ -44,6 +44,12 @@ export class Travel {
     @Column({ type: 'boolean', default: false })
     isPublic: boolean;
 
+    @Column('varchar', { nullable: true })
+    externalId: string | null;
+
+    @Column('varchar', { nullable: true })
+    provider: string | null;
+
     @Column('uuid', { nullable: true })
     placeId: string | null;
 

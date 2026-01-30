@@ -22,6 +22,8 @@ const createTravelSchema = z.object({
     latitude: z.number().nullable().optional(),
     longitude: z.number().nullable().optional(),
     isPublic: z.boolean().optional(),
+    externalId: z.string().nullable().optional(),
+    provider: z.string().nullable().optional(),
 });
 
 const updateTravelSchema = createTravelSchema.partial();
@@ -84,6 +86,8 @@ travels.post('/', zValidator('json', createTravelSchema), async (c) => {
                 name: data.title,
                 latitude: data.latitude,
                 longitude: data.longitude,
+                externalId: data.externalId ?? null,
+                provider: data.provider ?? null,
             });
             placeId = place.id;
         } catch (err) {

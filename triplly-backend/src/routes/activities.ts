@@ -18,11 +18,10 @@ const createActivitySchema = z.object({
     description: z.string().nullable().optional(),
     latitude: z.number(),
     longitude: z.number(),
-    googlePlaceId: z.string().nullable().optional(),
+    externalId: z.string().nullable().optional(),
+    provider: z.string().nullable().optional(),
     address: z.string().nullable().optional(),
     startTime: z.string().nullable().optional(),
-    externalPlaceId: z.string().nullable().optional(),
-    placeProvider: z.string().nullable().optional(),
 });
 
 const updateActivitySchema = z.object({
@@ -30,7 +29,8 @@ const updateActivitySchema = z.object({
     description: z.string().nullable().optional(),
     latitude: z.number().optional(),
     longitude: z.number().optional(),
-    googlePlaceId: z.string().nullable().optional(),
+    externalId: z.string().nullable().optional(),
+    provider: z.string().nullable().optional(),
 });
 
 const reorderSchema = z.object({
@@ -226,8 +226,8 @@ activities.post('/', zValidator('json', createActivitySchema), async (c) => {
             latitude: data.latitude,
             longitude: data.longitude,
             address: data.address,
-            externalId: data.externalPlaceId ?? data.googlePlaceId ?? null,
-            provider: data.placeProvider ?? (data.googlePlaceId ? 'google' : null),
+            externalId: data.externalId ?? null,
+            provider: data.provider ?? null,
         });
         placeId = place.id;
     } catch (err) {
@@ -280,7 +280,8 @@ activities.get('/:activityId', async (c) => {
             orderIndex: true,
             latitude: true,
             longitude: true,
-            googlePlaceId: true,
+            externalId: true,
+            provider: true,
             placeId: true,
             address: true,
             startTime: true,
@@ -356,7 +357,8 @@ activities.patch('/:activityId', zValidator('json', updateActivitySchema), async
     if (data.description !== undefined) activity.description = data.description;
     if (data.latitude !== undefined) activity.latitude = data.latitude;
     if (data.longitude !== undefined) activity.longitude = data.longitude;
-    if (data.googlePlaceId !== undefined) activity.googlePlaceId = data.googlePlaceId;
+    if (data.externalId !== undefined) activity.externalId = data.externalId;
+    if (data.provider !== undefined) activity.provider = data.provider;
 
     await activityRepo.save(activity);
     return c.json(activity);

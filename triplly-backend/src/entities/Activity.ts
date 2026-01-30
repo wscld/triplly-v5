@@ -41,7 +41,10 @@ export class Activity {
     longitude: number;
 
     @Column('varchar', { nullable: true })
-    googlePlaceId: string | null;
+    externalId: string | null;
+
+    @Column('varchar', { nullable: true })
+    provider: string | null;
 
     @Column('varchar', { nullable: true })
     address: string | null;
