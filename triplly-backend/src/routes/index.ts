@@ -7,3 +7,6 @@ export { default as commentRoutes } from './comments.js';
 export { default as todoRoutes } from './todos.js';
 export { default as companionRoutes } from './companion.js';
 export { default as publicRoutes } from './public.js';
+export { default as checkinRoutes } from './checkins.js';
+export { default as placeRoutes } from './places.js';
+export { default as reviewRoutes } from './reviews.js';

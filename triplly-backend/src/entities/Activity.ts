@@ -12,6 +12,7 @@ import type { Itinerary } from './Itinerary.js';
 import type { ActivityComment } from './ActivityComment.js';
 import type { Travel } from './Travel.js';
 import type { User } from './User.js';
+import type { Place } from './Place.js';
 
 @Entity('activities')
 export class Activity {
@@ -45,6 +46,9 @@ export class Activity {
     @Column('varchar', { nullable: true })
     address: string | null;
 
+    @Column('uuid', { nullable: true })
+    placeId: string | null;
+
     @Column('varchar', { nullable: true })
     startTime: string | null;
 
@@ -57,6 +61,10 @@ export class Activity {
     @ManyToOne("User", { nullable: true })
     @JoinColumn({ name: 'createdById' })
     createdBy: Relation<User> | null;
+
+    @ManyToOne("Place", { nullable: true, onDelete: 'SET NULL' })
+    @JoinColumn({ name: 'placeId' })
+    place: Relation<Place> | null;
 
     @ManyToOne("Travel", { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'travelId' })

@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { AppDataSource } from '../data-source.js';
 import { Activity, Itinerary, TravelMember } from '../entities/index.js';
 import { authMiddleware, getAuth } from '../middleware/index.js';
+import { findOrCreatePlace } from '../services/places.js';
 
 const activities = new Hono();
 
@@ -20,6 +21,8 @@ const createActivitySchema = z.object({
     googlePlaceId: z.string().nullable().optional(),
     address: z.string().nullable().optional(),
     startTime: z.string().nullable().optional(),
+    externalPlaceId: z.string().nullable().optional(),
+    placeProvider: z.string().nullable().optional(),
 });
 
 const updateActivitySchema = z.object({
@@ -215,6 +218,22 @@ activities.post('/', zValidator('json', createActivitySchema), async (c) => {
 
     const activityRepo = AppDataSource.getRepository(Activity);
 
+    // Auto-create/link Place
+    let placeId: string | null = null;
+    try {
+        const place = await findOrCreatePlace({
+            name: data.title,
+            latitude: data.latitude,
+            longitude: data.longitude,
+            address: data.address,
+            externalId: data.externalPlaceId ?? data.googlePlaceId ?? null,
+            provider: data.placeProvider ?? (data.googlePlaceId ? 'google' : null),
+        });
+        placeId = place.id;
+    } catch (err) {
+        console.error('Failed to create/find place:', err);
+    }
+
     // Get max orderIndex
     let nextOrder = 1000;
     if (data.itineraryId) {
@@ -230,6 +249,7 @@ activities.post('/', zValidator('json', createActivitySchema), async (c) => {
         itineraryId: data.itineraryId || null,
         orderIndex: nextOrder,
         createdById: userId,
+        placeId,
     });
     await activityRepo.save(activity);
 
@@ -261,6 +281,7 @@ activities.get('/:activityId', async (c) => {
             latitude: true,
             longitude: true,
             googlePlaceId: true,
+            placeId: true,
             address: true,
             startTime: true,
             createdAt: true,

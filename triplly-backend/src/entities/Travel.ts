@@ -13,6 +13,7 @@ import type { TravelMember } from './TravelMember.js';
 import type { TravelInvite } from './TravelInvite.js';
 import type { Itinerary } from './Itinerary.js';
 import type { Todo } from './Todo.js';
+import type { Place } from './Place.js';
 
 @Entity('travels')
 export class Travel {
@@ -43,6 +44,9 @@ export class Travel {
     @Column({ type: 'boolean', default: false })
     isPublic: boolean;
 
+    @Column('uuid', { nullable: true })
+    placeId: string | null;
+
     @CreateDateColumn()
     createdAt: Date;
 
@@ -52,6 +56,10 @@ export class Travel {
     @ManyToOne("User")
     @JoinColumn({ name: 'ownerId' })
     owner: Relation<User>;
+
+    @ManyToOne("Place", { nullable: true, onDelete: 'SET NULL' })
+    @JoinColumn({ name: 'placeId' })
+    place: Relation<Place> | null;
 
     @OneToMany("TravelMember", (member: TravelMember) => member.travel)
     members: TravelMember[];

@@ -6,4 +6,7 @@ export * from './Itinerary.js';
 export * from './Activity.js';
 export * from './ActivityComment.js';
 export * from './Todo.js';
+export * from './Place.js';
+export * from './CheckIn.js';
+export * from './PlaceReview.js';
 

@@ -10,6 +10,9 @@ import {
     Activity,
     ActivityComment,
     Todo,
+    Place,
+    CheckIn,
+    PlaceReview,
 } from './entities/index.js';
 
 config();
@@ -28,6 +31,9 @@ export const AppDataSource = new DataSource({
         Activity,
         ActivityComment,
         Todo,
+        Place,
+        CheckIn,
+        PlaceReview,
     ],
     migrations: ['src/migrations/**/*.ts'],
     ssl: {

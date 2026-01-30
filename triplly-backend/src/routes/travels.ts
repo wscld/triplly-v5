@@ -6,6 +6,7 @@ import { Travel, TravelMember, MemberRole, TravelInvite, InviteStatus, User } fr
 import { authMiddleware, getAuth, requireTravelAccess } from '../middleware/index.js';
 import { getPlaceImage } from '../services/unsplash.js';
 import { uploadImage } from '../services/storage.js';
+import { findOrCreatePlace } from '../services/places.js';
 
 const travels = new Hono();
 
@@ -75,6 +76,21 @@ travels.post('/', zValidator('json', createTravelSchema), async (c) => {
         coverImageUrl = await getPlaceImage(data.title);
     }
 
+    // Auto-create/link Place if lat/lng provided
+    let placeId: string | null = null;
+    if (data.latitude != null && data.longitude != null) {
+        try {
+            const place = await findOrCreatePlace({
+                name: data.title,
+                latitude: data.latitude,
+                longitude: data.longitude,
+            });
+            placeId = place.id;
+        } catch (err) {
+            console.error('Failed to create/find place for travel:', err);
+        }
+    }
+
     // Create travel
     const travel = travelRepo.create({
         ...data,
@@ -82,6 +98,7 @@ travels.post('/', zValidator('json', createTravelSchema), async (c) => {
         startDate: data.startDate ? new Date(data.startDate) : null,
         endDate: data.endDate ? new Date(data.endDate) : null,
         ownerId: userId,
+        placeId,
     });
     await travelRepo.save(travel);
 
