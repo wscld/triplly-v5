@@ -173,7 +173,7 @@ struct MembersSheet: View {
         inviteError = nil
 
         do {
-            try await viewModel.sendInvite(email: inviteEmail, role: inviteRole)
+            try await viewModel.sendInvite(email: inviteEmail.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(), role: inviteRole)
             await loadPendingInvites()
             withAnimation {
                 showingInvite = false

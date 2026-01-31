@@ -260,7 +260,7 @@ travels.post('/:travelId/cover', requireTravelAccess('editor'), async (c) => {
 // --- Member Management ---
 
 const inviteSchema = z.object({
-    email: z.string().email(),
+    email: z.string().trim().toLowerCase().email(),
     role: z.enum(['editor', 'viewer']).default('viewer'),
 });
 
