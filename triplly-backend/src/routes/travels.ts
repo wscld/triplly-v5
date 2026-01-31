@@ -187,6 +187,28 @@ travels.patch('/:travelId', requireTravelAccess('editor'), zValidator('json', up
         return c.json({ error: 'Travel not found' }, 404);
     }
 
+    // Validate minimum days if dates are being changed
+    if (data.startDate !== undefined || data.endDate !== undefined) {
+        const newStart = data.startDate !== undefined
+            ? (data.startDate ? new Date(data.startDate) : null)
+            : travel.startDate;
+        const newEnd = data.endDate !== undefined
+            ? (data.endDate ? new Date(data.endDate) : null)
+            : travel.endDate;
+
+        if (newStart && newEnd) {
+            const newDays = Math.round((newEnd.getTime() - newStart.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+            const itineraryRepo = AppDataSource.getRepository(Itinerary);
+            const itineraryCount = await itineraryRepo.count({ where: { travelId } });
+
+            if (newDays < itineraryCount) {
+                return c.json({
+                    error: `Cannot reduce to ${newDays} day${newDays === 1 ? '' : 's'}. You have ${itineraryCount} itinerary day${itineraryCount === 1 ? '' : 's'}. Remove days first before changing dates.`,
+                }, 400);
+            }
+        }
+    }
+
     // Update fields
     if (data.title !== undefined) travel.title = data.title;
     if (data.description !== undefined) travel.description = data.description;
@@ -206,6 +228,51 @@ travels.patch('/:travelId', requireTravelAccess('editor'), zValidator('json', up
     }
 
     await travelRepo.save(travel);
+
+    // Sync itinerary days when dates change
+    if (data.startDate !== undefined || data.endDate !== undefined) {
+        const itineraryRepo = AppDataSource.getRepository(Itinerary);
+        const existingItineraries = await itineraryRepo.find({
+            where: { travelId },
+            order: { orderIndex: 'ASC' },
+        });
+
+        if (travel.startDate && travel.endDate) {
+            const start = new Date(travel.startDate);
+            const end = new Date(travel.endDate);
+
+            // Calculate the number of days needed
+            const totalDays = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+
+            if (existingItineraries.length > totalDays) {
+                // Remove extra days from the end (only empty ones without activities)
+                const toRemove = existingItineraries.slice(totalDays);
+                await itineraryRepo.remove(toRemove);
+            }
+
+            // Update dates on remaining itineraries and create new ones if needed
+            const currentDate = new Date(start);
+            for (let i = 0; i < totalDays; i++) {
+                if (i < existingItineraries.length) {
+                    // Update existing itinerary date and title
+                    existingItineraries[i].date = new Date(currentDate);
+                    existingItineraries[i].title = `Day ${i + 1}`;
+                    await itineraryRepo.save(existingItineraries[i]);
+                } else {
+                    // Create new itinerary for extra days
+                    const newItinerary = itineraryRepo.create({
+                        travelId,
+                        title: `Day ${i + 1}`,
+                        date: new Date(currentDate),
+                        orderIndex: (i + 1) * 1000,
+                    });
+                    await itineraryRepo.save(newItinerary);
+                }
+                currentDate.setDate(currentDate.getDate() + 1);
+            }
+        }
+    }
+
     return c.json(travel);
 });
 

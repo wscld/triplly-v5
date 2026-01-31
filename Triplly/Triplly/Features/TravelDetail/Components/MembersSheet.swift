@@ -8,6 +8,8 @@ struct MembersSheet: View {
     @State private var pendingInvites: [PendingInvite] = []
     @State private var isLoadingInvites = false
     @State private var selectedUsername: String?
+    @State private var memberToRemove: TravelMember?
+    @State private var inviteToCancel: PendingInvite?
 
     var body: some View {
         NavigationStack {
@@ -30,7 +32,7 @@ struct MembersSheet: View {
                     Section("Pending Invites (\(pendingInvites.count))") {
                         ForEach(pendingInvites) { invite in
                             PendingInviteRow(invite: invite) {
-                                Task { await cancelInvite(invite) }
+                                inviteToCancel = invite
                             }
                         }
                     }
@@ -44,7 +46,7 @@ struct MembersSheet: View {
                                 selectedUsername = username
                             }
                         }) {
-                            Task { await viewModel.removeMember(member) }
+                            memberToRemove = member
                         }
                     }
                 }
@@ -73,6 +75,42 @@ struct MembersSheet: View {
             .sheet(isPresented: $showingInvite) {
                 InviteFormSheet(viewModel: viewModel) {
                     await loadPendingInvites()
+                }
+            }
+            .alert("Remove Member", isPresented: Binding(
+                get: { memberToRemove != nil },
+                set: { if !$0 { memberToRemove = nil } }
+            )) {
+                Button("Cancel", role: .cancel) {
+                    memberToRemove = nil
+                }
+                Button("Remove", role: .destructive) {
+                    if let member = memberToRemove {
+                        Task { await viewModel.removeMember(member) }
+                        memberToRemove = nil
+                    }
+                }
+            } message: {
+                if let member = memberToRemove {
+                    Text("Are you sure you want to remove \(member.user.name) from this trip?")
+                }
+            }
+            .alert("Cancel Invite", isPresented: Binding(
+                get: { inviteToCancel != nil },
+                set: { if !$0 { inviteToCancel = nil } }
+            )) {
+                Button("Keep", role: .cancel) {
+                    inviteToCancel = nil
+                }
+                Button("Cancel Invite", role: .destructive) {
+                    if let invite = inviteToCancel {
+                        Task { await cancelInvite(invite) }
+                        inviteToCancel = nil
+                    }
+                }
+            } message: {
+                if let invite = inviteToCancel {
+                    Text("Are you sure you want to cancel the invite to \(invite.user.name)?")
                 }
             }
         }
@@ -219,18 +257,11 @@ struct PendingInviteRow: View {
                 .clipShape(Capsule())
 
             Button {
-                isCancelling = true
                 onCancel()
             } label: {
-                if isCancelling {
-                    ProgressView()
-                        .scaleEffect(0.7)
-                } else {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.secondary)
-                }
+                Image(systemName: "xmark.circle.fill")
+                    .foregroundStyle(.secondary)
             }
-            .disabled(isCancelling)
         }
     }
 }
