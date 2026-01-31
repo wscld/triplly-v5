@@ -37,6 +37,10 @@ export function getAwardIcon(sfSymbolName: string): LucideIcon {
 const badgeImages: Set<string> = new Set([
   "first-steps",
   "solo-adventurer",
+  "squad-goals",
+  "checklister",
+  "globetrotter",
+  "lone-wolf",
 ]);
 
 /**
