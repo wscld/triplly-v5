@@ -83,6 +83,7 @@ struct MembersSheet: View {
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
+        .globalErrorAlert()
         .task {
             await loadPendingInvites()
         }

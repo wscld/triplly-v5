@@ -71,9 +71,9 @@ struct TravelDetailView: View {
                 } label: {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(.black)
+                        .foregroundStyle(Color(.label))
                         .frame(width: 32, height: 32)
-                        .background(.white.opacity(0.92))
+                        .background(Color(.systemBackground).opacity(0.92))
                         .clipShape(Circle())
                         .shadow(color: .black.opacity(0.12), radius: 10, y: 3)
                 }
@@ -1239,10 +1239,53 @@ struct ActivityDetailSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
-                        dismiss()
+                    HStack(spacing: 12) {
+                        Menu {
+                            Button {
+                                showingWishlistAlert = true
+                            } label: {
+                                Label("Move to Wishlist", systemImage: "star")
+                            }
+
+                            if viewModel.itineraries.count > 1 {
+                                let currentItineraryId = viewModel.itineraries.first(where: { itinerary in
+                                    itinerary.activities?.contains(where: { $0.id == activity.id }) == true
+                                })?.id
+
+                                Menu("Move to Day") {
+                                    ForEach(Array(viewModel.itineraries.enumerated()), id: \.element.id) { index, itinerary in
+                                        if itinerary.id != currentItineraryId {
+                                            Button {
+                                                selectedMoveTarget = itinerary
+                                                showingMoveAlert = true
+                                            } label: {
+                                                Label(
+                                                    "Day \(index + 1) — \(itinerary.title)",
+                                                    systemImage: "calendar"
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            Divider()
+
+                            Button(role: .destructive) {
+                                showingDeleteAlert = true
+                            } label: {
+                                Label("Delete Activity", systemImage: "trash")
+                            }
+                        } label: {
+                            Image(systemName: "ellipsis.circle")
+                                .font(.body)
+                        }
+
+                        Button("Done") {
+                            dismiss()
+                        }
+                        .fontWeight(.semibold)
                     }
-                    .fontWeight(.semibold)
                 }
             }
             .alert("Delete Activity", isPresented: $showingDeleteAlert) {
@@ -1515,9 +1558,6 @@ struct ActivityDetailSheet: View {
     private var actionsSection: some View {
         VStack(spacing: 10) {
             checkInButton
-            wishlistButton
-            moveToDayButton
-            deleteButton
         }
         .padding(.horizontal)
         .padding(.bottom, 8)
@@ -1573,77 +1613,6 @@ struct ActivityDetailSheet: View {
         }
     }
     
-    private var wishlistButton: some View {
-        Button {
-            showingWishlistAlert = true
-        } label: {
-            HStack {
-                Image(systemName: "star")
-                Text("Move to Wishlist")
-            }
-            .font(.subheadline.weight(.medium))
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
-            .background(Color(.secondarySystemBackground))
-            .clipShape(RoundedRectangle(cornerRadius: 10))
-        }
-        .buttonStyle(.plain)
-    }
-    
-    @ViewBuilder
-    private var moveToDayButton: some View {
-        if viewModel.itineraries.count > 1 {
-            let currentItineraryId = viewModel.itineraries.first(where: { itinerary in
-                itinerary.activities?.contains(where: { $0.id == activity.id }) == true
-            })?.id
-
-            Menu {
-                ForEach(Array(viewModel.itineraries.enumerated()), id: \.element.id) { index, itinerary in
-                    if itinerary.id != currentItineraryId {
-                        Button {
-                            selectedMoveTarget = itinerary
-                            showingMoveAlert = true
-                        } label: {
-                            Label(
-                                "Day \(index + 1) — \(itinerary.title)",
-                                systemImage: "calendar"
-                            )
-                        }
-                    }
-                }
-            } label: {
-                HStack {
-                    Image(systemName: "arrow.right.arrow.left")
-                    Text("Move to Day")
-                }
-                .font(.subheadline.weight(.medium))
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
-                .background(Color(.secondarySystemBackground))
-                .clipShape(RoundedRectangle(cornerRadius: 10))
-            }
-            .buttonStyle(.plain)
-        }
-    }
-    
-    private var deleteButton: some View {
-        Button(role: .destructive) {
-            showingDeleteAlert = true
-        } label: {
-            HStack {
-                Image(systemName: "trash")
-                Text("Delete Activity")
-            }
-            .font(.subheadline.weight(.medium))
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
-            .background(Color.red.opacity(0.1))
-            .foregroundStyle(.red)
-            .clipShape(RoundedRectangle(cornerRadius: 10))
-        }
-        .buttonStyle(.plain)
-    }
-
     private func loadComments() async {
         isLoadingComments = true
         do {

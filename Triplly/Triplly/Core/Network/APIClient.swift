@@ -262,8 +262,8 @@ actor APIClient {
         try await request(path: "/travels/\(travelId)/members")
     }
 
-    func inviteMember(travelId: String, email: String, role: TravelRole) async throws -> TravelMember {
-        try await request(
+    func inviteMember(travelId: String, email: String, role: TravelRole) async throws {
+        try await requestVoid(
             path: "/travels/\(travelId)/members",
             method: .post,
             body: InviteMemberRequest(email: email, role: role)

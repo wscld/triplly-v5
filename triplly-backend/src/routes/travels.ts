@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { AppDataSource } from '../data-source.js';
-import { Travel, TravelMember, MemberRole, TravelInvite, InviteStatus, User } from '../entities/index.js';
+import { Travel, TravelMember, MemberRole, TravelInvite, InviteStatus, User, Itinerary } from '../entities/index.js';
 import { authMiddleware, getAuth, requireTravelAccess } from '../middleware/index.js';
 import { getPlaceImage } from '../services/unsplash.js';
 import { uploadImage } from '../services/storage.js';
@@ -113,6 +113,30 @@ travels.post('/', zValidator('json', createTravelSchema), async (c) => {
         role: MemberRole.OWNER,
     });
     await memberRepo.save(member);
+
+    // Auto-create empty itinerary days from startDate to endDate
+    if (travel.startDate && travel.endDate) {
+        const itineraryRepo = AppDataSource.getRepository(Itinerary);
+        const start = new Date(travel.startDate);
+        const end = new Date(travel.endDate);
+        const itineraries: Itinerary[] = [];
+
+        let orderIndex = 1000;
+        for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+            const dayNumber = itineraries.length + 1;
+            itineraries.push(
+                itineraryRepo.create({
+                    travelId: travel.id,
+                    title: `Day ${dayNumber}`,
+                    date: new Date(d),
+                    orderIndex,
+                })
+            );
+            orderIndex += 1000;
+        }
+
+        await itineraryRepo.save(itineraries);
+    }
 
     return c.json(travel, 201);
 });
@@ -273,7 +297,12 @@ travels.get('/:travelId/members', requireTravelAccess('viewer'), async (c) => {
 });
 
 // POST /travels/:travelId/members - Send invite to user
-travels.post('/:travelId/members', requireTravelAccess('owner'), zValidator('json', inviteSchema), async (c) => {
+travels.post('/:travelId/members', requireTravelAccess('owner'), zValidator('json', inviteSchema, (result, c) => {
+    if (!result.success) {
+        const message = result.error.issues.map(i => i.message).join(', ');
+        return c.json({ error: message }, 400);
+    }
+}), async (c) => {
     const { userId } = getAuth(c);
     const travelId = c.req.param('travelId');
     const { email, role } = c.req.valid('json');

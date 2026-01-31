@@ -20,7 +20,6 @@ struct TripllyApp: App {
         WindowGroup {
             RootView()
                 .environmentObject(appState)
-                .preferredColorScheme(.light)
                 .onOpenURL { url in
                     handleCustomScheme(url)
                 }

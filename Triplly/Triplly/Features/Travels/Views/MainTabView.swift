@@ -9,40 +9,41 @@ struct MainTabView: View {
 
     var body: some View {
         TabView {
-            Tab("Trips", systemImage: "airplane") {
-                NavigationStack {
-                    TravelsListView()
-                }
+            NavigationStack {
+                TravelsListView()
+            }
+            .tabItem {
+                Label("Trips", systemImage: "airplane")
             }
 
-            Tab("Invites", systemImage: "envelope") {
-                NavigationStack {
-                    InvitesView()
-                }
+            NavigationStack {
+                InvitesView()
+            }
+            .tabItem {
+                Label("Invites", systemImage: "envelope")
             }
             .badge(invitesViewModel.invites.count > 0 ? invitesViewModel.invites.count : 0)
 
-            Tab {
-                NavigationStack {
-                    ProfileView()
-                }
-            } label: {
-                Label {
-                    Text("Profile")
-                } icon: {
-                    if let profileImage {
+            NavigationStack {
+                ProfileView()
+            }
+            .tabItem {
+                if let profileImage {
+                    Label {
+                        Text("Profile")
+                    } icon: {
                         Image(uiImage: profileImage)
-                    } else {
-                        Image(systemName: "person.circle.fill")
                     }
+                } else {
+                    Label("Profile", systemImage: "person.circle.fill")
                 }
             }
 
-            // Companion tab with .search role creates the separate floating button
-            Tab("Companion", image: "CompanionIcon", role: .search) {
-                NavigationStack {
-                    CompanionView()
-                }
+            NavigationStack {
+                CompanionView()
+            }
+            .tabItem {
+                Label("Companion", image: "CompanionIcon")
             }
         }
         .tint(Color.appPrimary)

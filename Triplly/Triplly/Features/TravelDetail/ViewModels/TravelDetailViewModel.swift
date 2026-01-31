@@ -588,7 +588,7 @@ final class TravelDetailViewModel: ObservableObject {
 
     // MARK: - Member Actions
     func sendInvite(email: String, role: TravelRole) async throws {
-        _ = try await apiClient.inviteMember(travelId: travelId, email: email, role: role)
+        try await apiClient.inviteMember(travelId: travelId, email: email, role: role)
         // Note: inviteMember now creates an invite, not a member directly
         // The member will be added when the invite is accepted
     }

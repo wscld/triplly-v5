@@ -111,17 +111,25 @@ struct TravelsListView: View {
     }
 
     // MARK: - Hero Header with Parallax
+    @Environment(\.colorScheme) private var colorScheme
+
     private func heroHeader(offset: CGFloat) -> some View {
         let parallaxOffset = offset > 0 ? offset * 0.5 : 0
 
         return ZStack(alignment: .top) {
             // Gradient background
             LinearGradient(
-                colors: [
-                    Color.appPrimary.opacity(0.7),
-                    Color.appPrimary.opacity(0.4),
-                    Color.appBackground
-                ],
+                colors: colorScheme == .dark
+                    ? [
+                        Color(red: 0.08, green: 0.12, blue: 0.06),
+                        Color(red: 0.10, green: 0.14, blue: 0.08).opacity(0.8),
+                        Color.appBackground
+                    ]
+                    : [
+                        Color.appPrimary.opacity(0.7),
+                        Color.appPrimary.opacity(0.4),
+                        Color.appBackground
+                    ],
                 startPoint: .top,
                 endPoint: .bottom
             )
