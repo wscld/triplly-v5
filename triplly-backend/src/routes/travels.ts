@@ -299,9 +299,11 @@ travels.get('/:travelId/members', requireTravelAccess('viewer'), async (c) => {
 // POST /travels/:travelId/members - Send invite to user
 travels.post('/:travelId/members', requireTravelAccess('owner'), zValidator('json', inviteSchema, (result, c) => {
     if (!result.success) {
-        const message = result.error.issues.map(i => i.message).join(', ');
+        console.log('DEBUG invite validation failed:', JSON.stringify(result.error.issues));
+        const message = result.error.issues.map((i: any) => i.message).join(', ');
         return c.json({ error: message }, 400);
     }
+    console.log('DEBUG invite validation passed:', JSON.stringify(result.data));
 }), async (c) => {
     const { userId } = getAuth(c);
     const travelId = c.req.param('travelId');
