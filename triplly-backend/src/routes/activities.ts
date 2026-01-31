@@ -342,7 +342,12 @@ activities.patch('/:activityId/assign', zValidator('json', assignSchema), async 
     }
 
     await activityRepo.save(activity);
-    return c.json(activity);
+
+    const updated = await activityRepo.findOne({
+        where: { id: activity.id },
+        relations: ['createdBy'],
+    });
+    return c.json(updated);
 });
 
 // PATCH /activities/:activityId - Update activity
@@ -367,7 +372,12 @@ activities.patch('/:activityId', zValidator('json', updateActivitySchema), async
     if (data.provider !== undefined) activity.provider = data.provider;
 
     await activityRepo.save(activity);
-    return c.json(activity);
+
+    const updated = await activityRepo.findOne({
+        where: { id: activity.id },
+        relations: ['createdBy'],
+    });
+    return c.json(updated);
 });
 
 // DELETE /activities/:activityId

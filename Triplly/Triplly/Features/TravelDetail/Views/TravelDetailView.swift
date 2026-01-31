@@ -165,6 +165,9 @@ struct TravelDetailView: View {
         .task {
             await viewModel.loadTravel()
         }
+        .refreshable {
+            await viewModel.loadTravel()
+        }
         .onViewLifecycle(didAppear: {
             appState.currentTravelDetailViewModel = viewModel
             appState.showMap(

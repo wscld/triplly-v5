@@ -86,6 +86,7 @@ struct EmailLoginView: View {
         .background(Color(.systemGroupedBackground))
         .scrollDismissesKeyboard(.interactively)
         .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden()
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
                 Button {
