@@ -199,7 +199,7 @@ struct AwardsInlineRow: View {
     var body: some View {
         HStack(spacing: 8) {
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: -4) {
+                HStack(spacing: -20) {
                     ForEach(awards) { award in
                         AwardBadgeView(award: award, allAwards: awards)
                     }
@@ -220,16 +220,9 @@ struct AwardsSection: View {
                 .padding(.horizontal)
 
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 16) {
+                HStack(spacing: -20) {
                     ForEach(awards) { award in
-                        VStack(spacing: 6) {
-                            AwardBadgeView(award: award, allAwards: awards)
-                            Text(award.name)
-                                .font(.caption2.weight(.medium))
-                                .foregroundStyle(.primary)
-                                .lineLimit(1)
-                                .frame(width: 72)
-                        }
+                        AwardBadgeView(award: award, allAwards: awards)
                     }
                 }
                 .padding(.horizontal)

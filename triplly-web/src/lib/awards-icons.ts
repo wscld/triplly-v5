@@ -36,7 +36,7 @@ export function getAwardIcon(sfSymbolName: string): LucideIcon {
 /** Award IDs that have custom badge images in /public/badges/ */
 const badgeImages: Set<string> = new Set([
   "first-steps",
-  "solo-traveler",
+  "solo-adventurer",
 ]);
 
 /**
