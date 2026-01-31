@@ -398,12 +398,27 @@ travels.post('/:travelId/members', requireTravelAccess('owner'), async (c, next)
         return c.json({ error: 'User is already a member' }, 400);
     }
 
-    // Check if already has pending invite
+    // Check if already has an invite (any status)
     const existingInvite = await inviteRepo.findOne({
-        where: { travelId, invitedUserId: user.id, status: InviteStatus.PENDING },
+        where: { travelId, invitedUserId: user.id },
     });
     if (existingInvite) {
-        return c.json({ error: 'User already has a pending invite' }, 400);
+        if (existingInvite.status === InviteStatus.PENDING) {
+            return c.json({ error: 'User already has a pending invite' }, 400);
+        }
+        // Re-invite: update existing invite back to pending
+        existingInvite.status = InviteStatus.PENDING;
+        existingInvite.role = role === 'editor' ? MemberRole.EDITOR : MemberRole.VIEWER;
+        existingInvite.invitedByUserId = userId;
+        await inviteRepo.save(existingInvite);
+
+        return c.json({
+            id: existingInvite.id,
+            role: existingInvite.role,
+            status: existingInvite.status,
+            createdAt: existingInvite.createdAt,
+            user: { id: user.id, name: user.name, email: user.email, profilePhotoUrl: user.profilePhotoUrl, username: user.username },
+        }, 201);
     }
 
     // Create invite
