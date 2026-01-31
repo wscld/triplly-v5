@@ -253,7 +253,13 @@ activities.post('/', zValidator('json', createActivitySchema), async (c) => {
     });
     await activityRepo.save(activity);
 
-    return c.json(activity, 201);
+    // Re-fetch with createdBy relation so the client gets the creator info
+    const activityWithCreator = await activityRepo.findOne({
+        where: { id: activity.id },
+        relations: ['createdBy'],
+    });
+
+    return c.json(activityWithCreator, 201);
 });
 
 // GET /activities/:activityId

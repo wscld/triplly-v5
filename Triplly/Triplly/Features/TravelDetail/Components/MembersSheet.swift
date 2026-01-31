@@ -5,10 +5,6 @@ struct MembersSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var showingInvite = false
-    @State private var inviteEmail = ""
-    @State private var inviteRole: TravelRole = .editor
-    @State private var isInviting = false
-    @State private var inviteError: String?
     @State private var pendingInvites: [PendingInvite] = []
     @State private var isLoadingInvites = false
     @State private var selectedUsername: String?
@@ -18,20 +14,14 @@ struct MembersSheet: View {
             List {
                 // Invite Section
                 Section {
-                    if showingInvite {
-                        inviteSection
-                    } else {
-                        Button {
-                            withAnimation {
-                                showingInvite = true
-                            }
-                        } label: {
-                            HStack {
-                                Image(systemName: "person.badge.plus")
-                                Text("Invite Member")
-                            }
-                            .foregroundStyle(Color.appPrimary)
+                    Button {
+                        showingInvite = true
+                    } label: {
+                        HStack {
+                            Image(systemName: "person.badge.plus")
+                            Text("Invite Member")
                         }
+                        .foregroundStyle(Color.appPrimary)
                     }
                 }
 
@@ -80,10 +70,14 @@ struct MembersSheet: View {
                     }
                 }
             }
+            .sheet(isPresented: $showingInvite) {
+                InviteFormSheet(viewModel: viewModel) {
+                    await loadPendingInvites()
+                }
+            }
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
-        .globalErrorAlert()
         .task {
             await loadPendingInvites()
         }
@@ -107,78 +101,81 @@ struct MembersSheet: View {
             print("DEBUG: Failed to cancel invite: \(error)")
         }
     }
+}
 
-    private var inviteSection: some View {
-        VStack(spacing: 16) {
-            HStack {
-                Text("Invite Member")
-                    .font(.headline)
+// MARK: - Invite Form Sheet
+struct InviteFormSheet: View {
+    @ObservedObject var viewModel: TravelDetailViewModel
+    @Environment(\.dismiss) private var dismiss
 
-                Spacer()
+    @State private var email = ""
+    @State private var role: TravelRole = .editor
+    @State private var isInviting = false
+    @State private var inviteError: String?
 
-                Button {
-                    withAnimation {
-                        showingInvite = false
-                        inviteEmail = ""
-                        inviteError = nil
-                    }
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.secondary)
-                }
-            }
+    var onInviteSent: () async -> Void
 
-            TextField("Email address", text: $inviteEmail)
-                .keyboardType(.emailAddress)
-                .textInputAutocapitalization(.never)
-                .textFieldStyle(.roundedBorder)
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    TextField("Email address", text: $email)
+                        .keyboardType(.emailAddress)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
 
-            // Role Picker
-            Picker("Role", selection: $inviteRole) {
-                Text("Editor").tag(TravelRole.editor)
-                Text("Viewer").tag(TravelRole.viewer)
-            }
-            .pickerStyle(.segmented)
-
-            if let error = inviteError {
-                Text(error)
-                    .font(.caption)
-                    .foregroundStyle(.red)
-            }
-
-            Button {
-                Task { await sendInvite() }
-            } label: {
-                HStack {
-                    if isInviting {
-                        ProgressView()
-                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                    } else {
-                        Text("Send Invite")
+                    Picker("Role", selection: $role) {
+                        Text("Editor").tag(TravelRole.editor)
+                        Text("Viewer").tag(TravelRole.viewer)
                     }
                 }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
-                .background(inviteEmail.isEmpty ? Color.appPrimary.opacity(0.5) : Color.appPrimary)
-                .foregroundStyle(.white)
-                .clipShape(RoundedRectangle(cornerRadius: 10))
+
+                Section {
+                    AppButton(
+                        title: "Send Invite",
+                        icon: "paperplane.fill",
+                        isLoading: isInviting,
+                        isDisabled: email.trimmingCharacters(in: .whitespaces).isEmpty
+                    ) {
+                        let emailToSend = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+                        let roleToSend = role
+                        Task { await sendInvite(email: emailToSend, role: roleToSend) }
+                    }
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(Color.clear)
+                }
             }
-            .disabled(inviteEmail.isEmpty || isInviting)
+            .navigationTitle("Invite Member")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+            }
+            .alert("Error", isPresented: Binding(
+                get: { inviteError != nil },
+                set: { if !$0 { inviteError = nil } }
+            )) {
+                Button("OK") { inviteError = nil }
+            } message: {
+                if let error = inviteError {
+                    Text(error)
+                }
+            }
         }
-        .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 12, trailing: 16))
+        .presentationDetents([.medium])
     }
 
-    private func sendInvite() async {
+    private func sendInvite(email: String, role: TravelRole) async {
         isInviting = true
         inviteError = nil
 
         do {
-            try await viewModel.sendInvite(email: inviteEmail.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(), role: inviteRole)
-            await loadPendingInvites()
-            withAnimation {
-                showingInvite = false
-                inviteEmail = ""
-            }
+            try await viewModel.sendInvite(email: email, role: role)
+            await onInviteSent()
+            dismiss()
         } catch {
             inviteError = error.localizedDescription
         }

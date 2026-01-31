@@ -398,7 +398,7 @@ struct PlacePreviewSheet: View {
                 }
             }
         }
-        .presentationDetents([.medium, .large])
+        .presentationDetents([.large])
         .presentationDragIndicator(.visible)
         .task {
             await loadPlaceData()

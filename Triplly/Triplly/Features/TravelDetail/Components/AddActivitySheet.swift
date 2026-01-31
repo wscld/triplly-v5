@@ -117,6 +117,11 @@ struct AddActivitySheet: View {
             .sheet(isPresented: $showingPlaceSearch) {
                 PlaceSearchView(selectedPlace: $selectedPlace)
             }
+            .onChange(of: selectedPlace) { _, newPlace in
+                if newPlace != nil {
+                    Task { await createActivity() }
+                }
+            }
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
