@@ -1,9 +1,11 @@
 import Image from "next/image";
+import Link from "next/link";
 import { PublicTravel } from "@/lib/types";
 import { Calendar } from "lucide-react";
 
 interface TravelCardProps {
   travel: PublicTravel;
+  username: string;
 }
 
 function formatDateRange(start: string | null, end: string | null): string | null {
@@ -18,11 +20,14 @@ function formatDateRange(start: string | null, end: string | null): string | nul
   return `${fmt(start)} — ${fmt(end)}`;
 }
 
-export function TravelCard({ travel }: TravelCardProps) {
+export function TravelCard({ travel, username }: TravelCardProps) {
   const dateStr = formatDateRange(travel.startDate, travel.endDate);
 
   return (
-    <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-gray-100">
+    <Link
+      href={`/u/${username}/travel/${travel.id}`}
+      className="block overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-gray-100 transition-shadow hover:shadow-md"
+    >
       {travel.coverImageUrl && (
         <div className="relative h-44 w-full">
           <Image
@@ -49,6 +54,6 @@ export function TravelCard({ travel }: TravelCardProps) {
           </div>
         )}
       </div>
-    </div>
+    </Link>
   );
 }

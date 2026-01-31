@@ -17,7 +17,7 @@ struct MainTabView: View {
             }
 
             NavigationStack {
-                InvitesView()
+                InvitesView(viewModel: invitesViewModel)
             }
             .tabItem {
                 Label("Invites", systemImage: "envelope")

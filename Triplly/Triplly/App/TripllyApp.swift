@@ -73,9 +73,11 @@ struct SplashView: View {
 
             VStack(spacing: 16) {
                 Image("Logo")
+                    .renderingMode(.template)
                     .resizable()
                     .scaledToFit()
                     .frame(width: 100, height: 100)
+                    .foregroundStyle(Color.appPrimary)
 
                 Text("Triplly")
                     .font(.largeTitle)

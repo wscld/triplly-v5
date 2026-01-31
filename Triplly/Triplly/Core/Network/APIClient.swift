@@ -488,6 +488,10 @@ actor APIClient {
         try await request(path: "/public/users/\(username)")
     }
 
+    func getPublicTravelDetail(travelId: String) async throws -> Travel {
+        try await request(path: "/public/travels/\(travelId)")
+    }
+
     func checkUsernameAvailability(_ username: String) async throws -> UsernameAvailability {
         try await request(path: "/public/users/\(username)/available")
     }

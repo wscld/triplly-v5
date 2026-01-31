@@ -2,14 +2,17 @@ import SwiftUI
 import Himetrica
 
 struct InvitesView: View {
-    @StateObject private var viewModel = InvitesViewModel()
+    @ObservedObject var viewModel: InvitesViewModel
 
     var body: some View {
         Group {
             if viewModel.isLoading && viewModel.invites.isEmpty {
                 ProgressView("Loading invites...")
             } else if viewModel.invites.isEmpty {
-                emptyState
+                ScrollView {
+                    emptyState
+                        .frame(maxWidth: .infinity, minHeight: 400)
+                }
             } else {
                 invitesList
             }
@@ -55,6 +58,7 @@ struct InvitesView: View {
                 }
                 .listRowSeparator(.hidden)
                 .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                .listRowBackground(Color.clear)
             }
         }
         .listStyle(.plain)
@@ -160,6 +164,7 @@ struct InviteCard: View {
                             .foregroundStyle(.primary)
                             .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
+                    .buttonStyle(.plain)
 
                     Button {
                         onAccept()
@@ -172,6 +177,7 @@ struct InviteCard: View {
                             .foregroundStyle(.white)
                             .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
+                    .buttonStyle(.plain)
                 }
                 .padding(.top, 4)
             }
@@ -185,6 +191,6 @@ struct InviteCard: View {
 
 #Preview {
     NavigationStack {
-        InvitesView()
+        InvitesView(viewModel: InvitesViewModel())
     }
 }

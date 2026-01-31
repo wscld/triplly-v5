@@ -150,6 +150,7 @@ struct InviteFormSheet: View {
     @State private var role: TravelRole = .editor
     @State private var isInviting = false
     @State private var inviteError: String?
+    @State private var showConfirmation = false
 
     var onInviteSent: () async -> Void
 
@@ -175,9 +176,7 @@ struct InviteFormSheet: View {
                         isLoading: isInviting,
                         isDisabled: email.trimmingCharacters(in: .whitespaces).isEmpty
                     ) {
-                        let emailToSend = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-                        let roleToSend = role
-                        Task { await sendInvite(email: emailToSend, role: roleToSend) }
+                        showConfirmation = true
                     }
                     .listRowInsets(EdgeInsets())
                     .listRowBackground(Color.clear)
@@ -191,6 +190,16 @@ struct InviteFormSheet: View {
                         dismiss()
                     }
                 }
+            }
+            .alert("Send Invite", isPresented: $showConfirmation) {
+                Button("Cancel", role: .cancel) { }
+                Button("Send") {
+                    let emailToSend = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+                    let roleToSend = role
+                    Task { await sendInvite(email: emailToSend, role: roleToSend) }
+                }
+            } message: {
+                Text("Send an invite to \(email.trimmingCharacters(in: .whitespacesAndNewlines)) as \(role.rawValue)?")
             }
             .alert("Error", isPresented: Binding(
                 get: { inviteError != nil },

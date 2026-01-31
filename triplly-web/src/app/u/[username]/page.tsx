@@ -68,7 +68,7 @@ export default async function ProfilePage({ params }: Props) {
               Travels
             </h2>
             {profile.travels.map((travel) => (
-              <TravelCard key={travel.id} travel={travel} />
+              <TravelCard key={travel.id} travel={travel} username={profile.username} />
             ))}
           </div>
         )}
