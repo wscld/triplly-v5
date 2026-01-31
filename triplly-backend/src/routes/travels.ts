@@ -260,7 +260,7 @@ travels.post('/:travelId/cover', requireTravelAccess('editor'), async (c) => {
 // --- Member Management ---
 
 const inviteSchema = z.object({
-    email: z.string().trim().toLowerCase().email(),
+    email: z.string().min(1),
     role: z.enum(['editor', 'viewer']).default('viewer'),
 });
 
@@ -297,7 +297,11 @@ travels.get('/:travelId/members', requireTravelAccess('viewer'), async (c) => {
 });
 
 // POST /travels/:travelId/members - Send invite to user
-travels.post('/:travelId/members', requireTravelAccess('owner'), zValidator('json', inviteSchema, (result, c) => {
+travels.post('/:travelId/members', requireTravelAccess('owner'), async (c, next) => {
+    const raw = await c.req.raw.clone().text();
+    console.log('DEBUG invite raw body:', raw);
+    await next();
+}, zValidator('json', inviteSchema, (result, c) => {
     if (!result.success) {
         console.log('DEBUG invite validation failed:', JSON.stringify(result.error.issues));
         const message = result.error.issues.map((i: any) => i.message).join(', ');
@@ -307,7 +311,8 @@ travels.post('/:travelId/members', requireTravelAccess('owner'), zValidator('jso
 }), async (c) => {
     const { userId } = getAuth(c);
     const travelId = c.req.param('travelId');
-    const { email, role } = c.req.valid('json');
+    const { email: rawEmail, role } = c.req.valid('json');
+    const email = rawEmail.trim().toLowerCase();
     const userRepo = AppDataSource.getRepository(User);
     const memberRepo = AppDataSource.getRepository(TravelMember);
     const inviteRepo = AppDataSource.getRepository(TravelInvite);
