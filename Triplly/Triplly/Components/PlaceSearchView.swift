@@ -179,7 +179,7 @@ struct PlaceSearchView: View {
                     .joined(separator: ", ")
 
                 let externalId = "\(name)_\(String(format: "%.5f", coordinate.latitude))_\(String(format: "%.5f", coordinate.longitude))"
-                let category = mapItem.pointOfInterestCategory.flatMap { ActivityCategory.fromMapKit($0) }
+                let category = mapItem.pointOfInterestCategory.flatMap { ActivityCategoryMapper.fromMapKit($0) }
 
                 previewPlace = PlaceResult(
                     id: externalId,
@@ -189,7 +189,7 @@ struct PlaceSearchView: View {
                     longitude: coordinate.longitude,
                     externalId: externalId,
                     provider: "apple",
-                    category: category?.rawValue
+                    category: category
                 )
             } catch {
                 print("DEBUG: Failed to resolve place: \(error)")

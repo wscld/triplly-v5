@@ -9,4 +9,5 @@ export * from './Todo.js';
 export * from './Place.js';
 export * from './CheckIn.js';
 export * from './PlaceReview.js';
+export * from './Category.js';
 

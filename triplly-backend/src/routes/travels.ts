@@ -157,7 +157,7 @@ travels.get('/:travelId', requireTravelAccess('viewer'), async (c) => {
 
     const travel = await travelRepo.findOne({
         where: { id: travelId },
-        relations: ['owner', 'itineraries', 'itineraries.activities', 'itineraries.activities.createdBy'],
+        relations: ['owner', 'itineraries', 'itineraries.activities', 'itineraries.activities.createdBy', 'itineraries.activities.categoryRef'],
     });
 
     if (!travel) {

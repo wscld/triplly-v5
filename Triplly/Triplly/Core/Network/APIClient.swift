@@ -370,6 +370,23 @@ actor APIClient {
         )
     }
 
+    // MARK: - Category Endpoints
+    func getCategories(travelId: String) async throws -> [CategoryModel] {
+        try await request(path: "/categories/travel/\(travelId)")
+    }
+
+    func createCategory(travelId: String, name: String, icon: String, color: String) async throws -> CategoryModel {
+        try await request(
+            path: "/categories/travel/\(travelId)",
+            method: .post,
+            body: CreateCategoryRequest(name: name, icon: icon, color: color)
+        )
+    }
+
+    func deleteCategory(categoryId: String) async throws {
+        try await requestVoid(path: "/categories/\(categoryId)", method: .delete)
+    }
+
     // MARK: - Comment Endpoints
     func getActivityComments(activityId: String) async throws -> [ActivityComment] {
         try await request(path: "/comments/activity/\(activityId)")
@@ -561,4 +578,10 @@ struct PaginatedReviews: Codable {
     let total: Int
     let limit: Int
     let offset: Int
+}
+
+private struct CreateCategoryRequest: Codable {
+    let name: String
+    let icon: String
+    let color: String
 }

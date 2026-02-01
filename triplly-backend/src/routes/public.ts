@@ -56,7 +56,7 @@ publicRoutes.get('/travels/:travelId', async (c) => {
 
     const travel = await travelRepo.findOne({
         where: { id: travelId, isPublic: true },
-        relations: ['owner', 'itineraries', 'itineraries.activities'],
+        relations: ['owner', 'itineraries', 'itineraries.activities', 'itineraries.activities.categoryRef'],
     });
 
     if (!travel) {

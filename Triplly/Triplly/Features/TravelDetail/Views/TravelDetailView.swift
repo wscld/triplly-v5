@@ -527,6 +527,7 @@ struct TravelDetailView: View {
                             showingDeleteActivityAlert = true
                         },
                         checkedInActivityIds: viewModel.checkedInActivityIds,
+                        categoryResolver: { viewModel.categoryFor(activity: $0) },
                         onDragStarted: { activityId in
                             draggedActivityId = activityId
                         },
@@ -855,6 +856,7 @@ struct TimelineView: View {
     let onMoveToWishlist: (Activity) -> Void
     let onDelete: (Activity) -> Void
     var checkedInActivityIds: Set<String> = []
+    var categoryResolver: ((Activity) -> CategoryModel?)? = nil
     var onDragStarted: ((String) -> Void)?
     var onDragEnded: (() -> Void)?
 
@@ -868,7 +870,8 @@ struct TimelineView: View {
                     number: index + 1,
                     isFirst: index == 0,
                     isLast: index == activities.count - 1,
-                    isCheckedIn: checkedInActivityIds.contains(activity.id)
+                    isCheckedIn: checkedInActivityIds.contains(activity.id),
+                    categoryModel: categoryResolver?(activity)
                 )
                 .contentShape(Rectangle())
                 .onTapGesture {
@@ -1091,6 +1094,7 @@ struct TimelineItemView: View {
     let isFirst: Bool
     let isLast: Bool
     var isCheckedIn: Bool = false
+    var categoryModel: CategoryModel? = nil
 
     private let circleSize: CGFloat = 28
     private let lineWidth: CGFloat = 2
@@ -1115,24 +1119,31 @@ struct TimelineItemView: View {
                     }
                 }
 
-                // Circle with category icon or number + check-in badge
+                // Number circle + floating category badge + check-in badge
                 ZStack {
-                    if let cat = ActivityCategory.from(activity.category) {
-                        Circle()
-                            .fill(cat.color)
-                            .frame(width: circleSize, height: circleSize)
+                    // Always show the number circle
+                    Circle()
+                        .fill(Color.appPrimary)
+                        .frame(width: circleSize, height: circleSize)
 
-                        Image(systemName: cat.icon)
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundStyle(.white)
-                    } else {
-                        Circle()
-                            .fill(Color.appPrimary)
-                            .frame(width: circleSize, height: circleSize)
+                    Text("\(number)")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(.white)
 
-                        Text("\(number)")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundStyle(.white)
+                    // Floating category circle
+                    if let cat = categoryModel {
+                        ZStack {
+                            Circle()
+                                .fill(cat.swiftUIColor)
+                                .frame(width: 18, height: 18)
+
+                            CategoryIconView(cat, size: 9)
+                        }
+                        .overlay {
+                            Circle()
+                                .stroke(Color(.systemBackground), lineWidth: 1.5)
+                        }
+                        .offset(x: 12, y: 10)
                     }
 
                     if isCheckedIn {
@@ -1196,18 +1207,16 @@ struct TimelineItemView: View {
 // MARK: - Map Pin View
 struct MapPinView: View {
     let number: Int
-    var category: String? = nil
+    var categoryModel: CategoryModel? = nil
 
     var body: some View {
         ZStack {
-            if let cat = ActivityCategory.from(category) {
+            if let cat = categoryModel {
                 Circle()
-                    .fill(cat.color)
+                    .fill(cat.swiftUIColor)
                     .frame(width: 28, height: 28)
 
-                Image(systemName: cat.icon)
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(.white)
+                CategoryIconView(cat, size: 12)
             } else {
                 Circle()
                     .fill(Color.appPrimary)
@@ -1398,9 +1407,13 @@ struct ActivityDetailSheet: View {
             }
             .sheet(isPresented: $showingCategoryPicker) {
                 CategoryPickerSheet(
-                    currentCategory: ActivityCategory.from(activity.category),
+                    categories: viewModel.categories,
+                    currentCategoryId: activity.categoryId ?? activity.categoryRef?.id,
                     onSelect: { selected in
                         updateCategory(selected)
+                    },
+                    onCreateCustom: { name, icon, color in
+                        await viewModel.createCustomCategory(name: name, icon: icon, color: color)
                     }
                 )
             }
@@ -1417,7 +1430,7 @@ struct ActivityDetailSheet: View {
     private var mapPreviewSection: some View {
         Map(coordinateRegion: $mapRegion, annotationItems: [activity]) { act in
             MapAnnotation(coordinate: act.coordinate) {
-                MapPinView(number: 1, category: activity.category)
+                MapPinView(number: 1, categoryModel: resolvedCategory)
             }
         }
         .frame(height: 180)
@@ -1453,15 +1466,25 @@ struct ActivityDetailSheet: View {
         .padding(.horizontal)
     }
 
+    private var resolvedCategory: CategoryModel? {
+        viewModel.categoryFor(activity: activity)
+    }
+
     private var categoryRow: some View {
         Button {
             showingCategoryPicker = true
         } label: {
             HStack(spacing: 10) {
-                if let cat = ActivityCategory.from(activity.category) {
-                    Image(systemName: cat.icon)
-                        .foregroundStyle(cat.color)
-                        .frame(width: 24)
+                if let cat = resolvedCategory {
+                    if cat.isEmoji {
+                        Text(cat.icon)
+                            .font(.system(size: 16))
+                            .frame(width: 24)
+                    } else {
+                        Image(systemName: cat.icon)
+                            .foregroundStyle(cat.swiftUIColor)
+                            .frame(width: 24)
+                    }
                 } else {
                     Image(systemName: "tag.fill")
                         .foregroundStyle(.secondary)
@@ -1472,10 +1495,10 @@ struct ActivityDetailSheet: View {
                     Text("Category")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    if let cat = ActivityCategory.from(activity.category) {
+                    if let cat = resolvedCategory {
                         Text(cat.displayName)
                             .font(.subheadline.weight(.medium))
-                            .foregroundStyle(cat.color)
+                            .foregroundStyle(cat.swiftUIColor)
                     } else {
                         Text("Set category")
                             .font(.subheadline)
@@ -1739,7 +1762,7 @@ struct ActivityDetailSheet: View {
         }
     }
 
-    private func updateCategory(_ category: ActivityCategory?) {
+    private func updateCategory(_ category: CategoryModel?) {
         isSavingCategory = true
         Task {
             let request = UpdateActivityRequest(
@@ -1747,7 +1770,8 @@ struct ActivityDetailSheet: View {
                 description: nil,
                 startTime: nil,
                 address: nil,
-                category: category?.rawValue
+                category: category?.name,
+                categoryId: category?.id
             )
             do {
                 let updated = try await APIClient.shared.updateActivity(id: activity.id, request)

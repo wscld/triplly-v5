@@ -10,3 +10,4 @@ export { default as publicRoutes } from './public.js';
 export { default as checkinRoutes } from './checkins.js';
 export { default as placeRoutes } from './places.js';
 export { default as reviewRoutes } from './reviews.js';
+export { default as categoryRoutes } from './categories.js';

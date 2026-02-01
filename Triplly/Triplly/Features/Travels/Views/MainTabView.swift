@@ -193,7 +193,7 @@ struct GlobalMapSheetView: View {
                 MapAnnotation(coordinate: activity.coordinate) {
                     GlobalMapPinView(
                         number: (activities.firstIndex(where: { $0.id == activity.id }) ?? 0) + 1,
-                        category: activity.category
+                        categoryModel: activity.categoryRef
                     )
                 }
             }
@@ -234,19 +234,17 @@ struct GlobalMapSheetView: View {
 // MARK: - Global Map Pin View
 struct GlobalMapPinView: View {
     let number: Int
-    var category: String? = nil
+    var categoryModel: CategoryModel? = nil
 
     var body: some View {
         ZStack {
-            if let cat = ActivityCategory.from(category) {
+            if let cat = categoryModel {
                 Circle()
-                    .fill(cat.color)
+                    .fill(cat.swiftUIColor)
                     .frame(width: 32, height: 32)
-                    .shadow(color: cat.color.opacity(0.4), radius: 4, y: 2)
+                    .shadow(color: cat.swiftUIColor.opacity(0.4), radius: 4, y: 2)
 
-                Image(systemName: cat.icon)
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(.white)
+                CategoryIconView(cat, size: 13)
             } else {
                 Circle()
                     .fill(Color.appPrimary)

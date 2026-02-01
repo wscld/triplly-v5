@@ -1,8 +1,9 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
+import { IsNull } from 'typeorm';
 import { AppDataSource } from '../data-source.js';
-import { Activity, Itinerary, TravelMember } from '../entities/index.js';
+import { Activity, Itinerary, TravelMember, Category } from '../entities/index.js';
 import { authMiddleware, getAuth } from '../middleware/index.js';
 import { findOrCreatePlace } from '../services/places.js';
 
@@ -23,6 +24,7 @@ const createActivitySchema = z.object({
     address: z.string().nullable().optional(),
     startTime: z.string().nullable().optional(),
     category: z.string().nullable().optional(),
+    categoryId: z.string().uuid().nullable().optional(),
 });
 
 const updateActivitySchema = z.object({
@@ -33,6 +35,7 @@ const updateActivitySchema = z.object({
     externalId: z.string().nullable().optional(),
     provider: z.string().nullable().optional(),
     category: z.string().nullable().optional(),
+    categoryId: z.string().uuid().nullable().optional(),
 });
 
 const reorderSchema = z.object({
@@ -114,6 +117,24 @@ async function checkItineraryAccess(userId: string, itineraryId: string, minRole
     return { itinerary, member };
 }
 
+// Auto-resolve a category name string to a categoryId (for backward compat)
+async function resolveCategoryId(categoryName: string | null | undefined, travelId: string): Promise<string | null> {
+    if (!categoryName) return null;
+    const categoryRepo = AppDataSource.getRepository(Category);
+
+    // First try travel-specific custom categories
+    let cat = await categoryRepo.findOne({
+        where: { name: categoryName, travelId },
+    });
+    if (cat) return cat.id;
+
+    // Then try global defaults
+    cat = await categoryRepo.findOne({
+        where: { name: categoryName, isDefault: true, travelId: IsNull() },
+    });
+    return cat?.id ?? null;
+}
+
 function calculateNewIndex(before: number | null, after: number | null): number {
     if (before === null && after === null) return 1000;
     if (before === null) return after! / 2;
@@ -132,12 +153,11 @@ activities.get('/travel/:travelId/wishlist', async (c) => {
     }
 
     const activityRepo = AppDataSource.getRepository(Activity);
-    const wishlistActivities = await activityRepo
-        .createQueryBuilder('activity')
-        .where('activity.travelId = :travelId', { travelId })
-        .andWhere('activity.itineraryId IS NULL')
-        .orderBy('activity.orderIndex', 'ASC')
-        .getMany();
+    const wishlistActivities = await activityRepo.find({
+        where: { travelId, itineraryId: IsNull() },
+        relations: ['categoryRef'],
+        order: { orderIndex: 'ASC' },
+    });
 
     return c.json(wishlistActivities);
 });
@@ -247,22 +267,29 @@ activities.post('/', zValidator('json', createActivitySchema), async (c) => {
         nextOrder = (lastActivity?.orderIndex ?? 0) + 1000;
     }
 
+    // Resolve categoryId: prefer explicit categoryId, fallback to auto-resolving category string
+    let resolvedCategoryId = data.categoryId ?? null;
+    if (!resolvedCategoryId && data.category) {
+        resolvedCategoryId = await resolveCategoryId(data.category, data.travelId);
+    }
+
     const activity = activityRepo.create({
         ...data,
         itineraryId: data.itineraryId || null,
         orderIndex: nextOrder,
         createdById: userId,
         placeId,
+        categoryId: resolvedCategoryId,
     });
     await activityRepo.save(activity);
 
-    // Re-fetch with createdBy relation so the client gets the creator info
-    const activityWithCreator = await activityRepo.findOne({
+    // Re-fetch with createdBy and categoryRef relations
+    const activityWithRelations = await activityRepo.findOne({
         where: { id: activity.id },
-        relations: ['createdBy'],
+        relations: ['createdBy', 'categoryRef'],
     });
 
-    return c.json(activityWithCreator, 201);
+    return c.json(activityWithRelations, 201);
 });
 
 // GET /activities/:activityId
@@ -275,11 +302,11 @@ activities.get('/:activityId', async (c) => {
         return c.json({ error: result.error }, result.status);
     }
 
-    // Fetch the activity with createdBy relation
+    // Fetch the activity with createdBy and categoryRef relations
     const activityRepo = AppDataSource.getRepository(Activity);
-    const activityWithCreator = await activityRepo.findOne({
+    const activityWithRelations = await activityRepo.findOne({
         where: { id: activityId },
-        relations: ['createdBy'],
+        relations: ['createdBy', 'categoryRef'],
         select: {
             id: true,
             travelId: true,
@@ -294,6 +321,7 @@ activities.get('/:activityId', async (c) => {
             placeId: true,
             address: true,
             category: true,
+            categoryId: true,
             startTime: true,
             createdAt: true,
             createdById: true,
@@ -304,10 +332,18 @@ activities.get('/:activityId', async (c) => {
                 username: true,
                 profilePhotoUrl: true,
             },
+            categoryRef: {
+                id: true,
+                name: true,
+                icon: true,
+                color: true,
+                isDefault: true,
+                travelId: true,
+            },
         },
     });
 
-    return c.json(activityWithCreator);
+    return c.json(activityWithRelations);
 });
 
 // PATCH /activities/:activityId/assign - Assign activity to itinerary or move to wishlist
@@ -349,7 +385,7 @@ activities.patch('/:activityId/assign', zValidator('json', assignSchema), async 
 
     const updated = await activityRepo.findOne({
         where: { id: activity.id },
-        relations: ['createdBy'],
+        relations: ['createdBy', 'categoryRef'],
     });
     return c.json(updated);
 });
@@ -376,11 +412,20 @@ activities.patch('/:activityId', zValidator('json', updateActivitySchema), async
     if (data.provider !== undefined) activity.provider = data.provider;
     if (data.category !== undefined) activity.category = data.category;
 
+    // Handle categoryId: prefer explicit categoryId, fallback to resolving category string
+    if (data.categoryId !== undefined) {
+        activity.categoryId = data.categoryId;
+    } else if (data.category !== undefined && data.category !== null) {
+        activity.categoryId = await resolveCategoryId(data.category, activity.travelId);
+    } else if (data.category === null) {
+        activity.categoryId = null;
+    }
+
     await activityRepo.save(activity);
 
     const updated = await activityRepo.findOne({
         where: { id: activity.id },
-        relations: ['createdBy'],
+        relations: ['createdBy', 'categoryRef'],
     });
     return c.json(updated);
 });

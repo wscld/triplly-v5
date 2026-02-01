@@ -153,7 +153,8 @@ struct AddActivitySheet: View {
             provider: place.provider,
             address: place.address,
             startTime: nil,
-            category: place.category
+            category: place.category,
+            categoryId: nil
         )
 
         do {

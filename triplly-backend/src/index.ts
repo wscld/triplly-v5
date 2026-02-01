@@ -6,7 +6,8 @@ import { logger } from 'hono/logger';
 import { config } from 'dotenv';
 
 import { AppDataSource } from './data-source.js';
-import { authRoutes, travelRoutes, inviteRoutes, itineraryRoutes, activityRoutes, commentRoutes, todoRoutes, companionRoutes, publicRoutes, checkinRoutes, placeRoutes, reviewRoutes } from './routes/index.js';
+import { authRoutes, travelRoutes, inviteRoutes, itineraryRoutes, activityRoutes, commentRoutes, todoRoutes, companionRoutes, publicRoutes, checkinRoutes, placeRoutes, reviewRoutes, categoryRoutes } from './routes/index.js';
+import { seedDefaultCategories } from './services/seedCategories.js';
 
 config();
 
@@ -36,6 +37,7 @@ app.route('/api/public', publicRoutes);
 app.route('/api/checkins', checkinRoutes);
 app.route('/api/places', placeRoutes);
 app.route('/api/reviews', reviewRoutes);
+app.route('/api/categories', categoryRoutes);
 
 // Error handler
 app.onError((err, c) => {
@@ -52,8 +54,9 @@ app.notFound((c) => {
 const port = parseInt(process.env.PORT || '3000', 10);
 
 AppDataSource.initialize()
-  .then(() => {
+  .then(async () => {
     console.log('Database connected');
+    await seedDefaultCategories();
     serve({
       fetch: app.fetch,
       port,

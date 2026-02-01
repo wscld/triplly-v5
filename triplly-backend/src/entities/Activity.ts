@@ -13,6 +13,7 @@ import type { ActivityComment } from './ActivityComment.js';
 import type { Travel } from './Travel.js';
 import type { User } from './User.js';
 import type { Place } from './Place.js';
+import type { Category } from './Category.js';
 
 @Entity('activities')
 export class Activity {
@@ -58,6 +59,9 @@ export class Activity {
     @Column('varchar', { nullable: true })
     startTime: string | null;
 
+    @Column('uuid', { nullable: true })
+    categoryId: string | null;
+
     @CreateDateColumn()
     createdAt: Date;
 
@@ -71,6 +75,10 @@ export class Activity {
     @ManyToOne("Place", { nullable: true, onDelete: 'SET NULL' })
     @JoinColumn({ name: 'placeId' })
     place: Relation<Place> | null;
+
+    @ManyToOne("Category", { nullable: true, onDelete: 'SET NULL', eager: false })
+    @JoinColumn({ name: 'categoryId' })
+    categoryRef: Relation<Category> | null;
 
     @ManyToOne("Travel", { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'travelId' })

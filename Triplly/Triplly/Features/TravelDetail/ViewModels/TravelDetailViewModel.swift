@@ -9,6 +9,7 @@ final class TravelDetailViewModel: ObservableObject {
     @Published var members: [TravelMember] = []
     @Published var todos: [Todo] = []
     @Published var wishlistActivities: [Activity] = []
+    @Published var categories: [CategoryModel] = []
     @Published var checkedInActivityIds: Set<String> = []
     private var checkInIdsByActivityId: [String: String] = [:] // activityId -> checkInId
 
@@ -198,8 +199,9 @@ final class TravelDetailViewModel: ObservableObject {
         async let todosTask: () = loadTodos()
         async let wishlistTask: () = loadWishlist()
         async let checkInsTask: () = loadCheckIns()
+        async let categoriesTask: () = loadCategories()
 
-        _ = await (membersTask, todosTask, wishlistTask, checkInsTask)
+        _ = await (membersTask, todosTask, wishlistTask, checkInsTask, categoriesTask)
 
         isLoading = false
     }
@@ -228,6 +230,43 @@ final class TravelDetailViewModel: ObservableObject {
         }
     }
 
+    func loadCategories() async {
+        do {
+            categories = try await apiClient.getCategories(travelId: travelId)
+        } catch {
+            print("DEBUG: Failed to load categories: \(error)")
+        }
+    }
+
+    func createCustomCategory(name: String, icon: String, color: String) async -> CategoryModel? {
+        do {
+            let newCategory = try await apiClient.createCategory(
+                travelId: travelId, name: name, icon: icon, color: color
+            )
+            categories.append(newCategory)
+            return newCategory
+        } catch {
+            print("DEBUG: Failed to create category: \(error)")
+            return nil
+        }
+    }
+
+    func categoryFor(activity: Activity) -> CategoryModel? {
+        // Prefer the embedded categoryRef from API response
+        if let ref = activity.categoryRef {
+            return ref
+        }
+        // Fallback: match by categoryId
+        if let catId = activity.categoryId {
+            return categories.first { $0.id == catId }
+        }
+        // Fallback: match by category name string
+        if let catName = activity.category {
+            return categories.first { $0.name == catName }
+        }
+        return nil
+    }
+
     func refreshTravel() async {
         do {
             let fetchedTravel = try await apiClient.getTravel(id: travelId)
@@ -237,7 +276,8 @@ final class TravelDetailViewModel: ObservableObject {
             async let todosTask: () = loadTodos()
             async let wishlistTask: () = loadWishlist()
             async let checkInsTask: () = loadCheckIns()
-            _ = await (membersTask, todosTask, wishlistTask, checkInsTask)
+            async let categoriesTask: () = loadCategories()
+            _ = await (membersTask, todosTask, wishlistTask, checkInsTask, categoriesTask)
         } catch {
             // Silent fail
         }
@@ -397,6 +437,8 @@ final class TravelDetailViewModel: ObservableObject {
             comments: updated.comments,
             address: updated.address,
             category: updated.category,
+            categoryId: updated.categoryId,
+            categoryRef: updated.categoryRef ?? original.categoryRef,
             createdById: updated.createdById,
             createdBy: original.createdBy
         )

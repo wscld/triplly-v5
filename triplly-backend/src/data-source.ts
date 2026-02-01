@@ -13,6 +13,7 @@ import {
     Place,
     CheckIn,
     PlaceReview,
+    Category,
 } from './entities/index.js';
 
 config();
@@ -34,6 +35,7 @@ export const AppDataSource = new DataSource({
         Place,
         CheckIn,
         PlaceReview,
+        Category,
     ],
     migrations: ['src/migrations/**/*.ts'],
     ssl: {
