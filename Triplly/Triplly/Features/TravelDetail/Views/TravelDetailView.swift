@@ -228,8 +228,6 @@ struct TravelDetailView: View {
     private func travelContent(_ travel: Travel) -> some View {
         ScrollView {
             VStack(spacing: 0) {
-                PullToRefreshAnchor(coordinateSpace: "ptr_scroll")
-
                 // Hero image - Airbnb style (with margins and rounded corners)
                 GeometryReader { geo in
                     ZStack(alignment: .bottom) {
@@ -283,7 +281,7 @@ struct TravelDetailView: View {
         }
         .ignoresSafeArea(edges: .top)
         .background(Color.appBackground)
-        .pullToRefresh(isRefreshing: $viewModel.isRefreshing) {
+        .refreshable {
             await viewModel.refreshTravel()
         }
     }
@@ -1232,10 +1230,25 @@ struct MapPinView: View {
 
 // MARK: - Activity Detail Sheet
 struct ActivityDetailSheet: View {
-    let activity: Activity
+    let initialActivity: Activity
     @ObservedObject var viewModel: TravelDetailViewModel
     @Environment(\.dismiss) private var dismiss
     @State private var mapRegion: MKCoordinateRegion
+
+    /// Live activity from the view model, falling back to the initial snapshot.
+    private var activity: Activity {
+        // Look up in itineraries
+        for itinerary in viewModel.travel?.itineraries ?? [] {
+            if let match = itinerary.activities?.first(where: { $0.id == initialActivity.id }) {
+                return match
+            }
+        }
+        // Look up in wishlist
+        if let match = viewModel.wishlistActivities.first(where: { $0.id == initialActivity.id }) {
+            return match
+        }
+        return initialActivity
+    }
     @State private var comments: [ActivityComment] = []
     @State private var newComment = ""
     @State private var isLoadingComments = false
@@ -1255,7 +1268,7 @@ struct ActivityDetailSheet: View {
     @FocusState private var isCommentFocused: Bool
 
     init(activity: Activity, viewModel: TravelDetailViewModel) {
-        self.activity = activity
+        self.initialActivity = activity
         self.viewModel = viewModel
         _mapRegion = State(initialValue: MKCoordinateRegion(
             center: activity.coordinate,
