@@ -229,7 +229,6 @@ final class TravelDetailViewModel: ObservableObject {
     }
 
     func refreshTravel() async {
-        isRefreshing = true
         do {
             let fetchedTravel = try await apiClient.getTravel(id: travelId)
             travel = fetchedTravel
@@ -242,7 +241,6 @@ final class TravelDetailViewModel: ObservableObject {
         } catch {
             // Silent fail
         }
-        isRefreshing = false
     }
 
     // MARK: - Update Travel
@@ -398,9 +396,25 @@ final class TravelDetailViewModel: ObservableObject {
             startTime: updated.startTime,
             comments: updated.comments,
             address: updated.address,
+            category: updated.category,
             createdById: updated.createdById,
             createdBy: original.createdBy
         )
+    }
+
+    func updateActivityInPlace(_ updated: Activity) {
+        if var updatedTravel = travel {
+            for (index, var itinerary) in (updatedTravel.itineraries ?? []).enumerated() {
+                if let actIndex = itinerary.activities?.firstIndex(where: { $0.id == updated.id }) {
+                    itinerary.activities?[actIndex] = updated
+                    updatedTravel.itineraries?[index] = itinerary
+                }
+            }
+            travel = updatedTravel
+        }
+        if let wishIndex = wishlistActivities.firstIndex(where: { $0.id == updated.id }) {
+            wishlistActivities[wishIndex] = updated
+        }
     }
 
     func moveActivityToWishlist(_ activity: Activity) async {

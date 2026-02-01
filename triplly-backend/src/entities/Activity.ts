@@ -49,6 +49,9 @@ export class Activity {
     @Column('varchar', { nullable: true })
     address: string | null;
 
+    @Column('varchar', { nullable: true })
+    category: string | null;
+
     @Column('uuid', { nullable: true })
     placeId: string | null;
 

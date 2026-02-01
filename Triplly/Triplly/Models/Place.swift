@@ -8,6 +8,7 @@ struct Place: Codable, Identifiable, Equatable, Sendable {
     let address: String?
     let externalId: String?
     let provider: String?
+    let category: String?
     let createdAt: String?
     let checkInCount: Int?
     let averageRating: FlexibleDouble?

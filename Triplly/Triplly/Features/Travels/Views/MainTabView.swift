@@ -192,7 +192,8 @@ struct GlobalMapSheetView: View {
             ) { activity in
                 MapAnnotation(coordinate: activity.coordinate) {
                     GlobalMapPinView(
-                        number: (activities.firstIndex(where: { $0.id == activity.id }) ?? 0) + 1
+                        number: (activities.firstIndex(where: { $0.id == activity.id }) ?? 0) + 1,
+                        category: activity.category
                     )
                 }
             }
@@ -233,17 +234,29 @@ struct GlobalMapSheetView: View {
 // MARK: - Global Map Pin View
 struct GlobalMapPinView: View {
     let number: Int
+    var category: String? = nil
 
     var body: some View {
         ZStack {
-            Circle()
-                .fill(Color.appPrimary)
-                .frame(width: 32, height: 32)
-                .shadow(color: Color.appPrimary.opacity(0.4), radius: 4, y: 2)
+            if let cat = ActivityCategory.from(category) {
+                Circle()
+                    .fill(cat.color)
+                    .frame(width: 32, height: 32)
+                    .shadow(color: cat.color.opacity(0.4), radius: 4, y: 2)
 
-            Text("\(number)")
-                .font(.caption.bold())
-                .foregroundStyle(.white)
+                Image(systemName: cat.icon)
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(.white)
+            } else {
+                Circle()
+                    .fill(Color.appPrimary)
+                    .frame(width: 32, height: 32)
+                    .shadow(color: Color.appPrimary.opacity(0.4), radius: 4, y: 2)
+
+                Text("\(number)")
+                    .font(.caption.bold())
+                    .foregroundStyle(.white)
+            }
         }
     }
 }

@@ -22,6 +22,7 @@ const createActivitySchema = z.object({
     provider: z.string().nullable().optional(),
     address: z.string().nullable().optional(),
     startTime: z.string().nullable().optional(),
+    category: z.string().nullable().optional(),
 });
 
 const updateActivitySchema = z.object({
@@ -31,6 +32,7 @@ const updateActivitySchema = z.object({
     longitude: z.number().optional(),
     externalId: z.string().nullable().optional(),
     provider: z.string().nullable().optional(),
+    category: z.string().nullable().optional(),
 });
 
 const reorderSchema = z.object({
@@ -228,6 +230,7 @@ activities.post('/', zValidator('json', createActivitySchema), async (c) => {
             address: data.address,
             externalId: data.externalId ?? null,
             provider: data.provider ?? null,
+            category: data.category ?? null,
         });
         placeId = place.id;
     } catch (err) {
@@ -290,6 +293,7 @@ activities.get('/:activityId', async (c) => {
             provider: true,
             placeId: true,
             address: true,
+            category: true,
             startTime: true,
             createdAt: true,
             createdById: true,
@@ -370,6 +374,7 @@ activities.patch('/:activityId', zValidator('json', updateActivitySchema), async
     if (data.longitude !== undefined) activity.longitude = data.longitude;
     if (data.externalId !== undefined) activity.externalId = data.externalId;
     if (data.provider !== undefined) activity.provider = data.provider;
+    if (data.category !== undefined) activity.category = data.category;
 
     await activityRepo.save(activity);
 

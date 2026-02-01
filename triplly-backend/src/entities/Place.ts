@@ -34,6 +34,9 @@ export class Place {
     @Column('varchar', { nullable: true })
     provider: string | null;
 
+    @Column('varchar', { nullable: true })
+    category: string | null;
+
     @CreateDateColumn()
     createdAt: Date;
 

@@ -433,7 +433,8 @@ struct AddWishlistItemSheet: View {
             externalId: place.externalId,
             provider: place.provider,
             address: place.address,
-            startTime: nil
+            startTime: nil,
+            category: place.category
         )
 
         do {

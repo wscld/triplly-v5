@@ -437,7 +437,8 @@ actor APIClient {
                 latitude: r.latitude,
                 longitude: r.longitude,
                 externalId: r.externalId,
-                provider: r.provider
+                provider: r.provider,
+                category: nil
             )
         }
     }

@@ -77,15 +77,11 @@ final class TravelsViewModel: ObservableObject {
     }
 
     func refreshTravels() async {
-        isRefreshing = true
-
         do {
             travels = try await apiClient.getTravels()
         } catch {
             // Silent fail on refresh
         }
-
-        isRefreshing = false
     }
 
     func createTravel() async {

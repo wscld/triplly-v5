@@ -1,5 +1,48 @@
 import SwiftUI
 import MapKit
+import Combine
+
+// MARK: - Search Completer Delegate
+@MainActor
+final class SearchCompleterDelegate: NSObject, ObservableObject, MKLocalSearchCompleterDelegate {
+    @Published var completions: [MKLocalSearchCompletion] = []
+    @Published var isSearching = false
+
+    let completer: MKLocalSearchCompleter
+
+    override init() {
+        completer = MKLocalSearchCompleter()
+        completer.resultTypes = [.address, .pointOfInterest]
+        super.init()
+        completer.delegate = self
+    }
+
+    func update(query: String) {
+        if query.isEmpty {
+            completions = []
+            isSearching = false
+            completer.cancel()
+        } else {
+            isSearching = true
+            completer.queryFragment = query
+        }
+    }
+
+    nonisolated func completerDidUpdateResults(_ completer: MKLocalSearchCompleter) {
+        let results = completer.results
+        Task { @MainActor in
+            self.completions = results
+            self.isSearching = false
+        }
+    }
+
+    nonisolated func completer(_ completer: MKLocalSearchCompleter, didFailWithError error: Error) {
+        Task { @MainActor in
+            self.completions = []
+            self.isSearching = false
+        }
+    }
+}
 
 // MARK: - Place Search View
 struct PlaceSearchView: View {
@@ -7,10 +50,9 @@ struct PlaceSearchView: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var searchText = ""
-    @State private var searchResults: [PlaceResult] = []
-    @State private var isSearching = false
-    @State private var searchTask: Task<Void, Never>?
+    @StateObject private var completerDelegate = SearchCompleterDelegate()
     @State private var previewPlace: PlaceResult?
+    @State private var isResolving = false
 
     var body: some View {
         NavigationStack {
@@ -23,14 +65,11 @@ struct PlaceSearchView: View {
                     TextField("Search for a place...", text: $searchText)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
-                        .onSubmit {
-                            performSearch()
-                        }
 
                     if !searchText.isEmpty {
                         Button {
                             searchText = ""
-                            searchResults = []
+                            completerDelegate.update(query: "")
                         } label: {
                             Image(systemName: "xmark.circle.fill")
                                 .foregroundStyle(.secondary)
@@ -42,29 +81,16 @@ struct PlaceSearchView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 12))
                 .padding()
                 .onChange(of: searchText) { _, newValue in
-                    // Cancel previous search
-                    searchTask?.cancel()
-
-                    if newValue.isEmpty {
-                        searchResults = []
-                    } else {
-                        // Debounce search
-                        searchTask = Task {
-                            try? await Task.sleep(nanoseconds: 300_000_000) // 300ms
-                            if !Task.isCancelled {
-                                await search()
-                            }
-                        }
-                    }
+                    completerDelegate.update(query: newValue)
                 }
 
                 // Results
-                if isSearching {
+                if completerDelegate.isSearching || isResolving {
                     Spacer()
                     ProgressView()
                         .progressViewStyle(CircularProgressViewStyle(tint: Color.appPrimary))
                     Spacer()
-                } else if searchResults.isEmpty && !searchText.isEmpty {
+                } else if completerDelegate.completions.isEmpty && !searchText.isEmpty {
                     Spacer()
                     VStack(spacing: 12) {
                         Image(systemName: "magnifyingglass")
@@ -74,7 +100,7 @@ struct PlaceSearchView: View {
                             .foregroundStyle(.secondary)
                     }
                     Spacer()
-                } else if searchResults.isEmpty {
+                } else if completerDelegate.completions.isEmpty {
                     Spacer()
                     VStack(spacing: 12) {
                         Image(systemName: "mappin.and.ellipse")
@@ -85,9 +111,9 @@ struct PlaceSearchView: View {
                     }
                     Spacer()
                 } else {
-                    List(searchResults) { result in
+                    List(completerDelegate.completions, id: \.self) { completion in
                         Button {
-                            previewPlace = result
+                            resolveCompletion(completion)
                         } label: {
                             HStack(spacing: 12) {
                                 Image(systemName: "mappin.circle.fill")
@@ -95,12 +121,12 @@ struct PlaceSearchView: View {
                                     .foregroundStyle(Color.appPrimary)
 
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text(result.name)
+                                    Text(completion.title)
                                         .font(.headline)
                                         .foregroundStyle(.primary)
                                         .lineLimit(1)
 
-                                    Text(result.address)
+                                    Text(completion.subtitle)
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
                                         .lineLimit(2)
@@ -131,34 +157,42 @@ struct PlaceSearchView: View {
         }
     }
 
-    private func performSearch() {
-        searchTask?.cancel()
+    private func resolveCompletion(_ completion: MKLocalSearchCompletion) {
+        isResolving = true
+        let request = MKLocalSearch.Request(completion: completion)
+        let search = MKLocalSearch(request: request)
+
         Task {
-            await search()
-        }
-    }
+            defer { isResolving = false }
+            do {
+                let response = try await search.start()
+                guard let mapItem = response.mapItems.first else { return }
 
-    private func search() async {
-        guard !searchText.isEmpty else {
-            searchResults = []
-            return
-        }
+                let coordinate = mapItem.placemark.coordinate
+                let name = mapItem.name ?? completion.title
+                let address = [
+                    mapItem.placemark.locality,
+                    mapItem.placemark.administrativeArea,
+                    mapItem.placemark.country
+                ]
+                    .compactMap { $0 }
+                    .joined(separator: ", ")
 
-        await MainActor.run {
-            isSearching = true
-        }
+                let externalId = "\(name)_\(String(format: "%.5f", coordinate.latitude))_\(String(format: "%.5f", coordinate.longitude))"
+                let category = mapItem.pointOfInterestCategory.flatMap { ActivityCategory.fromMapKit($0) }
 
-        do {
-            let results = try await APIClient.shared.searchPlaces(query: searchText)
-            await MainActor.run {
-                searchResults = results
-                isSearching = false
-            }
-        } catch {
-            print("DEBUG: Place search error: \(error)")
-            await MainActor.run {
-                searchResults = []
-                isSearching = false
+                previewPlace = PlaceResult(
+                    id: externalId,
+                    name: name,
+                    address: address.isEmpty ? completion.subtitle : address,
+                    latitude: coordinate.latitude,
+                    longitude: coordinate.longitude,
+                    externalId: externalId,
+                    provider: "apple",
+                    category: category?.rawValue
+                )
+            } catch {
+                print("DEBUG: Failed to resolve place: \(error)")
             }
         }
     }
@@ -173,6 +207,7 @@ struct PlaceResult: Identifiable, Equatable {
     let longitude: Double
     let externalId: String
     let provider: String
+    let category: String?
 }
 
 // MARK: - Place Preview Sheet

@@ -26,6 +26,8 @@ struct TravelsListView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 0) {
+                PullToRefreshAnchor(coordinateSpace: "ptr_scroll")
+
                 // Hero Header with parallax
                 GeometryReader { geometry in
                     let minY = geometry.frame(in: .global).minY
@@ -45,12 +47,6 @@ struct TravelsListView: View {
                     .contentShape(Rectangle())
                     .zIndex(1)
 
-                // Refresh indicator
-                if viewModel.isRefreshing {
-                    RefreshIndicator()
-                        .transition(.move(edge: .top).combined(with: .opacity))
-                }
-
                 // Content
                 if viewModel.isLoading && viewModel.travels.isEmpty {
                     loadingContent
@@ -69,7 +65,7 @@ struct TravelsListView: View {
         }
         .background(Color.appBackground)
         .ignoresSafeArea(edges: .top)
-        .refreshable {
+        .pullToRefresh(isRefreshing: $viewModel.isRefreshing) {
             await viewModel.refreshTravels()
         }
         .navigationBarHidden(true)

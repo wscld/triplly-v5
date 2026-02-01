@@ -8,6 +8,7 @@ interface FindOrCreatePlaceParams {
     address?: string | null;
     externalId?: string | null;
     provider?: string | null;
+    category?: string | null;
 }
 
 /**
@@ -54,6 +55,7 @@ export async function findOrCreatePlace(params: FindOrCreatePlaceParams): Promis
         address: params.address ?? null,
         externalId: params.externalId ?? null,
         provider: params.provider ?? null,
+        category: params.category ?? null,
     });
     await placeRepo.save(place);
 

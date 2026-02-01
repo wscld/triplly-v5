@@ -228,6 +228,8 @@ struct TravelDetailView: View {
     private func travelContent(_ travel: Travel) -> some View {
         ScrollView {
             VStack(spacing: 0) {
+                PullToRefreshAnchor(coordinateSpace: "ptr_scroll")
+
                 // Hero image - Airbnb style (with margins and rounded corners)
                 GeometryReader { geo in
                     ZStack(alignment: .bottom) {
@@ -252,12 +254,6 @@ struct TravelDetailView: View {
                 }
                 .frame(height: 420)
                 .padding(EdgeInsets(top: 8, leading: 8, bottom: 0, trailing: 8))
-
-                // Refresh indicator
-                if viewModel.isRefreshing {
-                    RefreshIndicator()
-                        .transition(.move(edge: .top).combined(with: .opacity))
-                }
 
                 // Content
                 VStack(spacing: 20) {
@@ -287,7 +283,7 @@ struct TravelDetailView: View {
         }
         .ignoresSafeArea(edges: .top)
         .background(Color.appBackground)
-        .refreshable {
+        .pullToRefresh(isRefreshing: $viewModel.isRefreshing) {
             await viewModel.refreshTravel()
         }
     }
@@ -1119,15 +1115,25 @@ struct TimelineItemView: View {
                     }
                 }
 
-                // Circle with number + check-in badge
+                // Circle with category icon or number + check-in badge
                 ZStack {
-                    Circle()
-                        .fill(Color.appPrimary)
-                        .frame(width: circleSize, height: circleSize)
+                    if let cat = ActivityCategory.from(activity.category) {
+                        Circle()
+                            .fill(cat.color)
+                            .frame(width: circleSize, height: circleSize)
 
-                    Text("\(number)")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(.white)
+                        Image(systemName: cat.icon)
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundStyle(.white)
+                    } else {
+                        Circle()
+                            .fill(Color.appPrimary)
+                            .frame(width: circleSize, height: circleSize)
+
+                        Text("\(number)")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundStyle(.white)
+                    }
 
                     if isCheckedIn {
                         ZStack {
@@ -1190,16 +1196,27 @@ struct TimelineItemView: View {
 // MARK: - Map Pin View
 struct MapPinView: View {
     let number: Int
+    var category: String? = nil
 
     var body: some View {
         ZStack {
-            Circle()
-                .fill(Color.appPrimary)
-                .frame(width: 28, height: 28)
+            if let cat = ActivityCategory.from(category) {
+                Circle()
+                    .fill(cat.color)
+                    .frame(width: 28, height: 28)
 
-            Text("\(number)")
-                .font(.caption.bold())
-                .foregroundStyle(.white)
+                Image(systemName: cat.icon)
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(.white)
+            } else {
+                Circle()
+                    .fill(Color.appPrimary)
+                    .frame(width: 28, height: 28)
+
+                Text("\(number)")
+                    .font(.caption.bold())
+                    .foregroundStyle(.white)
+            }
         }
     }
 }
@@ -1224,6 +1241,8 @@ struct ActivityDetailSheet: View {
     @State private var showingUndoCheckInConfirm = false
     @State private var isCheckingIn = false
     @State private var isUndoingCheckIn = false
+    @State private var showingCategoryPicker = false
+    @State private var isSavingCategory = false
     @FocusState private var isCommentFocused: Bool
 
     init(activity: Activity, viewModel: TravelDetailViewModel) {
@@ -1377,6 +1396,14 @@ struct ActivityDetailSheet: View {
                     PlaceDetailView(placeId: placeId)
                 }
             }
+            .sheet(isPresented: $showingCategoryPicker) {
+                CategoryPickerSheet(
+                    currentCategory: ActivityCategory.from(activity.category),
+                    onSelect: { selected in
+                        updateCategory(selected)
+                    }
+                )
+            }
         }
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
@@ -1390,7 +1417,7 @@ struct ActivityDetailSheet: View {
     private var mapPreviewSection: some View {
         Map(coordinateRegion: $mapRegion, annotationItems: [activity]) { act in
             MapAnnotation(coordinate: act.coordinate) {
-                MapPinView(number: 1)
+                MapPinView(number: 1, category: activity.category)
             }
         }
         .frame(height: 180)
@@ -1408,6 +1435,9 @@ struct ActivityDetailSheet: View {
                 DetailRow(icon: "mappin.circle.fill", title: "Location", value: address)
             }
 
+            // Category row (tappable to edit)
+            categoryRow
+
             if let description = activity.description, !description.isEmpty {
                 DetailRow(icon: "text.alignleft", title: "Notes", value: description)
             }
@@ -1421,6 +1451,52 @@ struct ActivityDetailSheet: View {
             }
         }
         .padding(.horizontal)
+    }
+
+    private var categoryRow: some View {
+        Button {
+            showingCategoryPicker = true
+        } label: {
+            HStack(spacing: 10) {
+                if let cat = ActivityCategory.from(activity.category) {
+                    Image(systemName: cat.icon)
+                        .foregroundStyle(cat.color)
+                        .frame(width: 24)
+                } else {
+                    Image(systemName: "tag.fill")
+                        .foregroundStyle(.secondary)
+                        .frame(width: 24)
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Category")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    if let cat = ActivityCategory.from(activity.category) {
+                        Text(cat.displayName)
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(cat.color)
+                    } else {
+                        Text("Set category")
+                            .font(.subheadline)
+                            .foregroundStyle(Color.appPrimary)
+                    }
+                }
+
+                Spacer()
+
+                if isSavingCategory {
+                    ProgressView()
+                        .controlSize(.small)
+                } else {
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .buttonStyle(.plain)
+        .disabled(isSavingCategory)
     }
     
     private func creatorRow(_ creator: ActivityCreator) -> some View {
@@ -1660,6 +1736,26 @@ struct ActivityDetailSheet: View {
             comments.removeAll { $0.id == comment.id }
         } catch {
             print("Failed to delete comment: \(error)")
+        }
+    }
+
+    private func updateCategory(_ category: ActivityCategory?) {
+        isSavingCategory = true
+        Task {
+            let request = UpdateActivityRequest(
+                title: nil,
+                description: nil,
+                startTime: nil,
+                address: nil,
+                category: category?.rawValue
+            )
+            do {
+                let updated = try await APIClient.shared.updateActivity(id: activity.id, request)
+                viewModel.updateActivityInPlace(updated)
+            } catch {
+                print("Failed to update category: \(error)")
+            }
+            isSavingCategory = false
         }
     }
 }

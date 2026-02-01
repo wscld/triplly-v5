@@ -17,6 +17,7 @@ struct Activity: Codable, Identifiable, Equatable, Hashable, Sendable {
     let startTime: String?
     var comments: [ActivityComment]?
     let address: String?
+    let category: String?
     let createdById: String?
     let createdBy: ActivityCreator?
 
@@ -49,6 +50,7 @@ struct CreateActivityRequest: Codable, Sendable {
     let provider: String?
     let address: String?
     let startTime: String?
+    let category: String?
 }
 
 struct UpdateActivityRequest: Codable, Sendable {
@@ -56,6 +58,7 @@ struct UpdateActivityRequest: Codable, Sendable {
     let description: String?
     let startTime: String?
     let address: String?
+    let category: String?
 }
 
 struct ReorderActivityRequest: Encodable, Sendable {
@@ -134,6 +137,7 @@ extension Activity {
         startTime: "10:00",
         comments: [],
         address: "4-2-8 Shibakoen, Minato City, Tokyo",
+        category: "landmark",
         createdById: "1",
         createdBy: ActivityCreator(id: "1", name: "John Doe", email: "john@example.com", username: "johndoe", profilePhotoUrl: nil)
     )
