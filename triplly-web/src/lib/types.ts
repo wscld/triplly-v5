@@ -58,4 +58,5 @@ export interface Award {
   name: string;
   icon: string;
   description: string;
+  color: string;
 }

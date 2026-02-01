@@ -10,26 +10,27 @@ export interface Award {
   name: string;
   icon: string;
   description: string;
+  color: string;
 }
 
 const AWARDS_CATALOG: Award[] = [
   // Travel Milestones
-  { id: "first_steps", name: "First Steps", icon: "figure.walk", description: "Every journey begins with a single step" },
-  { id: "wanderer", name: "Wanderer", icon: "map", description: "The world is calling, and you're answering" },
-  { id: "globetrotter", name: "Globetrotter", icon: "globe.americas", description: "Stamps in your passport, stories in your heart" },
-  { id: "world_explorer", name: "World Explorer", icon: "globe", description: "You've made the world your playground" },
-  { id: "eternal_nomad", name: "Eternal Nomad", icon: "airplane.circle", description: "Home is wherever you unpack your bags" },
+  { id: "first_steps", name: "First Steps", icon: "figure.walk", description: "Every journey begins with a single step", color: "emerald" },
+  { id: "wanderer", name: "Wanderer", icon: "map", description: "The world is calling, and you're answering", color: "teal" },
+  { id: "globetrotter", name: "Globetrotter", icon: "globe.americas", description: "Stamps in your passport, stories in your heart", color: "cyan" },
+  { id: "world_explorer", name: "World Explorer", icon: "globe", description: "You've made the world your playground", color: "blue" },
+  { id: "eternal_nomad", name: "Eternal Nomad", icon: "airplane.circle", description: "Home is wherever you unpack your bags", color: "indigo" },
   // Solo & Social
-  { id: "solo_adventurer", name: "Solo Adventurer", icon: "person.fill", description: "Brave enough to explore alone" },
-  { id: "lone_wolf", name: "Lone Wolf", icon: "moon.stars", description: "A true independent spirit" },
-  { id: "squad_goals", name: "Squad Goals", icon: "person.3.fill", description: "Everything's better with friends" },
-  { id: "party_leader", name: "Party Leader", icon: "crown", description: "Leading the pack in style" },
+  { id: "solo_adventurer", name: "Solo Adventurer", icon: "person.fill", description: "Brave enough to explore alone", color: "violet" },
+  { id: "lone_wolf", name: "Lone Wolf", icon: "moon.stars", description: "A true independent spirit", color: "purple" },
+  { id: "squad_goals", name: "Squad Goals", icon: "person.3.fill", description: "Everything's better with friends", color: "pink" },
+  { id: "party_leader", name: "Party Leader", icon: "crown", description: "Leading the pack in style", color: "rose" },
   // Planning & Activity
-  { id: "master_planner", name: "Master Planner", icon: "list.clipboard", description: "Every detail, perfectly planned" },
-  { id: "activity_junkie", name: "Activity Junkie", icon: "bolt.fill", description: "Never a dull moment" },
-  { id: "storyteller", name: "Storyteller", icon: "text.bubble", description: "Sharing the journey, one story at a time" },
+  { id: "master_planner", name: "Master Planner", icon: "list.clipboard", description: "Every detail, perfectly planned", color: "amber" },
+  { id: "activity_junkie", name: "Activity Junkie", icon: "bolt.fill", description: "Never a dull moment", color: "orange" },
+  { id: "storyteller", name: "Storyteller", icon: "text.bubble", description: "Sharing the journey, one story at a time", color: "yellow" },
   // Checklist
-  { id: "checklister", name: "Checklister", icon: "checklist.checked", description: "Ticking off the list, one task at a time" },
+  { id: "checklister", name: "Checklister", icon: "checklist.checked", description: "Ticking off the list, one task at a time", color: "slate" },
 ];
 
 function getAward(id: string): Award | undefined {
