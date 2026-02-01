@@ -26,8 +26,6 @@ struct TravelsListView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 0) {
-                PullToRefreshAnchor(coordinateSpace: "ptr_scroll")
-
                 // Hero Header with parallax
                 GeometryReader { geometry in
                     let minY = geometry.frame(in: .global).minY
@@ -65,7 +63,7 @@ struct TravelsListView: View {
         }
         .background(Color.appBackground)
         .ignoresSafeArea(edges: .top)
-        .pullToRefresh(isRefreshing: $viewModel.isRefreshing) {
+        .refreshable {
             await viewModel.refreshTravels()
         }
         .navigationBarHidden(true)

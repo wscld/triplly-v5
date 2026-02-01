@@ -4,7 +4,7 @@ struct CategoryPickerSheet: View {
     let categories: [CategoryModel]
     let currentCategoryId: String?
     let onSelect: (CategoryModel?) -> Void
-    let onCreateCustom: (String, String, String) async -> CategoryModel?
+    let onCreateCustom: @Sendable (String, String, String) async -> CategoryModel?
     @Environment(\.dismiss) private var dismiss
 
     @State private var showingAddCustom = false
@@ -199,7 +199,7 @@ struct CategoryPickerSheet: View {
 
 // MARK: - Add Custom Category Sheet
 struct AddCustomCategorySheet: View {
-    let onCreate: (String, String, String) async -> Void
+    let onCreate: @Sendable (String, String, String) async -> Void
     @Environment(\.dismiss) private var dismiss
 
     @State private var name = ""

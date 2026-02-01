@@ -4,36 +4,42 @@ import MapKit
 /// The actual category data (icons, colors) now comes from the backend via CategoryModel.
 enum ActivityCategoryMapper {
     static func fromMapKit(_ poiCategory: MKPointOfInterestCategory) -> String? {
-        switch poiCategory {
-        case .restaurant: return "restaurant"
-        case .cafe: return "cafe"
-        case .hotel: return "hotel"
-        case .museum: return "museum"
-        case .park, .nationalPark: return "park"
-        case .beach: return "beach"
-        case .airport: return "airport"
-        case .store: return "shopping"
-        case .fitnessCenter, .marina, .stadium: return "sports"
-        case .amusementPark, .aquarium, .movieTheater, .theater, .zoo: return "entertainment"
-        case .publicTransport, .gasStation, .parking: return "transport"
-        case .hospital, .pharmacy: return "health"
-        case .library, .school, .university: return "education"
-        default:
-            if #available(iOS 18.0, *) {
-                return fromMapKitIOS18(poiCategory)
-            }
-            return nil
-        }
-    }
+        // Use rawValue string comparison to avoid referencing iOS 18+ symbols
+        // which would cause dyld crash on iOS 17 devices.
+        let raw = poiCategory.rawValue
 
-    @available(iOS 18.0, *)
-    private static func fromMapKitIOS18(_ poiCategory: MKPointOfInterestCategory) -> String? {
-        switch poiCategory {
-        case .brewery, .winery: return "bar"
-        case .bakery: return "shopping"
-        case .nightlife: return "nightlife"
-        case .carRental, .evCharger: return "transport"
-        case .golf, .tennis: return "sports"
+        switch raw {
+        case MKPointOfInterestCategory.restaurant.rawValue: return "restaurant"
+        case MKPointOfInterestCategory.cafe.rawValue: return "cafe"
+        case MKPointOfInterestCategory.hotel.rawValue: return "hotel"
+        case MKPointOfInterestCategory.museum.rawValue: return "museum"
+        case MKPointOfInterestCategory.park.rawValue,
+             MKPointOfInterestCategory.nationalPark.rawValue: return "park"
+        case MKPointOfInterestCategory.beach.rawValue: return "beach"
+        case MKPointOfInterestCategory.airport.rawValue: return "airport"
+        case MKPointOfInterestCategory.store.rawValue: return "shopping"
+        case MKPointOfInterestCategory.fitnessCenter.rawValue,
+             MKPointOfInterestCategory.marina.rawValue,
+             MKPointOfInterestCategory.stadium.rawValue: return "sports"
+        case MKPointOfInterestCategory.amusementPark.rawValue,
+             MKPointOfInterestCategory.aquarium.rawValue,
+             MKPointOfInterestCategory.movieTheater.rawValue,
+             MKPointOfInterestCategory.theater.rawValue,
+             MKPointOfInterestCategory.zoo.rawValue: return "entertainment"
+        case MKPointOfInterestCategory.publicTransport.rawValue,
+             MKPointOfInterestCategory.gasStation.rawValue,
+             MKPointOfInterestCategory.parking.rawValue: return "transport"
+        case MKPointOfInterestCategory.hospital.rawValue,
+             MKPointOfInterestCategory.pharmacy.rawValue: return "health"
+        case MKPointOfInterestCategory.library.rawValue,
+             MKPointOfInterestCategory.school.rawValue,
+             MKPointOfInterestCategory.university.rawValue: return "education"
+        // iOS 18+ categories matched by raw string — no symbol reference needed
+        case "MKPOICategoryBakery": return "shopping"
+        case "MKPOICategoryBrewery", "MKPOICategoryWinery": return "bar"
+        case "MKPOICategoryNightlife": return "nightlife"
+        case "MKPOICategoryCarRental", "MKPOICategoryEVCharger": return "transport"
+        case "MKPOICategoryGolf", "MKPOICategoryTennis": return "sports"
         default: return nil
         }
     }
