@@ -27,7 +27,7 @@ struct PullToRefreshAnchor: View {
 
 struct PullToRefreshModifier: ViewModifier {
     @Binding var isRefreshing: Bool
-    let action: @Sendable () async -> Void
+    let action: @MainActor () async -> Void
 
     @State private var pullOffset: CGFloat = 0
     @State private var restingOffset: CGFloat?
@@ -84,7 +84,7 @@ struct PullToRefreshModifier: ViewModifier {
 }
 
 extension View {
-    func pullToRefresh(isRefreshing: Binding<Bool>, action: @Sendable @escaping () async -> Void) -> some View {
+    func pullToRefresh(isRefreshing: Binding<Bool>, action: @MainActor @escaping () async -> Void) -> some View {
         modifier(PullToRefreshModifier(isRefreshing: isRefreshing, action: action))
     }
 }

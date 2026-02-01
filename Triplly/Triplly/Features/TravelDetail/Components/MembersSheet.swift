@@ -152,7 +152,7 @@ struct InviteFormSheet: View {
     @State private var inviteError: String?
     @State private var showConfirmation = false
 
-    var onInviteSent: @Sendable () async -> Void
+    var onInviteSent: @MainActor () async -> Void
 
     var body: some View {
         NavigationStack {

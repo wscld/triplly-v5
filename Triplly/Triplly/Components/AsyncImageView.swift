@@ -162,7 +162,7 @@ struct TravelCoverImage: View {
     var body: some View {
         Group {
             if let urlString = coverUrl, let url = URL(string: urlString) {
-                AsyncImageView(url: url)
+                CachedAsyncImage(url: url, contentMode: .fill)
             } else {
                 ZStack {
                     LinearGradient(

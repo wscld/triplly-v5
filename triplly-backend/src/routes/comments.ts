@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { AppDataSource } from '../data-source.js';
 import { Activity, ActivityComment, TravelMember } from '../entities/index.js';
 import { authMiddleware, getAuth } from '../middleware/index.js';
+import { extractFirstUrl, fetchLinkMetadata } from '../services/linkMetadata.js';
 
 const comments = new Hono();
 
@@ -67,11 +68,35 @@ comments.post('/activity/:activityId', zValidator('json', createCommentSchema), 
         return c.json({ error: result.error }, result.status);
     }
 
+    // Extract link metadata if URL found in content
+    let linkUrl: string | null = null;
+    let linkTitle: string | null = null;
+    let linkDescription: string | null = null;
+    let linkImageUrl: string | null = null;
+
+    const detectedUrl = extractFirstUrl(content);
+    if (detectedUrl) {
+        const metadata = await fetchLinkMetadata(detectedUrl);
+        if (metadata) {
+            linkUrl = metadata.url;
+            linkTitle = metadata.title;
+            linkDescription = metadata.description;
+            linkImageUrl = metadata.imageUrl;
+        } else {
+            // URL found but metadata fetch failed — still store the URL
+            linkUrl = detectedUrl;
+        }
+    }
+
     const commentRepo = AppDataSource.getRepository(ActivityComment);
     const comment = commentRepo.create({
         activityId,
         userId,
         content,
+        linkUrl,
+        linkTitle,
+        linkDescription,
+        linkImageUrl,
     });
     await commentRepo.save(comment);
 

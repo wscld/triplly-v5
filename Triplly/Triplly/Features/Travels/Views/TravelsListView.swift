@@ -61,11 +61,11 @@ struct TravelsListView: View {
                 }
             }
         }
-        .background(Color.appBackground)
-        .ignoresSafeArea(edges: .top)
         .refreshable {
             await viewModel.refreshTravels()
         }
+        .background(Color.appBackground)
+        .ignoresSafeArea(edges: .top)
         .navigationBarHidden(true)
         .sheet(isPresented: $viewModel.showingCreateSheet) {
             CreateTravelSheet(viewModel: viewModel)

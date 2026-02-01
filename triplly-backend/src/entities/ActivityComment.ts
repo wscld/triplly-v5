@@ -24,6 +24,18 @@ export class ActivityComment {
     @Column('text')
     content: string;
 
+    @Column({ type: 'text', nullable: true })
+    linkUrl: string | null;
+
+    @Column({ type: 'text', nullable: true })
+    linkTitle: string | null;
+
+    @Column({ type: 'text', nullable: true })
+    linkDescription: string | null;
+
+    @Column({ type: 'text', nullable: true })
+    linkImageUrl: string | null;
+
     @CreateDateColumn()
     createdAt: Date;
 

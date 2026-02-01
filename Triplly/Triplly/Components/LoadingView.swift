@@ -92,26 +92,36 @@ struct ErrorView: View {
 
 // MARK: - Skeleton Loading
 struct SkeletonView: View {
-    @State private var isAnimating = false
+    @State private var phase: CGFloat = -1
 
     var body: some View {
-        RoundedRectangle(cornerRadius: 8)
-            .fill(
-                LinearGradient(
-                    gradient: Gradient(colors: [
-                        Color.gray.opacity(0.2),
-                        Color.gray.opacity(0.3),
-                        Color.gray.opacity(0.2)
-                    ]),
-                    startPoint: isAnimating ? .leading : .trailing,
-                    endPoint: isAnimating ? .trailing : .leading
-                )
-            )
-            .onAppear {
-                withAnimation(.linear(duration: 1.5).repeatForever(autoreverses: false)) {
-                    isAnimating = true
+        GeometryReader { geo in
+            let width = geo.size.width
+
+            Rectangle()
+                .fill(Color.gray.opacity(0.15))
+                .overlay {
+                    LinearGradient(
+                        stops: [
+                            .init(color: .clear, location: 0),
+                            .init(color: Color.gray.opacity(0.2), location: 0.3),
+                            .init(color: Color.white.opacity(0.25), location: 0.5),
+                            .init(color: Color.gray.opacity(0.2), location: 0.7),
+                            .init(color: .clear, location: 1)
+                        ],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                    .frame(width: width * 0.8)
+                    .offset(x: width * phase)
                 }
+                .clipped()
+        }
+        .onAppear {
+            withAnimation(.easeInOut(duration: 1.4).repeatForever(autoreverses: false)) {
+                phase = 1.5
             }
+        }
     }
 }
 

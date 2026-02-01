@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { AppDataSource } from '../data-source.js';
-import { Place, CheckIn, PlaceReview } from '../entities/index.js';
+import { Place, CheckIn, PlaceReview, Category } from '../entities/index.js';
 import { authMiddleware, getAuth } from '../middleware/index.js';
 import { searchPlaces } from '../services/search.js';
 
@@ -152,6 +152,25 @@ places.get('/:placeId', async (c) => {
 
     const averageRating = avgResult?.avg ? parseFloat(avgResult.avg) : null;
 
+    // Look up category info if place has a category name
+    let categoryInfo = null;
+    if (place.category) {
+        const categoryRepo = AppDataSource.getRepository(Category);
+        const cat = await categoryRepo.findOne({
+            where: { name: place.category, isDefault: true },
+        });
+        if (cat) {
+            categoryInfo = {
+                id: cat.id,
+                name: cat.name,
+                icon: cat.icon,
+                color: cat.color,
+                isDefault: cat.isDefault,
+                travelId: cat.travelId,
+            };
+        }
+    }
+
     return c.json({
         id: place.id,
         name: place.name,
@@ -160,6 +179,8 @@ places.get('/:placeId', async (c) => {
         address: place.address,
         externalId: place.externalId,
         provider: place.provider,
+        category: place.category,
+        categoryInfo,
         createdAt: place.createdAt,
         checkInCount,
         averageRating,

@@ -7,7 +7,10 @@ struct ActivityComment: Codable, Identifiable, Equatable, Hashable, Sendable {
     let content: String
     let createdAt: String
     let user: CommentUser
-
+    let linkUrl: String?
+    let linkTitle: String?
+    let linkDescription: String?
+    let linkImageUrl: String?
 }
 
 struct CommentUser: Codable, Equatable, Hashable, Sendable {
@@ -71,6 +74,10 @@ extension ActivityComment {
         userId: "1",
         content: "This looks amazing!",
         createdAt: ISO8601DateFormatter().string(from: Date()),
-        user: CommentUser(id: "1", name: "John Doe", email: "john@example.com", profilePhotoUrl: nil)
+        user: CommentUser(id: "1", name: "John Doe", email: "john@example.com", profilePhotoUrl: nil),
+        linkUrl: nil,
+        linkTitle: nil,
+        linkDescription: nil,
+        linkImageUrl: nil
     )
 }

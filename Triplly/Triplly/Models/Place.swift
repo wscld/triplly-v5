@@ -9,6 +9,7 @@ struct Place: Codable, Identifiable, Equatable, Sendable {
     let externalId: String?
     let provider: String?
     let category: String?
+    let categoryInfo: CategoryModel?
     let createdAt: String?
     let checkInCount: Int?
     let averageRating: FlexibleDouble?

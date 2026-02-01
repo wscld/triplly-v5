@@ -267,19 +267,25 @@ final class TravelDetailViewModel: ObservableObject {
         return nil
     }
 
-    func refreshTravel() async {
+    func refreshTravel(silent: Bool = false) async {
+        if !silent { isRefreshing = true }
         do {
             let fetchedTravel = try await apiClient.getTravel(id: travelId)
             travel = fetchedTravel
-
-            async let membersTask: () = loadMembers()
-            async let todosTask: () = loadTodos()
-            async let wishlistTask: () = loadWishlist()
-            async let checkInsTask: () = loadCheckIns()
-            async let categoriesTask: () = loadCategories()
-            _ = await (membersTask, todosTask, wishlistTask, checkInsTask, categoriesTask)
         } catch {
             // Silent fail
+        }
+        if !silent { isRefreshing = false }
+        // Load secondary data in a separate task so .refreshable's
+        // cancellation doesn't kill in-flight requests.
+        Task { [weak self] in
+            guard let self else { return }
+            async let m: () = self.loadMembers()
+            async let t: () = self.loadTodos()
+            async let w: () = self.loadWishlist()
+            async let c: () = self.loadCheckIns()
+            async let cat: () = self.loadCategories()
+            _ = await (m, t, w, c, cat)
         }
     }
 

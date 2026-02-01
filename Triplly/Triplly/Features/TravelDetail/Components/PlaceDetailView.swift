@@ -83,13 +83,17 @@ struct PlaceDetailView: View {
                     span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
                 )), annotationItems: [place]) { (p: Place) in
                     MapAnnotation(coordinate: CLLocationCoordinate2D(latitude: p.latitudeDouble, longitude: p.longitudeDouble)) {
-                        ZStack {
-                            Circle()
-                                .fill(Color.appPrimary)
-                                .frame(width: 28, height: 28)
-                            Image(systemName: "mappin")
-                                .font(.system(size: 14, weight: .bold))
-                                .foregroundStyle(.white)
+                        if let cat = p.categoryInfo {
+                            CategoryCircleView(cat, circleSize: 28, iconSize: 12)
+                        } else {
+                            ZStack {
+                                Circle()
+                                    .fill(Color.appPrimary)
+                                    .frame(width: 28, height: 28)
+                                Image(systemName: "mappin")
+                                    .font(.system(size: 14, weight: .bold))
+                                    .foregroundStyle(.white)
+                            }
                         }
                     }
                 }
@@ -109,6 +113,15 @@ struct PlaceDetailView: View {
                             Text(address)
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
+                        }
+                    }
+
+                    if let cat = place.categoryInfo {
+                        HStack(spacing: 8) {
+                            CategoryCircleView(cat, circleSize: 24, iconSize: 11)
+                            Text(cat.displayName)
+                                .font(.subheadline.weight(.medium))
+                                .foregroundStyle(cat.swiftUIColor)
                         }
                     }
                 }

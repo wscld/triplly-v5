@@ -8,6 +8,7 @@ struct TravelDetailView: View {
     @StateObject private var viewModel: TravelDetailViewModel
     @EnvironmentObject private var appState: AppState
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.scenePhase) private var scenePhase
 
     // Delete/Leave confirmation state
     @State private var showingDeleteTravelAlert = false
@@ -180,6 +181,11 @@ struct TravelDetailView: View {
         .onChange(of: viewModel.selectedItineraryIndex) { _, _ in
             appState.updateMapActivities(viewModel.selectedActivities, title: viewModel.selectedItinerary?.title)
         }
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .active {
+                Task { await viewModel.refreshTravel(silent: true) }
+            }
+        }
         .enableInteractivePopGesture()
         .trackScreen("Travel Detail")
         // Sheet presentations
@@ -279,11 +285,18 @@ struct TravelDetailView: View {
                 .padding(.bottom, 180)
             }
         }
-        .ignoresSafeArea(edges: .top)
-        .background(Color.appBackground)
         .refreshable {
             await viewModel.refreshTravel()
         }
+        .ignoresSafeArea(edges: .top)
+        .overlay {
+            if viewModel.isRefreshing {
+                RefreshOverlay()
+                    .transition(.opacity)
+            }
+        }
+        .animation(.easeInOut(duration: 0.25), value: viewModel.isRefreshing)
+        .background(Color.appBackground)
     }
 
     // MARK: - Info Chips Section (Airbnb style)
@@ -1800,7 +1813,30 @@ struct ActivityDetailSheet: View {
 // MARK: - Comment Row
 struct CommentRow: View {
     let comment: ActivityComment
+    var currentUserId: String? = nil
     let onDelete: () -> Void
+
+    private var attributedContent: AttributedString {
+        var attributed = AttributedString(comment.content)
+        attributed.font = .subheadline
+        attributed.foregroundColor = .primary
+
+        guard let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue) else {
+            return attributed
+        }
+        let nsString = comment.content as NSString
+        let matches = detector.matches(in: comment.content, range: NSRange(location: 0, length: nsString.length))
+        for match in matches {
+            guard let range = Range(match.range, in: comment.content),
+                  let url = match.url else { continue }
+            if let attrRange = Range(range, in: attributed) {
+                attributed[attrRange].link = url
+                attributed[attrRange].foregroundColor = .blue
+                attributed[attrRange].underlineStyle = .single
+            }
+        }
+        return attributed
+    }
 
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
@@ -1818,20 +1854,82 @@ struct CommentRow: View {
                         .foregroundStyle(.tertiary)
                 }
 
-                Text(comment.content)
-                    .font(.subheadline)
-                    .foregroundStyle(.primary)
+                Text(attributedContent)
+
+                if let linkUrl = comment.linkUrl, let url = URL(string: linkUrl) {
+                    LinkPreviewCard(
+                        url: url,
+                        title: comment.linkTitle,
+                        imageUrl: comment.linkImageUrl
+                    )
+                }
             }
         }
         .padding(12)
         .background(Color(.secondarySystemBackground))
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .contextMenu {
+            Button {
+                UIPasteboard.general.string = comment.content
+            } label: {
+                Label("Copy", systemImage: "doc.on.doc")
+            }
+
             Button(role: .destructive) {
                 onDelete()
             } label: {
                 Label("Delete", systemImage: "trash")
             }
+        }
+    }
+}
+
+// MARK: - Link Preview Card
+struct LinkPreviewCard: View {
+    let url: URL
+    let title: String?
+    let imageUrl: String?
+
+    private var domain: String {
+        url.host ?? url.absoluteString
+    }
+
+    var body: some View {
+        Link(destination: url) {
+            HStack(spacing: 10) {
+                if let imageUrlString = imageUrl, let imgUrl = URL(string: imageUrlString) {
+                    CachedAsyncImage(url: imgUrl, contentMode: .fill)
+                        .frame(width: 60, height: 60)
+                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                } else {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .fill(Color(.tertiarySystemBackground))
+                        Image(systemName: "link")
+                            .font(.title3)
+                            .foregroundStyle(.secondary)
+                    }
+                    .frame(width: 60, height: 60)
+                }
+
+                VStack(alignment: .leading, spacing: 3) {
+                    if let title, !title.isEmpty {
+                        Text(title)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.primary)
+                            .lineLimit(2)
+                    }
+                    Text(domain)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+
+                Spacer(minLength: 0)
+            }
+            .padding(8)
+            .background(Color(.tertiarySystemBackground))
+            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
         }
     }
 }
