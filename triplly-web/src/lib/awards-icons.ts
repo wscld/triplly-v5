@@ -10,6 +10,7 @@ import {
   ClipboardList,
   Zap,
   MessageCircle,
+  ListChecks,
   Award,
   type LucideIcon,
 } from "lucide-react";
@@ -27,27 +28,9 @@ const sfSymbolToLucide: Record<string, LucideIcon> = {
   "list.clipboard": ClipboardList,
   "bolt.fill": Zap,
   "text.bubble": MessageCircle,
+  "checklist.checked": ListChecks,
 };
 
 export function getAwardIcon(sfSymbolName: string): LucideIcon {
   return sfSymbolToLucide[sfSymbolName] ?? Award;
-}
-
-/** Award IDs that have custom badge images in /public/badges/ */
-const badgeImages: Set<string> = new Set([
-  "first-steps",
-  "solo-adventurer",
-  "squad-goals",
-  "checklister",
-  "globetrotter",
-  "lone-wolf",
-]);
-
-/**
- * Returns the path to a custom badge image for the given award ID,
- * or null if no custom image exists (falls back to icon).
- */
-export function getBadgeImagePath(awardId: string): string | null {
-  const slug = awardId.replaceAll("_", "-");
-  return badgeImages.has(slug) ? `/badges/${slug}.png` : null;
 }
