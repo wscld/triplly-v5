@@ -76,6 +76,9 @@ final class AppState: ObservableObject {
 
         guard let token = keychainManager.getToken() else {
             isAuthenticated = false
+            if !hasCompletedOnboarding {
+                showOnboarding = true
+            }
             return
         }
 
@@ -86,11 +89,6 @@ final class AppState: ObservableObject {
             self.currentUser = user
             self.isAuthenticated = true
             Himetrica.shared.identify(name: user.name, email: user.email)
-
-            // Show onboarding if first time after authentication
-            if !hasCompletedOnboarding {
-                showOnboarding = true
-            }
         } catch {
             // Token is invalid, clear it
             keychainManager.deleteToken()

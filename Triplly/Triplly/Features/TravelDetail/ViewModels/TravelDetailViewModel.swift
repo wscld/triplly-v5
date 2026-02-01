@@ -13,6 +13,7 @@ final class TravelDetailViewModel: ObservableObject {
     private var checkInIdsByActivityId: [String: String] = [:] // activityId -> checkInId
 
     @Published var isLoading = false
+    @Published var isRefreshing = false
     @Published var error: Error?
 
     @Published var selectedItineraryIndex = 0
@@ -228,11 +229,20 @@ final class TravelDetailViewModel: ObservableObject {
     }
 
     func refreshTravel() async {
+        isRefreshing = true
         do {
-            travel = try await apiClient.getTravel(id: travelId)
+            let fetchedTravel = try await apiClient.getTravel(id: travelId)
+            travel = fetchedTravel
+
+            async let membersTask: () = loadMembers()
+            async let todosTask: () = loadTodos()
+            async let wishlistTask: () = loadWishlist()
+            async let checkInsTask: () = loadCheckIns()
+            _ = await (membersTask, todosTask, wishlistTask, checkInsTask)
         } catch {
             // Silent fail
         }
+        isRefreshing = false
     }
 
     // MARK: - Update Travel

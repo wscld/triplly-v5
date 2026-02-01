@@ -48,7 +48,6 @@ struct AwardBadgeView: View {
                     .frame(width: 48, height: 48)
                     .background(colors.background)
                     .clipShape(Circle())
-                    .shadow(color: .black.opacity(0.06), radius: 4, y: 2)
 
                 Text(award.name)
                     .font(.system(size: 10, weight: .medium, design: .rounded))

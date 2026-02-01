@@ -43,7 +43,7 @@ export function AwardsSection({ awards }: AwardsSectionProps) {
               className="flex flex-col items-center gap-1.5"
               title={award.description}
             >
-              <div className={`flex h-11 w-11 items-center justify-center rounded-full shadow-sm ${colors.bg}`}>
+              <div className={`flex h-11 w-11 items-center justify-center rounded-full ${colors.bg}`}>
                 <Icon className={`h-5 w-5 ${colors.text}`} />
               </div>
               <span className="w-16 text-center text-[10px] font-medium leading-tight text-gray-500">

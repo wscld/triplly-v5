@@ -165,9 +165,6 @@ struct TravelDetailView: View {
         .task {
             await viewModel.loadTravel()
         }
-        .refreshable {
-            await viewModel.loadTravel()
-        }
         .onViewLifecycle(didAppear: {
             appState.currentTravelDetailViewModel = viewModel
             appState.showMap(
@@ -256,6 +253,12 @@ struct TravelDetailView: View {
                 .frame(height: 420)
                 .padding(EdgeInsets(top: 8, leading: 8, bottom: 0, trailing: 8))
 
+                // Refresh indicator
+                if viewModel.isRefreshing {
+                    RefreshIndicator()
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                }
+
                 // Content
                 VStack(spacing: 20) {
                     // Info chips row
@@ -284,6 +287,9 @@ struct TravelDetailView: View {
         }
         .ignoresSafeArea(edges: .top)
         .background(Color.appBackground)
+        .refreshable {
+            await viewModel.refreshTravel()
+        }
     }
 
     // MARK: - Info Chips Section (Airbnb style)
@@ -420,7 +426,6 @@ struct TravelDetailView: View {
                             viewModel.selectedItineraryIndex = index
                         }
                     }
-                    .opacity(draggedItinerary?.id == itinerary.id ? 0.5 : 1)
                     .onDrag {
                         draggedItinerary = itinerary
                         return NSItemProvider(object: itinerary.id as NSString)
@@ -447,6 +452,13 @@ struct TravelDetailView: View {
                         } label: {
                             Label("Delete Day", systemImage: "trash")
                         }
+                    } preview: {
+                        DayChip(itinerary: itinerary, dayNumber: index + 1, isSelected: index == viewModel.selectedItineraryIndex) {}
+                            .padding()
+                            .onAppear {
+                                draggedItinerary = nil
+                                targetItineraryId = nil
+                            }
                     }
                 }
                 .padding(.vertical, 12)

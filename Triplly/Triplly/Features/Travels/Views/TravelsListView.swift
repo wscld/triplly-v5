@@ -43,6 +43,13 @@ struct TravelsListView: View {
                     .padding(.bottom, 8)
                     .background(Color.appBackground)
                     .contentShape(Rectangle())
+                    .zIndex(1)
+
+                // Refresh indicator
+                if viewModel.isRefreshing {
+                    RefreshIndicator()
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                }
 
                 // Content
                 if viewModel.isLoading && viewModel.travels.isEmpty {
@@ -324,6 +331,7 @@ struct TravelsListView: View {
         } label: {
             TravelCard(travel: travel)
                 .padding(.horizontal)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .contextMenu {

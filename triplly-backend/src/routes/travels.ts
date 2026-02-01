@@ -138,7 +138,16 @@ travels.post('/', zValidator('json', createTravelSchema), async (c) => {
         await itineraryRepo.save(itineraries);
     }
 
-    return c.json(travel, 201);
+    // Reload with owner relation so the response includes owner { id, name }
+    const fullTravel = await travelRepo.findOne({
+        where: { id: travel.id },
+        relations: ['owner'],
+    });
+
+    return c.json({
+        ...fullTravel,
+        owner: { id: fullTravel!.owner.id, name: fullTravel!.owner.name },
+    }, 201);
 });
 
 // GET /travels/:travelId - Get travel details

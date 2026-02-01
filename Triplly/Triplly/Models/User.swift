@@ -26,8 +26,8 @@ extension User {
         profilePhotoUrl: nil,
         createdAt: ISO8601DateFormatter().string(from: Date()),
         awards: [
-            Award(id: "first_steps", name: "First Steps", icon: "figure.walk", description: "Every journey begins with a single step"),
-            Award(id: "solo_adventurer", name: "Solo Adventurer", icon: "person.fill", description: "Brave enough to explore alone"),
+            Award(id: "first_steps", name: "First Steps", icon: "figure.walk", description: "Every journey begins with a single step", color: "blue"),
+            Award(id: "solo_adventurer", name: "Solo Adventurer", icon: "person.fill", description: "Brave enough to explore alone", color: "purple"),
         ]
     )
 }
